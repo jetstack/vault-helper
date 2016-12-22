@@ -102,7 +102,7 @@ function cert_prepare {
 function cert_key_csr {
     if [ ! -f "${VAULT_CERT_KEY_PATH}" ] || [ ! -f "${VAULT_CERT_CSR_PATH}" ]; then
         rm -f "${VAULT_CERT_KEY_PATH}" "${VAULT_CERT_CSR_PATH}"
-        openssl req -nodes -newkey ${VAULT_CERT_TYPE}:${VAULT_CERT_BITS} -keyout "${VAULT_CERT_KEY_PATH}" -out "${VAULT_CERT_CSR_PATH}" -subj "${VAULT_CERT_CN}"
+        openssl req -nodes -newkey "${VAULT_CERT_TYPE}:${VAULT_CERT_BITS}" -keyout "${VAULT_CERT_KEY_PATH}" -out "${VAULT_CERT_CSR_PATH}" -subj "/CN=${VAULT_CERT_CN}"
         chmod 600 "${VAULT_CERT_KEY_PATH}"
         chmod 644 "${VAULT_CERT_CSR_PATH}"
         chown "${VAULT_CERT_OWNER}" "${VAULT_CERT_KEY_PATH}" "${VAULT_CERT_CSR_PATH}"
