@@ -17,6 +17,8 @@ ADD vault-setup /usr/local/bin/vault-setup
 
 ENV VAULT_ADDR=http://127.0.0.1:8200
 
+EXPOSE 8200
+
 ENTRYPOINT ["/usr/local/bin/vault-helper"]
 
 CMD ["dev-server"]
