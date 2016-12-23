@@ -73,6 +73,10 @@ describe "docker image" do
     $server.url
   end
 
+  let :environment do
+    []
+  end
+
   let (:container) do
       container = Docker::Container.create(
         'Image' => image.id,
@@ -111,6 +115,22 @@ describe "docker image" do
       store = OpenSSL::X509::Store.new
       store.add_cert ca
       expect(store.verify(cert)).to eq(true), "Certificate is not being verified by CA"
+    end
+  end
+
+  describe "read" do
+    let :cmd do
+      [
+          'read',
+          'cluster1/secrets/service-accounts',
+          'key',
+          '/tmp/test',
+      ]
+    end
+
+    it "retrieves service account token" do
+      expect(container.wait['StatusCode']).to eq(0), "expected successful execute: error stdout=#{container.logs(stdout: true)} stderr=#{container.logs(stderr: true)}"
+      OpenSSL::PKey.read container.read_file('/tmp/test')
     end
   end
 end
