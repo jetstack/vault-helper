@@ -94,6 +94,7 @@ function cert_prepare {
     fi
     VAULT_CERT_KEY_PATH="${1}-key.pem"
     VAULT_CERT_CSR_PATH="${1}-csr.pem"
+    VAULT_CA_PATH="${1}-ca.pem"
     VAULT_CERT_PATH="${1}.pem"
     VAULT_CERT_BASE_PATH=$(dirname "{1}")
     mkdir -p "${VAULT_CERT_BASE_PATH}"
@@ -118,9 +119,17 @@ function cert_sign {
     if [ ! -z "${VAULT_CERT_IP_SANS}" ]; then
         ARGS="${ARGS} ip_sans=${VAULT_CERT_IP_SANS}"
     fi
-    vault write --field certificate "${VAULT_CERT_ROLE}" ${ARGS} csr="$(cat "${VAULT_CERT_CSR_PATH}")" > "${VAULT_CERT_PATH}"
-    chmod 644 "${VAULT_CERT_PATH}"
-    chown "${VAULT_CERT_OWNER}" "${VAULT_CERT_PATH}"
+    RESPONSE=$(vault write -format=json "${VAULT_CERT_ROLE}" ${ARGS} "csr=@${VAULT_CERT_CSR_PATH}")
+    echo "${RESPONSE}" | jq -r '.data.certificate' > "${VAULT_CERT_PATH}"
+
+    CA_CERT=$(echo "${RESPONSE}" | jq -r '.data.ca_chain')
+    if [ ${#CA_CERT} -lt 10 ]; then
+        CA_CERT=$(echo "${RESPONSE}" | jq -r '.data.issuing_ca')
+    fi
+
+    echo "${CA_CERT}" > "${VAULT_CA_PATH}"
+    chmod 644 "${VAULT_CERT_PATH}" "${VAULT_CA_PATH}"
+    chown "${VAULT_CERT_OWNER}" "${VAULT_CERT_PATH}" "${VAULT_CA_PATH}"
 }
 
 function dev_server {
