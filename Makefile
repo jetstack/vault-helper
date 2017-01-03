@@ -9,4 +9,4 @@ push: build test
 
 test:
 	bundle install
-	bundle exec rake spec
+	bundle exec rake
