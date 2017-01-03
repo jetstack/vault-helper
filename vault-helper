@@ -20,6 +20,14 @@ function config {
         VAULT_TOKEN=$(cat ${TOKEN_FILE})
         export VAULT_TOKEN
     fi
+    wait
+}
+
+function wait {
+    until vault token-lookup -format json > /dev/null; do
+        echo "Connection to vault failed - waiting to try again..";
+        sleep 1;
+    done
 }
 
 function token_new {
@@ -46,6 +54,8 @@ function token_new {
     # get initial token
     VAULT_TOKEN=$(cat ${INIT_TOKEN_FILE})
     export VAULT_TOKEN
+
+    wait
 
     # renew initial token
     token_renew
