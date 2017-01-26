@@ -1,12 +1,17 @@
-IMAGE := jetstackexperimental/vault-helper
-IMAGE_TAG := 0.1
+REGISTRY := jetstackexperimental
+IMAGE_NAME := vault-helper
+IMAGE_TAGS := canary
+BUILD_TAG := build
 
-build:
-	docker build -t $(IMAGE):$(IMAGE_TAG) .
+image:
+	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
 
-push: build test
-	docker push $(IMAGE):$(IMAGE_TAG)
+push: image
+	set -e; \
+	for tag in $(IMAGE_TAGS); do \
+		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
+		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
+	done
 
 test:
-	bundle install
-	bundle exec rake
+	docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(CURDIR):/code --workdir /code ruby:2.3 bash -c "bundle install && bundle exec rake"

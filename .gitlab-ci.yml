@@ -1,0 +1,37 @@
+variables:
+  DOCKER_DRIVER: overlay
+
+stages:
+- docker
+
+docker:image:
+  image: docker:latest
+  stage: docker
+  tags:
+  - docker
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make image test push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
+  only:
+  - master
+  except:
+  - tags
+  services:
+  - docker:dind
+
+docker:image_tagged:
+  image: docker:latest
+  stage: docker
+  tags:
+  - docker
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make image test push IMAGE_TAGS="${CI_BUILD_TAG} latest"
+  only:
+  - tags
+  except:
+  - master
+  services:
+  - docker:dind
