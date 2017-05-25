@@ -13,7 +13,7 @@ VAULT_CERT_OWNER=${VAULT_CERT_OWNER:-root:root}
 
 function config {
     source $CONFIG_FILE
-    export VAULT_ADDR
+    export VAULT_ADDR VAULT_CACERT
     if [ ! -f ${TOKEN_FILE} ]; then
         token_new
     else
