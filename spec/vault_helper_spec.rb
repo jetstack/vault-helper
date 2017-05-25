@@ -1,6 +1,7 @@
 require 'openssl'
-require "docker"
+require 'docker'
 require 'logger'
+require 'net/http'
 
 $logger = Logger.new(STDERR)
 $logger.level = Logger::DEBUG
