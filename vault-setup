@@ -3,7 +3,7 @@
 set -e
 # set -x
 
-COMPONENTS="etcd-k8s etcd-events etcd-overlay k8s"
+COMPONENTS="etcd-k8s etcd-overlay k8s"
 BASE_PATH="${CLUSTER_ID}/pki"
 VAULT_INIT_TOKEN_MASTER=${VAULT_INIT_TOKEN_MASTER:-init-token-master}
 VAULT_INIT_TOKEN_WORKER=${VAULT_INIT_TOKEN_WORKER:-init-token-worker}
@@ -60,7 +60,8 @@ for component in ${COMPONENTS}; do
         vault write "${path}/roles/kube-apiserver" \
             allow_localhost=true \
             allow_any_name=true \
-            allow_bare_domains=true \
+            use_csr_common_name=false \
+            use_csr_sans=false \
             allow_ip_sans=true \
             server_flag=true \
             client_flag=true \
@@ -91,7 +92,7 @@ path \"${BASE_PATH}/${cert_role}\" {
     fi
 
     if [[ "${role}" == "master" ]]; then
-        for cert_role in k8s/sign/kube-apiserver k8s/sign/kube-scheduler k8s/sign/kube-controller-manager etcd-k8s/sign/client etcd-events/sign/client; do
+        for cert_role in k8s/sign/kube-apiserver k8s/sign/kube-scheduler k8s/sign/kube-controller-manager etcd-k8s/sign/client; do
             policy="${policy}
 path \"${BASE_PATH}/${cert_role}\" {
     capabilities = [\"create\",\"read\",\"update\"]
@@ -106,7 +107,7 @@ path \"${secrets_path}/service-accounts\" {
     fi
 
     if [[ "${role}" == "etcd" ]]; then
-        for cert_role in etcd-k8s/sign/server etcd-events/sign/server etcd-overlay/sign/server; do
+        for cert_role in etcd-k8s/sign/server etcd-overlay/sign/server; do
             policy="${policy}
 path \"${BASE_PATH}/${cert_role}\" {
     capabilities = [\"create\",\"read\",\"update\"]
