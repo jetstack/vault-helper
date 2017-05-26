@@ -92,32 +92,72 @@ describe "docker image" do
   end
 
   describe "cert" do
-    let :cmd do
-      [
+    context "with cn only" do
+      let :cmd do
+        [
           'cert',
           '/tmp/test',
-      ]
-    end
+        ]
+      end
 
-    let :environment do
-      [
+      let :environment do
+        [
           'VAULT_CERT_CN=kube-apiserver',
           'VAULT_CERT_ROLE=cluster1/pki/k8s/sign/kube-apiserver',
-      ]
+        ]
+      end
+
+      it "retrieves valid certificate" do
+        expect(container.wait['StatusCode']).to eq(0), "expected successful execute: error stdout=#{container.logs(stdout: true)} stderr=#{container.logs(stderr: true)}"
+        cert = OpenSSL::X509::Certificate.new container.read_file('/tmp/test.pem')
+        key = OpenSSL::PKey::RSA.new container.read_file('/tmp/test-key.pem')
+        expect(cert.check_private_key(key)).to eq(true), "Certificate is not matching key"
+
+        ca = OpenSSL::X509::Certificate.new container.read_file('/tmp/test-ca.pem')
+        store = OpenSSL::X509::Store.new
+        store.add_cert ca
+        expect(store.verify(cert)).to eq(true), "Certificate is not being verified by CA"
+      end
     end
 
-    it "retrieves certificate with SANs" do
-      expect(container.wait['StatusCode']).to eq(0), "expected successful execute: error stdout=#{container.logs(stdout: true)} stderr=#{container.logs(stderr: true)}"
-      cert = OpenSSL::X509::Certificate.new container.read_file('/tmp/test.pem')
-      key = OpenSSL::PKey::RSA.new container.read_file('/tmp/test-key.pem')
-      expect(cert.check_private_key(key)).to eq(true), "Certificate is not matching key"
+    context "with SANs" do
+      let :cmd do
+        [
+          'cert',
+          '/tmp/test2',
+        ]
+      end
 
-      ca = OpenSSL::X509::Certificate.new container.read_file('/tmp/test-ca.pem')
-      store = OpenSSL::X509::Store.new
-      store.add_cert ca
-      expect(store.verify(cert)).to eq(true), "Certificate is not being verified by CA"
+      let :environment do
+        [
+          'VAULT_CERT_CN=kube-test',
+          'VAULT_CERT_ROLE=cluster1/pki/k8s/sign/kube-apiserver',
+          'VAULT_CERT_IP_SANS=1.2.3.4',
+          'VAULT_CERT_ALT_NAMES=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local',
+        ]
+      end
+
+      it "retrieves valid certificate" do
+        expect(container.wait['StatusCode']).to eq(0), "expected successful execute: error stdout=#{container.logs(stdout: true)} stderr=#{container.logs(stderr: true)}"
+        cert = OpenSSL::X509::Certificate.new container.read_file('/tmp/test2.pem')
+        key = OpenSSL::PKey::RSA.new container.read_file('/tmp/test2-key.pem')
+        expect(cert.check_private_key(key)).to eq(true), "Certificate is not matching key"
+
+        ca = OpenSSL::X509::Certificate.new container.read_file('/tmp/test2-ca.pem')
+        store = OpenSSL::X509::Store.new
+        store.add_cert ca
+        expect(store.verify(cert)).to eq(true), "Certificate is not being verified by CA"
+
+        subject_alt_name = cert.extensions.find {|e| e.oid == "subjectAltName"}
+
+        names = subject_alt_name.value.split(', ')
+        expect(names).to include('DNS:kubernetes.default')
+        expect(names).to include('DNS:kubernetes')
+        expect(names).to include('IP Address:1.2.3.4')
+      end
     end
   end
+
 
   describe "read" do
     let :cmd do
