@@ -210,7 +210,7 @@ EOF
       -ttl="8760h" \
       -period="8760h" \
       -policy="${policy_name}-creator" > /dev/null
-    )
+
     ${VAULT_CMD} write "${secrets_path}/init-token-${role}" "init_token=${init_token}" > /dev/null
   fi
   # print out init tokens - format TBC
