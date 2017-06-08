@@ -73,6 +73,39 @@ function token_new {
     echo "" > ${INIT_TOKEN_FILE}
 }
 
+function kubeconfig {
+	VAULT_CERT_KEY_BASE64=$(openssl enc -base64 -A < "${1}-key.pem")
+	VAULT_CA_BASE64=$(openssl enc -base64 -A       < "${1}-ca.pem")
+	VAULT_CERT_BASE64=$(openssl enc -base64 -A     < "${1}.pem")
+
+	cat << EOF > $1
+---
+current-context: ${CLUSTER_ID}
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    api-version: v1
+    server: ${CLUSTER_API_URL}
+    certificate-authority-data: ${VAULT_CA_BASE64}
+  name: ${CLUSTER_ID}
+contexts:
+- context:
+    cluster: ${CLUSTER_ID}
+    namespace: kube-system
+    user: ${CLUSTER_ID}
+  name: ${CLUSTER_ID}
+users:
+- name: ${CLUSTER_ID}
+  user:
+    client-certificate-data: ${VAULT_CERT_BASE64}
+    client-key-data: ${VAULT_CERT_KEY_BASE64}
+EOF
+    chmod 600 "${1}"
+    chown "${VAULT_CERT_OWNER}" "${1}"
+
+}
+
 function token_renew {
     if [ "$(vault token-lookup -format=json | jq -r '.data.renewable')" == "false" ]; then
         (>&2 echo "Skip token-renew as token is not refreshable")
@@ -180,6 +213,14 @@ case "$1" in
         shift
         read "$@"
         ;;
+    kubeconfig)
+        config
+        shift
+        cert_prepare "$1"
+        cert_key_csr
+        cert_sign
+        kubeconfig "$1"
+        ;;
     cert)
         config
         shift
@@ -188,6 +229,6 @@ case "$1" in
         cert_sign
         ;;
     *)
-        echo "Usage: $0 {cert|exec|status|token-renew}"
+        echo "Usage: $0 {cert|kubeconfig|exec|status|token-renew}"
         exit 1
 esac
