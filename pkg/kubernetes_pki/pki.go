@@ -48,6 +48,21 @@ func GetMountByPath(vaultClient *vault.Client, mountPath string) (*vault.MountOu
 	return mount, nil
 }
 
+func (p *PKI) getDefaultLeaseTTL() string {
+	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds()))
+}
+
+func (p *PKI) getMaxLeaseTTL() string {
+	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
+}
+
+func (p *PKI) getMountConfigInput() vault.MountConfigInput {
+	return vault.MountConfigInput{
+		DefaultLeaseTTL: p.getDefaultLeaseTTL(),
+		MaxLeaseTTL:     p.getMaxLeaseTTL(),
+	}
+}
+
 func (p *PKI) Ensure() error {
 
 	mount, err := GetMountByPath(p.vaultClient, p.path)
@@ -61,10 +76,7 @@ func (p *PKI) Ensure() error {
 			&vault.MountInput{
 				Description: p.Description,
 				Type:        "pki",
-				Config: vault.MountConfigInput{
-					DefaultLeaseTTL: fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds())),
-					MaxLeaseTTL:     fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds())),
-				},
+				Config:      p.getMountConfigInput(),
 			},
 		)
 		if err != nil {
@@ -77,28 +89,26 @@ func (p *PKI) Ensure() error {
 			return fmt.Errorf("mount '%s' already existing with wrong type '%s'", p.path, mount.Type)
 		}
 		if mount.Description != p.Description {
-			// TODO
-			p.log.Info("TODO: update description")
+			return fmt.Errorf("update description unimplemented")
 		}
 	}
 
-	mountInfo, err := p.vaultClient.Sys().MountConfig(p.path)
-	if err != nil {
-		// TODO: Create if not existing
-		return err
+	tuneMountRequired := false
+
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+		tuneMountRequired = true
+	}
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+		tuneMountRequired = true
 	}
 
-	updateMountConfig := false
-
-	if mountInfo.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
-		updateMountConfig = true
-	}
-	if mountInfo.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
-		updateMountConfig = true
-	}
-
-	if updateMountConfig {
-		p.log.Info("need to update mountConfig")
+	if tuneMountRequired {
+		mountConfig := p.getMountConfigInput()
+		err := p.vaultClient.Sys().TuneMount(p.path, mountConfig)
+		if err != nil {
+			return fmt.Errorf("error tuning mount config: %s", err.Error())
+		}
+		p.log.Infof("tuned mount config=%+v")
 	}
 
 	return nil

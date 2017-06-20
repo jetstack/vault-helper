@@ -2,6 +2,7 @@ package kubernetes_pki_test
 
 import (
 	"testing"
+	"time"
 
 	vault "github.com/hashicorp/vault/api"
 
@@ -19,14 +20,20 @@ func TestPKI_Ensure(t *testing.T) {
 
 	// should create non existing mount
 	pki := kubernetes_pki.NewPKI(vaultClient, testPath)
+	firstMaxLeaseTTL := 120 * time.Minute
+	pki.MaxLeaseTTL = firstMaxLeaseTTL
+	firstDefaultLeaseTTL := 60 * time.Minute
+	pki.DefaultLeaseTTL = firstDefaultLeaseTTL
 	pki.Description = "first description"
 	if err = pki.Ensure(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
-	// should update description
-	secondDescription := "second description"
-	pki.Description = secondDescription
+	// should max TTL description
+	secondMaxLeaseTTL := 120 * time.Second
+	pki.MaxLeaseTTL = secondMaxLeaseTTL
+	secondDefaultLeaseTTL := 60 * time.Second
+	pki.DefaultLeaseTTL = secondDefaultLeaseTTL
 	if err = pki.Ensure(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -34,7 +41,7 @@ func TestPKI_Ensure(t *testing.T) {
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
-	if exp, act := secondDescription, mount.Description; exp != act {
-		t.Errorf("Did not update description: exp=%s act=%s", exp, act)
+	if exp, act := int(secondMaxLeaseTTL.Seconds()), mount.Config.MaxLeaseTTL; exp != act {
+		t.Errorf("Did not update description: exp=%d act=%d", exp, act)
 	}
 }
