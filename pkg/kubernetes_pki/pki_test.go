@@ -18,6 +18,11 @@ func TestPKI_Ensure(t *testing.T) {
 		t.Skip("Unable to create vault client, skipping integration tests: ", err)
 	}
 
+	_, err = vaultClient.Auth().Token().LookupSelf()
+	if err != nil {
+		t.Skip("Unable to lookup my token, skipping integration tests: ", err)
+	}
+
 	// should create non existing mount
 	pki := kubernetes_pki.NewPKI(vaultClient, testPath)
 	firstMaxLeaseTTL := 120 * time.Minute
