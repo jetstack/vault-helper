@@ -10,7 +10,6 @@ build:golang:
   - docker
   image: golang:1.8
   script:
-  - go build -o
   - rm -rf /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper
   - rm -rf /go/src/gitlab.jetstack.net/jetstack-experimental
   - mkdir -p /go/src/github.com/jetstack
