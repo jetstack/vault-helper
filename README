@@ -1,0 +1,14 @@
+Vault Dev Enviroment - Setup
+----------------------------
+
+Start a development vault server
+$ vault server -dev
+
+Note the root token :
+' Root Token: ########-####-####-####-############# '
+
+Export root token to enviroment variable:
+$ export VAULT_TOKEN=########-####-####-####-############
+
+Export vault address (local) :
+$ export VAULT_ADDR=http://127.0.0.1:8200
