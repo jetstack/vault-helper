@@ -21,6 +21,7 @@ build:golang:
   - go test ./pkg/...
   - go build -o vault-helper-golang
   - mv /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
+  stage: build
 
 docker:image:
   image: docker:latest
