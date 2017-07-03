@@ -11,14 +11,13 @@ build:golang:
   image: golang:1.8
   script:
   - rm -rf /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper
-  - rm -rf /go/src/gitlab.jetstack.net/jetstack-experimental
-  - mkdir -p /go/src/github.com/jetstack
+  - mkdir -p /go/src/gitlab.jetstack.net/jetstack-experimental
   - mv ${CI_PROJECT_DIR} /go/src/gitlab.jetstack.net/jetstack-experimental
   - cd /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
-  - go test ./pkg/...
   - go build -o vault-helper-golang
+  - go test ./pkg/...
   - mv /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
   stage: build
 
