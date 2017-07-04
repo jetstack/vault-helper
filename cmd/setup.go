@@ -64,7 +64,7 @@ var setupCmd = &cobra.Command{
 		)
 
 		if err != nil {
-			logrus.Fatal("Error mounting etcd-k8s:", err)
+			logrus.Fatal("Error tuning etcd-k8s:", err)
 		}
 
 		writeData := map[string]interface{}{
@@ -92,7 +92,7 @@ var setupCmd = &cobra.Command{
 		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
 
 		if err != nil {
-			logrus.Fatal("Error writting data [Client]:", err)
+			logrus.Fatal("Error writting etcd-k8s data [Client]:", err)
 		}
 
 		writeData = map[string]interface{}{
@@ -109,7 +109,7 @@ var setupCmd = &cobra.Command{
 		_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
 
 		if err != nil {
-			logrus.Fatal("Error writting data [Server]:", err)
+			logrus.Fatal("Error writting etcd-k8s data [Server]:", err)
 		}
 
 		/////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ var setupCmd = &cobra.Command{
 		)
 
 		if err != nil {
-			logrus.Fatal("Error mounting etcd-k8s:", err)
+			logrus.Fatal("Error tuning etcd-k8s:", err)
 		}
 
 		writeData = map[string]interface{}{
@@ -161,7 +161,7 @@ var setupCmd = &cobra.Command{
 		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
 
 		if err != nil {
-			logrus.Fatal("Error writting data [Client]:", err)
+			logrus.Fatal("Error writting etcd-overlay data [Client]:", err)
 		}
 
 		writeData = map[string]interface{}{
@@ -178,18 +178,73 @@ var setupCmd = &cobra.Command{
 		_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
 
 		if err != nil {
-			logrus.Fatal("Error writting data [Server]:", err)
+			logrus.Fatal("Error writting etcd-overlay data [Server]:", err)
 		}
 
 		//////////////////////////////////////////////////////////////////////////////
 
-		vaultClient.Sys().Mount(
+		err = vaultClient.Sys().Mount(
 			fmt.Sprintf("%s/pki/k8s/", prefix),
 			&vault.MountInput{
 				Description: fmt.Sprintf("Kubernetes %s/k8s CA", prefix),
 				Type:        "pki",
 			},
 		)
+
+		if err != nil {
+			logrus.Fatal("Error mounting k8s:", err)
+		}
+
+		err = vaultClient.Sys().TuneMount(
+			fmt.Sprintf("%s/pki/k8s/", prefix),
+			vault.MountConfigInput{
+				MaxLeaseTTL: "175320h",
+			},
+		)
+
+		if err != nil {
+			logrus.Fatal("Error tunning k8s:", err)
+		}
+
+		writeData = map[string]interface{}{
+			"common_name": fmt.Sprintf("Kubernetes %s/k8s CA", prefix),
+			"ttl":         "175320h",
+		}
+
+		_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
+
+		if err != nil {
+			logrus.Fatal("Error writting k8s data:", err)
+		}
+
+		writeData = map[string]interface{}{
+			"use_csr_common_name": false,
+			"enforce_hostname":    false,
+			"organization":        "system:masters",
+			"allowed_domains":     "admin",
+			"allow_bare_domains":  true,
+			"allow_localhose":     false,
+			"allow_subdomains":    false,
+			"allow_ip_sans":       false,
+			"server_flag":         false,
+			"client_flag":         true,
+			"max_ttl":             "8766h",
+			"ttl":                 "8766h",
+		}
+
+		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
+
+		if err != nil {
+			logrus.Fatal("Error writting k8s data [Client]:", err)
+		}
+
+		roles := []string{"kube-scheduler", "kube-controller-manager", "kube-proxy"}
+
+		// nums := []int{2, 3, 4}
+		// sum := 0
+		// for _, num := range nums {
+		//     sum += num
+		// }
 
 		///////////////////////////////////////////////////////////////////////////
 
