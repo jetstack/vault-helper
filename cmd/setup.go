@@ -40,213 +40,191 @@ var setupCmd = &cobra.Command{
 
 		clusterID := prefix
 		basePath := clusterID + "/pki"
-		path := basePath + "/" + "etcd-k8s"
+		path := ""
+		components := []string{"etcd-k8s", "etcd-overlay", "k8s"}
+		var description string
+		var writeData map[string]interface{}
 
-		// TODO read env vars and populate
+		for _, component := range components {
+			path = basePath + "/" + component
+			description = "Kubernetes " + clusterID + "/" + component + " CA"
 
-		err = vaultClient.Sys().Mount(
-			fmt.Sprintf("%s/pki/etcd-k8s/", prefix),
-			&vault.MountInput{
-				Description: fmt.Sprintf("Kubernetes %s/etcd-k8s CA", prefix),
-				Type:        "pki",
-			},
-		)
+			logrus.Infof("Mounting component %s ...", component)
+			err = vaultClient.Sys().Mount(
+				fmt.Sprintf("%s/pki/"+component+"/", clusterID),
+				&vault.MountInput{
+					Description: description,
+					Type:        "pki",
+				},
+			)
 
-		if err != nil {
-			logrus.Fatal("Error mounting etcd-k8s:", err)
+			if err != nil {
+				logrus.Fatal("Error mounting "+component+":", err)
+			}
+			logrus.Infof("Mounting component %s success", component)
+
+			logrus.Infof("Tuning Mount %s ...", component)
+			err = vaultClient.Sys().TuneMount(
+				fmt.Sprintf("%s/pki/"+component+"/", clusterID),
+				vault.MountConfigInput{
+					MaxLeaseTTL: "175320h",
+				},
+			)
+
+			if err != nil {
+				logrus.Fatal("Error tuning "+component+":", err)
+			}
+			logrus.Infof("Tuning Mount %s success", component)
+
+			if component == "k8s" {
+				writeData = map[string]interface{}{
+					"common_name": fmt.Sprintf("Kubernetes %s/k8s CA", clusterID),
+					"ttl":         "175320h",
+				}
+
+				_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting "+component+" data:", err)
+				}
+
+				writeData = map[string]interface{}{
+					"use_csr_common_name": false,
+					"enforce_hostnames":   false,
+					"organization":        "system:masters",
+					"allowed_domains":     "admin",
+					"allow_bare_domains":  true,
+					"allow_localhost":     false,
+					"allow_subdomains":    false,
+					"allow_ip_sans":       false,
+					"server_flag":         false,
+					"client_flag":         true,
+					"max_ttl":             "8766h",
+					"ttl":                 "8766h",
+				}
+
+				logrus.Infof("Writting data %s ...", component)
+				_, err = vaultClient.Logical().Write(path+"/roles/admin", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting k8s data [Admin]:", err)
+				}
+				logrus.Infof("Writting data %s success", component)
+
+				roles := []string{"kube-scheduler", "kube-controller-manager", "kube-proxy"}
+
+				for _, role := range roles {
+					writeData = map[string]interface{}{
+						"use_csr_common_name": false,
+						"enforce_hostnames":   false,
+						"allowed_domains":     role + ",system:" + role,
+						"allow_bare_domains":  true,
+						"allow_localhost":     false,
+						"allow_subdomains":    false,
+						"allow_ip_sans":       false,
+						"server_flag":         false,
+						"client_flag":         true,
+						"max_ttl":             "8766h",
+						"ttl":                 "8766h",
+					}
+
+					logrus.Infof("Writting role data %s-%s ...", component, role)
+					_, err = vaultClient.Logical().Write(path+"/roles/"+role, writeData)
+
+					if err != nil {
+						logrus.Fatal("Error writting k8s role:"+role+" data", err)
+					}
+					logrus.Infof("Writting role data %s-%s success", component, role)
+
+				}
+
+				writeData = map[string]interface{}{
+					"use_csr_common_name": false,
+					"use_csr_sans":        false,
+					"enforce_hostnames":   false,
+					"organization":        "system:nodes",
+					"allowed_domains":     "kubelet,system:node,system:node:*",
+					"allow_bare_domains":  true,
+					"allow_glob_domains":  true,
+					"allow_localhost":     false,
+					"allow_subdomains":    false,
+					"server_flag":         true,
+					"client_flag":         true,
+					"max_ttl":             "8766h",
+					"ttl":                 "8766h",
+				}
+
+				logrus.Infof("Writting role data %s-kubelet ...", component)
+				_, err = vaultClient.Logical().Write(path+"/roles/kubelet", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting k8s data [Kublet]:", err)
+				}
+				logrus.Infof("Writting role data %s-kubelet success", component)
+
+				writeData = map[string]interface{}{
+					"use_csr_common_name": false,
+					"use_csr_sans":        false,
+					"enforce_hostnames":   false,
+					"allow_localhost":     true,
+					"allow_any_name":      true,
+					"allow_bare_domains":  true,
+					"allow_ip_sans":       true,
+					"server_flag":         true,
+					"client_flag":         false,
+					"max_ttl":             "8766h",
+					"ttl":                 "8766h",
+				}
+
+				logrus.Infof("Writting role data %s-kube-apiserver ...", component)
+				_, err = vaultClient.Logical().Write(path+"/roles/kube-apiserver", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting k8s data [Kublet]:", err)
+				}
+				logrus.Infof("Writting role data %s-kube-apiserver success", component)
+
+			} else {
+				writeData = map[string]interface{}{
+					"use_csr_common_name": false,
+					"allow_any_name":      true,
+					"max_ttl":             "720h",
+					"ttl":                 "720h",
+					"allow_ip_sans":       "true",
+					"server_flag":         "true",
+					"client_flag":         "true",
+				}
+				logrus.Infof("Writting role data %s-[Client] ...", component)
+
+				_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting "+component+" data [Client]:", err)
+				}
+				logrus.Infof("Writting role data %s-[Client] success", component)
+
+				writeData = map[string]interface{}{
+					"use_csr_common_name": false,
+					"use_csr_sans":        false,
+					"allow_any_name":      true,
+					"max_ttl":             "720h",
+					"ttl":                 "720h",
+					"allow_ip_sans":       "true",
+					"server_flag":         "true",
+					"client_flag":         "true",
+				}
+				logrus.Infof("Writting role data %s-[Server] ...", component)
+
+				_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
+
+				if err != nil {
+					logrus.Fatal("Error writting "+component+" data [Server]:", err)
+				}
+				logrus.Infof("Writting role data %s-[Server] success", component)
+
+			}
+
 		}
-
-		err = vaultClient.Sys().TuneMount(
-			fmt.Sprintf("%s/pki/etcd-k8s/", prefix),
-			vault.MountConfigInput{
-				MaxLeaseTTL: "175320h",
-			},
-		)
-
-		if err != nil {
-			logrus.Fatal("Error tuning etcd-k8s:", err)
-		}
-
-		writeData := map[string]interface{}{
-			"common_name": fmt.Sprintf("Kubernetes %s/etcd-k8s CA", prefix),
-			"ttl":         "175320h",
-			"max_ttl":     "175320h",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-k8s data:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"use_csr_common_name": false,
-			"allow_any_name":      true,
-			"max_ttl":             "720h",
-			"ttl":                 "720h",
-			"allow_ip_sans":       "true",
-			"server_flag":         "true",
-			"client_flag":         "true",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-k8s data [Client]:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"use_csr_common_name": false,
-			"use_csr_sans":        false,
-			"allow_any_name":      true,
-			"max_ttl":             "720h",
-			"ttl":                 "720h",
-			"allow_ip_sans":       "true",
-			"server_flag":         "true",
-			"client_flag":         "true",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-k8s data [Server]:", err)
-		}
-
-		/////////////////////////////////////////////////////////////////
-
-		err = vaultClient.Sys().Mount(
-			fmt.Sprintf("%s/pki/etcd-overlay/", prefix),
-			&vault.MountInput{
-				Description: "Kubernetes %s/etcd-overlay CA",
-				Type:        "pki",
-			},
-		)
-
-		if err != nil {
-			logrus.Fatal("Error mounting etcd-overlay:", err)
-		}
-
-		err = vaultClient.Sys().TuneMount(
-			fmt.Sprintf("%s/pki/etcd-k8s/", prefix),
-			vault.MountConfigInput{
-				MaxLeaseTTL: "175320h",
-			},
-		)
-
-		if err != nil {
-			logrus.Fatal("Error tuning etcd-k8s:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"common_name": fmt.Sprintf("Kubernetes %s/etcd-overlay CA", prefix),
-			"ttl":         "175320h",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-overlay data:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"use_csr_common_name": false,
-			"allow_any_name":      true,
-			"max_ttl":             "720h",
-			"ttl":                 "720h",
-			"allow_ip_sans":       "true",
-			"server_flag":         "true",
-			"client_flag":         "true",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-overlay data [Client]:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"use_csr_common_name": false,
-			"use_csr_sans":        false,
-			"allow_any_name":      true,
-			"max_ttl":             "720h",
-			"ttl":                 "720h",
-			"allow_ip_sans":       "true",
-			"server_flag":         "true",
-			"client_flag":         "true",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting etcd-overlay data [Server]:", err)
-		}
-
-		//////////////////////////////////////////////////////////////////////////////
-
-		err = vaultClient.Sys().Mount(
-			fmt.Sprintf("%s/pki/k8s/", prefix),
-			&vault.MountInput{
-				Description: fmt.Sprintf("Kubernetes %s/k8s CA", prefix),
-				Type:        "pki",
-			},
-		)
-
-		if err != nil {
-			logrus.Fatal("Error mounting k8s:", err)
-		}
-
-		err = vaultClient.Sys().TuneMount(
-			fmt.Sprintf("%s/pki/k8s/", prefix),
-			vault.MountConfigInput{
-				MaxLeaseTTL: "175320h",
-			},
-		)
-
-		if err != nil {
-			logrus.Fatal("Error tunning k8s:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"common_name": fmt.Sprintf("Kubernetes %s/k8s CA", prefix),
-			"ttl":         "175320h",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting k8s data:", err)
-		}
-
-		writeData = map[string]interface{}{
-			"use_csr_common_name": false,
-			"enforce_hostname":    false,
-			"organization":        "system:masters",
-			"allowed_domains":     "admin",
-			"allow_bare_domains":  true,
-			"allow_localhose":     false,
-			"allow_subdomains":    false,
-			"allow_ip_sans":       false,
-			"server_flag":         false,
-			"client_flag":         true,
-			"max_ttl":             "8766h",
-			"ttl":                 "8766h",
-		}
-
-		_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting k8s data [Client]:", err)
-		}
-
-		roles := []string{"kube-scheduler", "kube-controller-manager", "kube-proxy"}
-
-		// nums := []int{2, 3, 4}
-		// sum := 0
-		// for _, num := range nums {
-		//     sum += num
-		// }
-
-		///////////////////////////////////////////////////////////////////////////
 
 		kPKI := kubernetes_pki.New(prefix, vaultClient)
 
