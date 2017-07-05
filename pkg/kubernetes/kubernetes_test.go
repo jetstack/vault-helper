@@ -7,14 +7,14 @@ import (
 )
 
 func TestKubernetes_Ensure(t *testing.T) {
-	k := kubernetes.New("test-cluster14")
+	k, err := kubernetes.New("test-cluster15")
 
-	if k == nil {
-		t.Error("No Cluster!")
+	if err != nil {
+		t.Error("unexpected error", err)
 		return
 	}
 
-	err := k.Ensure()
+	err = k.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
 	}

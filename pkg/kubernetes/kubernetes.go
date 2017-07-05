@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -51,14 +53,11 @@ func IsValidClusterID(clusterID string) error {
 
 }
 
-func New(clusterID string) *Kubernetes {
-
-	// TODO: validate clusterID
+func New(clusterID string) (*Kubernetes, error) {
 
 	err := IsValidClusterID(clusterID)
 	if err != nil {
-		errors.New("Not a valid cluster ID")
-		return nil
+		return nil, errors.New("Not a valid cluster ID")
 	}
 
 	k := &Kubernetes{
@@ -67,8 +66,7 @@ func New(clusterID string) *Kubernetes {
 
 	vaultClient, err := vault.NewClient(nil)
 	if err != nil {
-		errors.New("Unable to create vault client")
-		return nil
+		return nil, errors.New("Unable to create vault client")
 	}
 
 	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s", vaultClient)
@@ -77,7 +75,7 @@ func New(clusterID string) *Kubernetes {
 
 	k.secretsGeneric = NewGeneric(k)
 
-	return k
+	return k, nil
 }
 
 func (k *Kubernetes) backends() []Backend {
@@ -242,3 +240,79 @@ func (p *PKI) getDefaultLeaseTTL() string {
 func (p *PKI) getMaxLeaseTTL() string {
 	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
 }
+
+func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
+
+	rolePath := filepath.Join(p.Path(), "roles", role)
+	_, err := p.vaultClient.Logical().Write(rolePath, writeData)
+
+	if err != nil {
+		return fmt.Errorf("error writting role data: %s", err)
+	}
+
+	return nil
+}
+
+func GenerateSecretsMount(k *Kubernetes, vaultClient *vault.Client) error {
+
+	secrets_path := filepath.Join(k.clusterID, "secrets")
+
+	mount, err := GetMountByPath(vaultClient, secrets_path)
+	if err != nil {
+		return err
+	}
+
+	if mount == nil {
+		logrus.Infof("No secrects mount found for: %s", secrets_path)
+		err = vaultClient.Sys().Mount(
+			secrets_path,
+			&vault.MountInput{
+				Description: "Kubernetes " + k.clusterID + " secrets",
+				Type:        "generic",
+			},
+		)
+
+		if err != nil {
+			return fmt.Errorf("error creating mount: %s", err)
+		}
+
+		logrus.Infof("Mounted secrets")
+
+		reader := rand.Reader
+		bitSize := 4096
+		key, err := rsa.GenerateKey(reader, bitSize)
+
+		if err != nil {
+			return fmt.Errorf("error generating rsa key: %s", err)
+		}
+
+		writeData := map[string]interface{}{
+			"key": key,
+		}
+
+		secrets_path = filepath.Join(secrets_path, "service-accounts")
+
+		_, err = vaultClient.Logical().Write(secrets_path, writeData)
+
+		if err != nil {
+			logrus.Fatal("Error writting key to secrets", err)
+		}
+		logrus.Infof("Key written to secrets")
+
+	}
+
+	return nil
+}
+
+//func ConstructRoleData(k *Kubernetes) ([]map[string]interface{}, error) {
+//
+//	writeData := []map[string]interface{
+//		{
+//			"common_name": fmt.Sprintf("Kubernetes %s/"+component+" CA", clusterID),
+//			"ttl":         "175320h",
+//		}
+//
+//	}
+//
+//	return nil, nil
+//}
