@@ -21,7 +21,8 @@ type Backend interface {
 }
 
 type Kubernetes struct {
-	clusterID string // clusterID is required parameter, lowercase only, [a-z0-9-]+
+	clusterID   string // clusterID is required parameter, lowercase only, [a-z0-9-]+
+	vaultClient *vault.Client
 
 	etcdKubernetesPKI *PKI
 	etcdOverlayPKI    *PKI
@@ -53,7 +54,7 @@ func IsValidClusterID(clusterID string) error {
 
 }
 
-func New(clusterID string) (*Kubernetes, error) {
+func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
 
 	err := IsValidClusterID(clusterID)
 	if err != nil {
@@ -61,19 +62,15 @@ func New(clusterID string) (*Kubernetes, error) {
 	}
 
 	k := &Kubernetes{
-		clusterID: clusterID,
+		clusterID:   clusterID,
+		vaultClient: vaultClient,
 	}
 
-	vaultClient, err := vault.NewClient(nil)
-	if err != nil {
-		return nil, errors.New("Unable to create vault client")
-	}
+	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s")
+	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay")
+	k.kubernetesPKI = NewPKI(k, "k8s")
 
-	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s", vaultClient)
-	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay", vaultClient)
-	k.kubernetesPKI = NewPKI(k, "k8s", vaultClient)
-
-	k.secretsGeneric = NewGeneric(k, vaultClient)
+	k.secretsGeneric = NewGeneric(k)
 
 	return k, nil
 }
@@ -100,27 +97,24 @@ func (k *Kubernetes) Path() string {
 	return k.clusterID
 }
 
-func NewGeneric(k *Kubernetes, vaultClient *vault.Client) *Generic {
+func NewGeneric(k *Kubernetes) *Generic {
 	return &Generic{
-		kubernetes:  k,
-		vaultClient: vaultClient,
+		kubernetes: k,
 	}
 }
 
-func NewPKI(k *Kubernetes, pkiName string, vaultClient *vault.Client) *PKI {
+func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	return &PKI{
 		pkiName:         pkiName,
 		kubernetes:      k,
-		vaultClient:     vaultClient,
 		MaxLeaseTTL:     time.Hour * 24 * 60,
 		DefaultLeaseTTL: time.Hour * 24 * 30,
 	}
 }
 
 type PKI struct {
-	pkiName     string
-	kubernetes  *Kubernetes
-	vaultClient *vault.Client
+	pkiName    string
+	kubernetes *Kubernetes
 
 	MaxLeaseTTL     time.Duration
 	DefaultLeaseTTL time.Duration
@@ -139,7 +133,7 @@ func TuneMount(p *PKI, mount *vault.MountOutput) error {
 
 	if tuneMountRequired {
 		mountConfig := p.getMountConfigInput()
-		err := p.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
+		err := p.kubernetes.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
 		if err != nil {
 			return fmt.Errorf("error tuning mount config: %s", err.Error())
 		}
@@ -154,14 +148,14 @@ func TuneMount(p *PKI, mount *vault.MountOutput) error {
 
 func (p *PKI) Ensure() error {
 
-	mount, err := GetMountByPath(p.vaultClient, p.Path())
+	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
 	if err != nil {
 		return err
 	}
 
 	if mount == nil {
 		logrus.Infof("No mounts found for: %s", p.pkiName)
-		err := p.vaultClient.Sys().Mount(
+		err := p.kubernetes.vaultClient.Sys().Mount(
 			p.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA",
@@ -174,7 +168,7 @@ func (p *PKI) Ensure() error {
 		}
 		logrus.Infof("Mounted: %s", p.pkiName)
 
-		mount, err = GetMountByPath(p.vaultClient, p.Path())
+		mount, err = GetMountByPath(p.kubernetes.vaultClient, p.Path())
 		if err != nil {
 			return err
 		}
@@ -200,8 +194,7 @@ func (p *PKI) Path() string {
 }
 
 type Generic struct {
-	kubernetes  *Kubernetes
-	vaultClient *vault.Client
+	kubernetes *Kubernetes
 }
 
 func (g *Generic) Ensure() error {
@@ -248,7 +241,7 @@ func (p *PKI) getMaxLeaseTTL() string {
 func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 
 	rolePath := filepath.Join(p.Path(), "roles", role)
-	_, err := p.vaultClient.Logical().Write(rolePath, writeData)
+	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
 
 	if err != nil {
 		return fmt.Errorf("error writting role data: %s", err)
@@ -260,7 +253,7 @@ func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 func WriteTokenRoles(k *Kubernetes, p *PKI, writeData map[string]interface{}, role string) error {
 
 	rolePath := filepath.Join("auth/token/roles", k.clusterID+"-"+role)
-	_, err := p.vaultClient.Logical().Write(rolePath, writeData)
+	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
 
 	if err != nil {
 		return fmt.Errorf("error writting role data: %s", err)
@@ -271,7 +264,7 @@ func WriteTokenRoles(k *Kubernetes, p *PKI, writeData map[string]interface{}, ro
 
 func WritePolicy(p *PKI, policy_name, policy string) error {
 
-	err := p.vaultClient.Sys().PutPolicy(policy_name, policy)
+	err := p.kubernetes.vaultClient.Sys().PutPolicy(policy_name, policy)
 	if err != nil {
 		return fmt.Errorf("error writting policy: %s", err)
 	}
@@ -283,7 +276,7 @@ func WritePolicy(p *PKI, policy_name, policy string) error {
 
 func getTokenPolicyExists(p *PKI, name string) (bool, error) {
 
-	policy, err := p.vaultClient.Sys().GetPolicy(name)
+	policy, err := p.kubernetes.vaultClient.Sys().GetPolicy(name)
 	if err != nil {
 		return false, err
 	}
@@ -299,14 +292,14 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 
 	secrets_path := filepath.Join(k.clusterID, "secrets")
 
-	mount, err := GetMountByPath(k.secretsGeneric.vaultClient, secrets_path)
+	mount, err := GetMountByPath(k.vaultClient, secrets_path)
 	if err != nil {
 		return err
 	}
 
 	if mount == nil {
 		logrus.Infof("No secrects mount found for: %s", secrets_path)
-		err = k.secretsGeneric.vaultClient.Sys().Mount(
+		err = k.vaultClient.Sys().Mount(
 			secrets_path,
 			&vault.MountInput{
 				Description: "Kubernetes " + k.clusterID + " secrets",
@@ -334,7 +327,7 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 
 		secrets_path = filepath.Join(secrets_path, "service-accounts")
 
-		_, err = k.secretsGeneric.vaultClient.Logical().Write(secrets_path, writeData)
+		_, err = k.vaultClient.Logical().Write(secrets_path, writeData)
 
 		if err != nil {
 			logrus.Fatal("Error writting key to secrets", err)

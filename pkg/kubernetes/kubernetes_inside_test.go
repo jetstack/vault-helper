@@ -2,13 +2,20 @@ package kubernetes
 
 import (
 	"testing"
+
+	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
 func TestKubernetes_Backend_Path(t *testing.T) {
-	k, err := New("test-cluster")
+	vault := vault_dev.New()
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	}
+	defer vault.Stop()
+
+	k, err := New(vault.Client(), "test-cluster")
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	if exp, act := "test-cluster/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
@@ -43,6 +50,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected error", err)
+
 		return
 	}
 
