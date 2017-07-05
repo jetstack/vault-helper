@@ -257,6 +257,44 @@ func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 	return nil
 }
 
+func WriteTokenRoles(k *Kubernetes, p *PKI, writeData map[string]interface{}, role string) error {
+
+	rolePath := filepath.Join("auth/token/roles", k.clusterID+"-"+role)
+	_, err := p.vaultClient.Logical().Write(rolePath, writeData)
+
+	if err != nil {
+		return fmt.Errorf("error writting role data: %s", err)
+	}
+
+	return nil
+}
+
+func WritePolicy(p *PKI, policy_name, policy string) error {
+
+	err := p.vaultClient.Sys().PutPolicy(policy_name, policy)
+	if err != nil {
+		return fmt.Errorf("error writting policy: %s", err)
+	}
+
+	logrus.Infof("Policy written")
+
+	return nil
+}
+
+func getTokenPolicyExists(p *PKI, name string) (bool, error) {
+
+	policy, err := p.vaultClient.Sys().GetPolicy(name)
+	if err != nil {
+		return false, err
+	}
+
+	if policy == "" {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (k *Kubernetes) GenerateSecretsMount() error {
 
 	secrets_path := filepath.Join(k.clusterID, "secrets")
