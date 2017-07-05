@@ -73,7 +73,7 @@ func New(clusterID string) (*Kubernetes, error) {
 	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay", vaultClient)
 	k.kubernetesPKI = NewPKI(k, "k8s", vaultClient)
 
-	k.secretsGeneric = NewGeneric(k)
+	k.secretsGeneric = NewGeneric(k, vaultClient)
 
 	return k, nil
 }
@@ -100,8 +100,11 @@ func (k *Kubernetes) Path() string {
 	return k.clusterID
 }
 
-func NewGeneric(k *Kubernetes) *Generic {
-	return &Generic{kubernetes: k}
+func NewGeneric(k *Kubernetes, vaultClient *vault.Client) *Generic {
+	return &Generic{
+		kubernetes:  k,
+		vaultClient: vaultClient,
+	}
 }
 
 func NewPKI(k *Kubernetes, pkiName string, vaultClient *vault.Client) *PKI {
@@ -197,7 +200,8 @@ func (p *PKI) Path() string {
 }
 
 type Generic struct {
-	kubernetes *Kubernetes
+	kubernetes  *Kubernetes
+	vaultClient *vault.Client
 }
 
 func (g *Generic) Ensure() error {
@@ -253,18 +257,18 @@ func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 	return nil
 }
 
-func GenerateSecretsMount(k *Kubernetes, vaultClient *vault.Client) error {
+func (k *Kubernetes) GenerateSecretsMount() error {
 
 	secrets_path := filepath.Join(k.clusterID, "secrets")
 
-	mount, err := GetMountByPath(vaultClient, secrets_path)
+	mount, err := GetMountByPath(k.secretsGeneric.vaultClient, secrets_path)
 	if err != nil {
 		return err
 	}
 
 	if mount == nil {
 		logrus.Infof("No secrects mount found for: %s", secrets_path)
-		err = vaultClient.Sys().Mount(
+		err = k.secretsGeneric.vaultClient.Sys().Mount(
 			secrets_path,
 			&vault.MountInput{
 				Description: "Kubernetes " + k.clusterID + " secrets",
@@ -292,7 +296,7 @@ func GenerateSecretsMount(k *Kubernetes, vaultClient *vault.Client) error {
 
 		secrets_path = filepath.Join(secrets_path, "service-accounts")
 
-		_, err = vaultClient.Logical().Write(secrets_path, writeData)
+		_, err = k.secretsGeneric.vaultClient.Logical().Write(secrets_path, writeData)
 
 		if err != nil {
 			logrus.Fatal("Error writting key to secrets", err)
@@ -303,16 +307,3 @@ func GenerateSecretsMount(k *Kubernetes, vaultClient *vault.Client) error {
 
 	return nil
 }
-
-//func ConstructRoleData(k *Kubernetes) ([]map[string]interface{}, error) {
-//
-//	writeData := []map[string]interface{
-//		{
-//			"common_name": fmt.Sprintf("Kubernetes %s/"+component+" CA", clusterID),
-//			"ttl":         "175320h",
-//		}
-//
-//	}
-//
-//	return nil, nil
-//}
