@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -77,9 +79,11 @@ func NewGeneric(k *Kubernetes) *Generic {
 
 func NewPKI(k *Kubernetes, pkiName string, vaultClient *vault.Client) *PKI {
 	return &PKI{
-		pkiName:     pkiName,
-		kubernetes:  k,
-		vaultClient: vaultClient,
+		pkiName:         pkiName,
+		kubernetes:      k,
+		vaultClient:     vaultClient,
+		MaxLeaseTTL:     time.Hour * 24 * 60,
+		DefaultLeaseTTL: time.Hour * 24 * 30,
 	}
 }
 
@@ -87,6 +91,9 @@ type PKI struct {
 	pkiName     string
 	kubernetes  *Kubernetes
 	vaultClient *vault.Client
+
+	MaxLeaseTTL     time.Duration
+	DefaultLeaseTTL time.Duration
 }
 
 func (p *PKI) Ensure() error {
@@ -107,33 +114,34 @@ func (p *PKI) Ensure() error {
 		if err != nil {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
+		logrus.Infof("Mounted: %s", p.pkiName)
 		return nil
 	} else {
 		if mount.Type != "pki" {
-			return fmt.Errorf("mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
+			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
-		return fmt.Errorf("mount '%s' already existing", p.Path())
+		return fmt.Errorf("Mount '%s' already existing", p.Path())
 	}
 
-	//tuneMountRequired := false
+	tuneMountRequired := false
 
-	//if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
-	//	tuneMountRequired = true
-	//}
-	//if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
-	//	tuneMountRequired = true
-	//}
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+		tuneMountRequired = true
+	}
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+		tuneMountRequired = true
+	}
 
-	//if tuneMountRequired {
-	//	mountConfig := p.getMountConfigInput()
-	//	err := p.vaultClient.Sys().TuneMount(p.path, mountConfig)
-	//	if err != nil {
-	//		return fmt.Errorf("error tuning mount config: %s", err.Error())
-	//	}
-	//	p.log.Infof("tuned mount config=%+v")
-	//}
+	if tuneMountRequired {
+		mountConfig := p.getMountConfigInput()
+		err := p.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
+		if err != nil {
+			return fmt.Errorf("error tuning mount config: %s", err.Error())
+		}
+		logrus.Infof("Tuned Mount: %s", p.pkiName)
+	}
 
-	//return errors.New("implement me")
+	return nil
 }
 
 func (p *PKI) Path() string {
@@ -168,4 +176,19 @@ func GetMountByPath(vaultClient *vault.Client, mountPath string) (*vault.MountOu
 	}
 
 	return mount, nil
+}
+
+func (p *PKI) getMountConfigInput() vault.MountConfigInput {
+	return vault.MountConfigInput{
+		DefaultLeaseTTL: p.getDefaultLeaseTTL(),
+		MaxLeaseTTL:     p.getMaxLeaseTTL(),
+	}
+}
+
+func (p *PKI) getDefaultLeaseTTL() string {
+	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds()))
+}
+
+func (p *PKI) getMaxLeaseTTL() string {
+	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
 }
