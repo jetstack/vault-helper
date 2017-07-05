@@ -7,7 +7,7 @@ import (
 )
 
 func TestKubernetes_Ensure(t *testing.T) {
-	k := kubernetes.New("test-cluster-2")
+	k := kubernetes.New("test-cluster-5")
 
 	err := k.Ensure()
 	if err != nil {

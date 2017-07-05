@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+	"unicode"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
@@ -28,9 +29,32 @@ type Kubernetes struct {
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
+func IsValidClusterID(clusterID string) error {
+	if !unicode.IsLetter([]rune(clusterID)[0]) {
+		return errors.New("First character is not a valid character")
+	}
+
+	for _, c := range clusterID {
+		if c < 'a' || c > 'z' {
+			if c != '-' {
+				return errors.New("Not a valid cluster ID name")
+			}
+		}
+	}
+
+	return nil
+
+}
+
 func New(clusterID string) *Kubernetes {
 
 	// TODO: validate clusterID
+
+	//err := IsValidClusterID(clusterID)
+	//if err != nil {
+	//	errors.New("Not a valid cluster ID")
+	//	return nil
+	//}
 
 	k := &Kubernetes{
 		clusterID: clusterID,
@@ -96,6 +120,30 @@ type PKI struct {
 	DefaultLeaseTTL time.Duration
 }
 
+func TuneMount(p *PKI, mount *vault.MountOutput) error {
+
+	tuneMountRequired := false
+
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+		tuneMountRequired = true
+	}
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+		tuneMountRequired = true
+	}
+
+	if tuneMountRequired {
+		mountConfig := p.getMountConfigInput()
+		err := p.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
+		if err != nil {
+			return fmt.Errorf("error tuning mount config: %s", err.Error())
+		}
+		logrus.Infof("Tuned Mount: %s", p.pkiName)
+	}
+
+	return nil
+
+}
+
 func (p *PKI) Ensure() error {
 
 	mount, err := GetMountByPath(p.vaultClient, p.Path())
@@ -123,23 +171,7 @@ func (p *PKI) Ensure() error {
 		return fmt.Errorf("Mount '%s' already existing", p.Path())
 	}
 
-	tuneMountRequired := false
-
-	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-
-	if tuneMountRequired {
-		mountConfig := p.getMountConfigInput()
-		err := p.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
-		if err != nil {
-			return fmt.Errorf("error tuning mount config: %s", err.Error())
-		}
-		logrus.Infof("Tuned Mount: %s", p.pkiName)
-	}
+	TuneMount(p, mount)
 
 	return nil
 }
