@@ -26,9 +26,11 @@ var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Setup kubernetes on a running vault server",
 	Run: func(cmd *cobra.Command, args []string) {
+
 		//////////////////////
 		rand.Seed(time.Now().UnixNano())
 		//////////////////////
+
 		// TODO: this should be a cli parameter
 		prefix := RandStringBytes(8)
 		logrus.Infof("setting up vault on prefix %s", prefix)
@@ -76,9 +78,17 @@ var setupCmd = &cobra.Command{
 			}
 			logrus.Infof("Tuning Mount %s success", component)
 
-			if component == "k8s" {
+			sec, err := vaultClient.Logical().Read(path + "/cert/ca")
+
+			if _, ok := sec.Data["certificate"]; ok {
+				logrus.Infof("CA not found for %s ...", component)
+
+				if err != nil {
+					logrus.Fatal("Error reading "+component+" certificate:", err)
+				}
+
 				writeData = map[string]interface{}{
-					"common_name": fmt.Sprintf("Kubernetes %s/k8s CA", clusterID),
+					"common_name": fmt.Sprintf("Kubernetes %s/"+component+" CA", clusterID),
 					"ttl":         "175320h",
 				}
 
@@ -87,6 +97,10 @@ var setupCmd = &cobra.Command{
 				if err != nil {
 					logrus.Fatal("Error writting "+component+" data:", err)
 				}
+				logrus.Infof("CA created for %s success", component)
+			}
+
+			if component == "k8s" {
 
 				writeData = map[string]interface{}{
 					"use_csr_common_name": false,
