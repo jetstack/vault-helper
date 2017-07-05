@@ -6,6 +6,10 @@ import (
 
 func TestKubernetes_Backend_Path(t *testing.T) {
 	k := New("test-cluster")
+	if k == nil {
+		t.Error("No Cluster!")
+		return
+	}
 
 	if exp, act := "test-cluster/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 	"unicode"
 
@@ -34,13 +35,17 @@ func IsValidClusterID(clusterID string) error {
 		return errors.New("First character is not a valid character")
 	}
 
-	for _, c := range clusterID {
-		if c < 'a' || c > 'z' {
-			if c != '-' {
-				return errors.New("Not a valid cluster ID name")
-			}
-		}
+	f := func(r rune) bool {
+		return ((r < 'a' || r > 'z') && (r < '0' || r > '9')) && r != '-'
 	}
+
+	logrus.Infof(clusterID)
+	if strings.IndexFunc(clusterID, f) != -1 {
+		logrus.Infof("Invalid cluster ID")
+		return errors.New("Not a valid cluster ID name")
+	}
+
+	logrus.Infof("Valid string")
 
 	return nil
 
@@ -50,11 +55,11 @@ func New(clusterID string) *Kubernetes {
 
 	// TODO: validate clusterID
 
-	//err := IsValidClusterID(clusterID)
-	//if err != nil {
-	//	errors.New("Not a valid cluster ID")
-	//	return nil
-	//}
+	err := IsValidClusterID(clusterID)
+	if err != nil {
+		errors.New("Not a valid cluster ID")
+		return nil
+	}
 
 	k := &Kubernetes{
 		clusterID: clusterID,
@@ -138,7 +143,9 @@ func TuneMount(p *PKI, mount *vault.MountOutput) error {
 			return fmt.Errorf("error tuning mount config: %s", err.Error())
 		}
 		logrus.Infof("Tuned Mount: %s", p.pkiName)
+		return nil
 	}
+	logrus.Infof("No tune required: %s", p.pkiName)
 
 	return nil
 
@@ -152,18 +159,25 @@ func (p *PKI) Ensure() error {
 	}
 
 	if mount == nil {
+		logrus.Infof("No mounts found for: %s", p.pkiName)
 		err := p.vaultClient.Sys().Mount(
 			p.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA",
 				Type:        "pki",
+				Config:      p.getMountConfigInput(),
 			},
 		)
 		if err != nil {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
 		logrus.Infof("Mounted: %s", p.pkiName)
-		return nil
+
+		mount, err = GetMountByPath(p.vaultClient, p.Path())
+		if err != nil {
+			return err
+		}
+
 	} else {
 		if mount.Type != "pki" {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
@@ -171,7 +185,11 @@ func (p *PKI) Ensure() error {
 		return fmt.Errorf("Mount '%s' already existing", p.Path())
 	}
 
-	TuneMount(p, mount)
+	err = TuneMount(p, mount)
+	if err != nil {
+		logrus.Fatalf("Tuning Error")
+		return err
+	}
 
 	return nil
 }
