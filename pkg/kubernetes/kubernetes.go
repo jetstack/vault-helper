@@ -241,6 +241,7 @@ func (p *PKI) getMaxLeaseTTL() string {
 func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 
 	rolePath := filepath.Join(p.Path(), "roles", role)
+	rolePath = filepath.Clean(rolePath)
 	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
 
 	if err != nil {
@@ -253,6 +254,7 @@ func WriteRoles(p *PKI, writeData map[string]interface{}, role string) error {
 func WriteTokenRoles(k *Kubernetes, p *PKI, writeData map[string]interface{}, role string) error {
 
 	rolePath := filepath.Join("auth/token/roles", k.clusterID+"-"+role)
+	rolePath = filepath.Clean(rolePath)
 	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
 
 	if err != nil {

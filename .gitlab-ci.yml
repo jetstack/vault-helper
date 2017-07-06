@@ -19,10 +19,14 @@ build:golang:
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
   - go build -o vault-helper-golang
+  # Install unzip
+  - curl -sL https://oss.oracle.com/el4/unzip/unzip.tar > /tmp/unzip.tar
+  - tar -xf /tmp/unzip.tar
+  - mv unzip /tmp
   # Installs vault version as specified
   - curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip
   - echo "${VAULT_HASH}  /tmp/vault.zip" | sha256sum  -c
-  - unzip /tmp/vault.zip
+  - /tmp/unzip /tmp/vault.zip
   - rm /tmp/vault.zip
   - mv vault /usr/local/bin/vault
   - chmod +x /usr/local/bin/vault
