@@ -83,10 +83,32 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
-	//policyName := "test-cluster-inside/master"
-	//policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	policyName := "test-cluster-inside/master"
+	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	role := "master"
 
-	//err = WritePolicy(k.kubernetesPKI, policyName, policyRules)
+	masterPolicy := NewPolicy(policyName, policyRules, role, k)
+
+	err = masterPolicy.WritePolicy()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	err = masterPolicy.CreateTokenCreater()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	masterToken := NewInitToken(policyName, role, k)
+	err = masterToken.CreateToken()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	//err = masterToken.WriteInitToken()
 	//if err != nil {
 	//	t.Error("unexpected error", err)
 	//	return

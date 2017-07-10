@@ -34,6 +34,7 @@ type Kubernetes struct {
 type Policy struct {
 	policy_name string
 	rules       string
+	role        string
 	kubernetes  *Kubernetes
 }
 
@@ -41,6 +42,13 @@ type TokenRole struct {
 	role_name  string
 	writeData  map[string]interface{}
 	kubernetes *Kubernetes
+}
+
+type InitTokenPolicy struct {
+	policy_name string
+	role_name   string
+	initToken   string
+	kubernetes  *Kubernetes
 }
 
 func (t *TokenRole) WriteTokenRole() error {
@@ -272,48 +280,11 @@ func (p *PKI) getMaxLeaseTTL() string {
 	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
 }
 
-//func (r *Role) WriteRoles(writeData map[string]interface{}) error {
-//
-//	rolePath := filepath.Join(r.kubernetes.clusterID, "roles", r.role_name)
-//	rolePath = filepath.Clean(rolePath)
-//	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
-//
-//	if err != nil {
-//		return fmt.Errorf("error writting role data: %s", err)
-//	}
-//
-//	return nil
-//}
-
-//func WriteTokenRoles(k *Kubernetes, p *PKI, writeData map[string]interface{}, role string) error {
-//
-//	rolePath := filepath.Join("auth/token/roles", k.clusterID+"-"+role)
-//	rolePath = filepath.Clean(rolePath)
-//	_, err := p.kubernetes.vaultClient.Logical().Write(rolePath, writeData)
-//
-//	if err != nil {
-//		return fmt.Errorf("error writting role data: %s", err)
-//	}
-//
-//	return nil
-//}
-
-//func (r *Role) WritePolicy(policy string) error {
-//
-//	err := r.kubernetes.vaultClient.Sys().PutPolicy(r.policy_name, policy)
-//	if err != nil {
-//		return fmt.Errorf("error writting policy: %s", err)
-//	}
-//	logrus.Infof("Policy written")
-//
-//	return nil
-//}
-//
-
-func NewPolicy(policy_name, rules string, k *Kubernetes) *Policy {
+func NewPolicy(policy_name, rules, role string, k *Kubernetes) *Policy {
 	return &Policy{
 		policy_name: policy_name,
 		rules:       rules,
+		role:        role,
 		kubernetes:  k,
 	}
 
@@ -329,6 +300,17 @@ func (p *Policy) WritePolicy() error {
 
 	return nil
 
+}
+
+func (p *Policy) CreateTokenCreater() error {
+	createrRule := "path \"auth/token/create/" + p.kubernetes.clusterID + "-" + p.role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
+	err := p.kubernetes.vaultClient.Sys().PutPolicy(p.policy_name+"-creator", createrRule)
+	if err != nil {
+		return fmt.Errorf("error writting creator policy: %s", err)
+	}
+	logrus.Infof("Creator policy written")
+
+	return nil
 }
 
 func getTokenPolicyExists(p *PKI, name string) (bool, error) {
@@ -404,10 +386,46 @@ func randomUUID() string {
 	return string(uuid[:])
 }
 
-//func WriteInitToken(k *Kubernetes, role string) error {
-//
-//	path := filepath.Join(k.clusterID, "secrets", "init-token-"+role)
-//	initToken := randomUUID()
-//
-//	return nil
-//}
+func NewInitToken(policy_name, role_name string, k *Kubernetes) *InitTokenPolicy {
+	return &InitTokenPolicy{
+		policy_name: policy_name,
+		role_name:   role_name,
+		initToken:   randomUUID(),
+		kubernetes:  k,
+	}
+}
+
+func (i *InitTokenPolicy) CreateToken() error {
+	writeData := &vault.TokenCreateRequest{
+		ID:          i.initToken,
+		DisplayName: i.policy_name + "-creator",
+		TTL:         "8760h",
+		Period:      "8760h",
+		Policies:    []string{i.policy_name + "-creator"},
+	}
+
+	_, err := i.kubernetes.vaultClient.Auth().Token().CreateOrphan(writeData)
+	if err != nil {
+		logrus.Fatal("Failed to create init token", err)
+	}
+
+	return nil
+
+}
+
+func (i *InitTokenPolicy) WriteInitToken() error {
+
+	path := filepath.Join(i.kubernetes.clusterID, "secrets", "init-token-"+i.role_name)
+	writeData := map[string]interface{}{
+		"init_token": i.initToken,
+	}
+
+	logrus.Infof(path)
+
+	_, err := i.kubernetes.vaultClient.Logical().Write(path, writeData)
+	if err != nil {
+		logrus.Fatal("Failed to create init token", err)
+	}
+
+	return nil
+}
