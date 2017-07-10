@@ -13,63 +13,80 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := New(vault.Client(), "test-cluster")
+	k, err := New(vault.Client(), "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
 
-	if exp, act := "test-cluster/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster/pki/etcd-overlay", k.etcdOverlayPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster/pki/k8s", k.kubernetesPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster/generic", k.secretsGeneric.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+	err = k.Ensure()
+	if err != nil {
+		t.Error("unexpected error: ", err)
 	}
 
-	//writeData := map[string]interface{}{
-	//	"use_csr_common_name": false,
-	//	"enforce_hostnames":   false,
-	//	"organization":        "system:masters",
-	//	"allowed_domains":     "admin",
-	//	"allow_bare_domains":  true,
-	//	"allow_localhost":     false,
-	//	"allow_subdomains":    false,
-	//	"allow_ip_sans":       false,
-	//	"server_flag":         false,
-	//	"client_flag":         true,
-	//	"max_ttl":             "140h",
-	//	"ttl":                 "140h",
-	//}
+	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
+		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+	}
+	if exp, act := "test-cluster-inside/pki/etcd-overlay", k.etcdOverlayPKI.Path(); exp != act {
+		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+	}
+	if exp, act := "test-cluster-inside/pki/k8s", k.kubernetesPKI.Path(); exp != act {
+		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+	}
+	if exp, act := "test-cluster-inside/generic", k.secretsGeneric.Path(); exp != act {
+		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+	}
 
-	//err = WriteRoles(k.kubernetesPKI, writeData, "admin")
+	writeData := map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"organization":        "system:masters",
+		"allowed_domains":     "admin",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
 
-	//if err != nil {
-	//	t.Error("unexpected error", err)
+	adminRole := NewTokenRole("admin", writeData, k)
+	err = adminRole.WriteTokenRole()
 
-	//	return
-	//}
+	if err != nil {
+		t.Error("unexpected error", err)
 
-	//writeData := map[string]interface{}{
-	//	"use_csr_common_name": false,
-	//	"enforce_hostnames":   false,
-	//	"allowed_domains":     "kube-scheduler,system:kube-scheduler",
-	//	"allow_bare_domains":  true,
-	//	"allow_localhost":     false,
-	//	"allow_subdomains":    false,
-	//	"allow_ip_sans":       false,
-	//	"server_flag":         false,
-	//	"client_flag":         true,
-	//	"max_ttl":             "140h",
-	//	"ttl":                 "140h",
-	//}
+		return
+	}
 
-	//err = WriteRoles(k.kubernetesPKI, writeData, "kube-scheduler")
+	writeData = map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"allowed_domains":     "kube-scheduler,system:kube-scheduler",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
 
+	kubeSchedulerRole := NewTokenRole("kube-scheduler", writeData, k)
+
+	err = kubeSchedulerRole.WriteTokenRole()
+
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	//policyName := "test-cluster-inside/master"
+	//policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+
+	//err = WritePolicy(k.kubernetesPKI, policyName, policyRules)
 	//if err != nil {
 	//	t.Error("unexpected error", err)
 	//	return
