@@ -31,7 +31,7 @@ build:golang:
   - mv vault /usr/local/bin/vault
   - chmod +x /usr/local/bin/vault
   # Testing golang code
-  - go test ./pkg/...
+  - go test -v ./pkg/...
   - mv /go/src/gitlab.jetstack.net/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
   stage: build
 
