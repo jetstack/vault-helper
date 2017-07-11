@@ -51,6 +51,16 @@ type InitTokenPolicy struct {
 	kubernetes  *Kubernetes
 }
 
+func WriteComponentRole(path string, writeData map[string]interface{}, k *Kubernetes) error {
+	_, err := k.vaultClient.Logical().Write(path, writeData)
+
+	if err != nil {
+		return fmt.Errorf("error writting role data: %s", err)
+	}
+
+	return nil
+}
+
 func (t *TokenRole) WriteTokenRole() error {
 	rolePath := filepath.Join("auth/token/roles", t.kubernetes.clusterID+"-"+t.role_name)
 	rolePath = filepath.Clean(rolePath)
@@ -353,28 +363,38 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 
 		logrus.Infof("Mounted secrets")
 
-		reader := rand.Reader
-		bitSize := 4096
-		key, err := rsa.GenerateKey(reader, bitSize)
-
+		err = writeKey(k, secrets_path)
 		if err != nil {
-			return fmt.Errorf("error generating rsa key: %s", err)
+			return fmt.Errorf("error creating mount: %s", err)
 		}
-
-		writeData := map[string]interface{}{
-			"key": key,
-		}
-
-		secrets_path = filepath.Join(secrets_path, "service-accounts")
-
-		_, err = k.vaultClient.Logical().Write(secrets_path, writeData)
-
-		if err != nil {
-			logrus.Fatal("Error writting key to secrets", err)
-		}
-		logrus.Infof("Key written to secrets")
 
 	}
+
+	return nil
+}
+
+func writeKey(k *Kubernetes, secrets_path string) error {
+
+	reader := rand.Reader
+	bitSize := 4096
+	key, err := rsa.GenerateKey(reader, bitSize)
+
+	if err != nil {
+		return fmt.Errorf("error generating rsa key: %s", err)
+	}
+
+	writeData := map[string]interface{}{
+		"key": key,
+	}
+
+	secrets_path = filepath.Join(secrets_path, "service-accounts")
+
+	_, err = k.vaultClient.Logical().Write(secrets_path, writeData)
+
+	if err != nil {
+		logrus.Fatal("Error writting key to secrets", err)
+	}
+	logrus.Infof("Key written to secrets")
 
 	return nil
 }
@@ -406,6 +426,7 @@ func (i *InitTokenPolicy) CreateToken() error {
 	if err != nil {
 		logrus.Fatal("Failed to create init token", err)
 	}
+	logrus.Infof("Created init token %s ", i.policy_name)
 
 	return nil
 
@@ -418,12 +439,11 @@ func (i *InitTokenPolicy) WriteInitToken() error {
 		"init_token": i.initToken,
 	}
 
-	logrus.Infof(path)
-
 	_, err := i.kubernetes.vaultClient.Logical().Write(path, writeData)
 	if err != nil {
 		logrus.Fatal("Failed to create init token", err)
 	}
+	logrus.Infof("Written init token %s ", i.policy_name)
 
 	return nil
 }

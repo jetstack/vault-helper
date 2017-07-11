@@ -2,24 +2,14 @@ package cmd
 
 import (
 	"github.com/Sirupsen/logrus"
-	vault "github.com/hashicorp/vault/api"
+	//vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"fmt"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes_pki"
-	"math/rand"
-	"time"
+	//"fmt"
+	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
+
+	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyz"
-
-func RandStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
-}
 
 // initCmd represents the init command
 var setupCmd = &cobra.Command{
@@ -27,78 +17,33 @@ var setupCmd = &cobra.Command{
 	Short: "Setup kubernetes on a running vault server",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//////////////////////
-		rand.Seed(time.Now().UnixNano())
-		//////////////////////
-
 		// TODO: this should be a cli parameter
-		prefix := RandStringBytes(8)
-		logrus.Infof("setting up vault on prefix %s", prefix)
+		clusterID := "vault-setup-test"
+		logrus.Infof("setting up vault on prefix %s", clusterID)
 
-		vaultClient, err := vault.NewClient(nil)
+		vault := vault_dev.New()
+		if err := vault.Start(); err != nil {
+			logrus.Fatalf("unable to initialise vault dev server for integration tests: ", err)
+		}
+		defer vault.Stop()
+
+		k, err := kubernetes.New(vault.Client(), clusterID)
 		if err != nil {
-			logrus.Fatal("unable to create vault client: ", err)
+			logrus.Fatalf("Unable to create new kubernetes")
 		}
 
-		clusterID := prefix
-		basePath := clusterID + "/pki"
-		path := ""
+		err = k.Ensure()
+		if err != nil {
+			logrus.Fatalf("Unable to ensure new kubernetes")
+		}
+
 		components := []string{"etcd-k8s", "etcd-overlay", "k8s"}
-		var description string
 		var writeData map[string]interface{}
 
 		for _, component := range components {
-			path = basePath + "/" + component
-			description = "Kubernetes " + clusterID + "/" + component + " CA"
 
-			logrus.Infof("Mounting component %s ...", component)
-			err = vaultClient.Sys().Mount(
-				fmt.Sprintf("%s/pki/"+component+"/", clusterID),
-				&vault.MountInput{
-					Description: description,
-					Type:        "pki",
-				},
-			)
-
-			if err != nil {
-				logrus.Fatal("Error mounting "+component+":", err)
-			}
-			logrus.Infof("Mounting component %s success", component)
-
-			logrus.Infof("Tuning Mount %s ...", component)
-			err = vaultClient.Sys().TuneMount(
-				fmt.Sprintf("%s/pki/"+component+"/", clusterID),
-				vault.MountConfigInput{
-					MaxLeaseTTL: "175320h",
-				},
-			)
-
-			if err != nil {
-				logrus.Fatal("Error tuning "+component+":", err)
-			}
-			logrus.Infof("Tuning Mount %s success", component)
-
-			sec, err := vaultClient.Logical().Read(path + "/cert/ca")
-
-			if _, ok := sec.Data["certificate"]; ok {
-				logrus.Infof("CA not found for %s ...", component)
-
-				if err != nil {
-					logrus.Fatal("Error reading "+component+" certificate:", err)
-				}
-
-				writeData = map[string]interface{}{
-					"common_name": fmt.Sprintf("Kubernetes %s/"+component+" CA", clusterID),
-					"ttl":         "175320h",
-				}
-
-				_, err = vaultClient.Logical().Write(path+"/root/generate/internal", writeData)
-
-				if err != nil {
-					logrus.Fatal("Error writting "+component+" data:", err)
-				}
-				logrus.Infof("CA created for %s success", component)
-			}
+			//path = basePath + "/" + component
+			//description = "Kubernetes " + clusterID + "/" + component + " CA"
 
 			if component == "k8s" {
 
@@ -113,13 +58,13 @@ var setupCmd = &cobra.Command{
 					"allow_ip_sans":       false,
 					"server_flag":         false,
 					"client_flag":         true,
-					"max_ttl":             "8766h",
-					"ttl":                 "8766h",
+					"max_ttl":             "1440h",
+					"ttl":                 "1440h",
 				}
 
+				tokenRole := kubernetes.NewTokenRole("admin", writeData, k)
 				logrus.Infof("Writting data %s ...", component)
-				_, err = vaultClient.Logical().Write(path+"/roles/admin", writeData)
-
+				err = tokenRole.WriteTokenRole()
 				if err != nil {
 					logrus.Fatal("Error writting k8s data [Admin]:", err)
 				}
@@ -142,8 +87,9 @@ var setupCmd = &cobra.Command{
 						"ttl":                 "8766h",
 					}
 
+					tokenRole = kubernetes.NewTokenRole(role, writeData, k)
 					logrus.Infof("Writting role data %s-%s ...", component, role)
-					_, err = vaultClient.Logical().Write(path+"/roles/"+role, writeData)
+					err = tokenRole.WriteTokenRole()
 
 					if err != nil {
 						logrus.Fatal("Error writting k8s role:"+role+" data", err)
@@ -168,8 +114,9 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
+				tokenRole = kubernetes.NewTokenRole("kubelet", writeData, k)
 				logrus.Infof("Writting role data %s-kubelet ...", component)
-				_, err = vaultClient.Logical().Write(path+"/roles/kubelet", writeData)
+				err = tokenRole.WriteTokenRole()
 
 				if err != nil {
 					logrus.Fatal("Error writting k8s data [Kublet]:", err)
@@ -190,8 +137,9 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
+				tokenRole = kubernetes.NewTokenRole("kube-apiserver", writeData, k)
 				logrus.Infof("Writting role data %s-kube-apiserver ...", component)
-				_, err = vaultClient.Logical().Write(path+"/roles/kube-apiserver", writeData)
+				err = tokenRole.WriteTokenRole()
 
 				if err != nil {
 					logrus.Fatal("Error writting k8s data [Kublet]:", err)
@@ -208,9 +156,10 @@ var setupCmd = &cobra.Command{
 					"server_flag":         "true",
 					"client_flag":         "true",
 				}
-				logrus.Infof("Writting role data %s-[Client] ...", component)
 
-				_, err = vaultClient.Logical().Write(path+"/roles/client", writeData)
+				tokenRole := kubernetes.NewTokenRole("client", writeData, k)
+				logrus.Infof("Writting role data %s-[Client] ...", component)
+				err = tokenRole.WriteTokenRole()
 
 				if err != nil {
 					logrus.Fatal("Error writting "+component+" data [Client]:", err)
@@ -227,9 +176,10 @@ var setupCmd = &cobra.Command{
 					"server_flag":         "true",
 					"client_flag":         "true",
 				}
-				logrus.Infof("Writting role data %s-[Server] ...", component)
 
-				_, err = vaultClient.Logical().Write(path+"/roles/server", writeData)
+				tokenRole = kubernetes.NewTokenRole("server", writeData, k)
+				logrus.Infof("Writting role data %s-[Server] ...", component)
+				err = tokenRole.WriteTokenRole()
 
 				if err != nil {
 					logrus.Fatal("Error writting "+component+" data [Server]:", err)
@@ -240,13 +190,19 @@ var setupCmd = &cobra.Command{
 
 		}
 
-		kPKI := kubernetes_pki.New(prefix, vaultClient)
+		generic := kubernetes.NewGeneric(k)
+		err = generic.Ensure()
+		if err != nil {
+			logrus.Fatalf("Unable to ensure new Genetic")
+		}
 
-		kPKI.MaxValidityAdmin = time.Hour * 24 * 60
+		//kPKI := kubernetes_pki.New(prefix, vault)
 
-		// TODO ensure that it is setup in that way
-		// kPKI.Ensure()
-		logrus.Debugf("kpki: %#+v", kPKI)
+		//kPKI.MaxValidityAdmin = time.Hour * 24 * 60
+
+		//// TODO ensure that it is setup in that way
+		//// kPKI.Ensure()
+		//logrus.Debugf("kpki: %#+v", kPKI)
 
 	},
 }
