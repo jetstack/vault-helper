@@ -42,7 +42,6 @@ var setupCmd = &cobra.Command{
 
 		for _, component := range components {
 
-			//path = basePath + "/" + component
 			//description = "Kubernetes " + clusterID + "/" + component + " CA"
 
 			if component == "k8s" {
@@ -62,7 +61,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "1440h",
 				}
 
-				tokenRole := kubernetes.NewTokenRole("admin", writeData, k)
+				tokenRole := kubernetes.NewTokenRole(component+"admin", writeData, k)
 				logrus.Infof("Writting data %s ...", component)
 				err = tokenRole.WriteTokenRole()
 				if err != nil {
@@ -87,7 +86,7 @@ var setupCmd = &cobra.Command{
 						"ttl":                 "8766h",
 					}
 
-					tokenRole = kubernetes.NewTokenRole(role, writeData, k)
+					tokenRole = kubernetes.NewTokenRole(component+role, writeData, k)
 					logrus.Infof("Writting role data %s-%s ...", component, role)
 					err = tokenRole.WriteTokenRole()
 
@@ -114,7 +113,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
-				tokenRole = kubernetes.NewTokenRole("kubelet", writeData, k)
+				tokenRole = kubernetes.NewTokenRole(component+"-kubelet", writeData, k)
 				logrus.Infof("Writting role data %s-kubelet ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -137,7 +136,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
-				tokenRole = kubernetes.NewTokenRole("kube-apiserver", writeData, k)
+				tokenRole = kubernetes.NewTokenRole(component+"-kube-apiserver", writeData, k)
 				logrus.Infof("Writting role data %s-kube-apiserver ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -157,7 +156,7 @@ var setupCmd = &cobra.Command{
 					"client_flag":         "true",
 				}
 
-				tokenRole := kubernetes.NewTokenRole("client", writeData, k)
+				tokenRole := kubernetes.NewTokenRole(component+"-client", writeData, k)
 				logrus.Infof("Writting role data %s-[Client] ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -177,7 +176,7 @@ var setupCmd = &cobra.Command{
 					"client_flag":         "true",
 				}
 
-				tokenRole = kubernetes.NewTokenRole("server", writeData, k)
+				tokenRole = kubernetes.NewTokenRole(component+"server", writeData, k)
 				logrus.Infof("Writting role data %s-[Server] ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -194,6 +193,86 @@ var setupCmd = &cobra.Command{
 		err = generic.Ensure()
 		if err != nil {
 			logrus.Fatalf("Unable to ensure new Genetic")
+		}
+
+		basePath := clusterID + "/pki"
+		secrets_path := clusterID + "/secrets"
+
+		for _, role := range []string{"master", "worker", "etcd"} {
+			policy_name := clusterID + "/" + role
+
+			if role == "master" || role == "worker" {
+				for _, cert_role := range []string{"k8s/sign/kubelet", "k8s/sign/kube-proxy", "etcd-overlay/sign/client"} {
+					rule := "\npath \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+
+					err = policy.WritePolicy()
+					if err != nil {
+						logrus.Fatalf("Error writting policy: ", err)
+					}
+
+				}
+
+			}
+
+			if role == "master" {
+				for _, cert_role := range []string{"k8s/sign/kube-apiserver", "k8s/sign/kube-scheduler", "k8s/sign/kube-controller-manager", "k8s/sign/admin", "etcd-k8s/sign/client"} {
+					rule := "path \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+
+					err = policy.WritePolicy()
+					if err != nil {
+						logrus.Fatalf("Error writting policy: ", err)
+					}
+
+				}
+			}
+
+			rule := "\npath \"" + secrets_path + "/service-accounts\" {\n    capabilities = [\"read\"]\n}\n"
+			policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+
+			err = policy.WritePolicy()
+			if err != nil {
+				logrus.Fatalf("Error writting policy: ", err)
+			}
+
+			if role == "etcd" {
+				for _, cert_role := range []string{"etcd-k8s/sign/server", "etcd-overlay/sign/server"} {
+
+					rule := "path \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+
+					err = policy.WritePolicy()
+					if err != nil {
+						logrus.Fatalf("Error writting policy: ", err)
+					}
+
+				}
+			}
+
+			writeData = map[string]interface{}{
+				"period":           "720h",
+				"orphan":           true,
+				"allowed_policies": "default," + policy_name,
+				"path_suffix":      policy_name,
+			}
+
+			tokenRole := kubernetes.NewTokenRole(role, writeData, k)
+			err = tokenRole.WriteTokenRole()
+			if err != nil {
+				logrus.Fatalf("Error writting token role: ", err)
+			}
+
+			initToken := kubernetes.NewInitToken(policy_name, role, k)
+			err = initToken.CreateToken()
+			if err != nil {
+				logrus.Fatalf("Error creating init token", err)
+			}
+			err = initToken.WriteInitToken()
+			if err != nil {
+				logrus.Fatalf("Error creating init token", err)
+			}
+
 		}
 
 		//kPKI := kubernetes_pki.New(prefix, vault)
