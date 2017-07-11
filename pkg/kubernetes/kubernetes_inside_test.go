@@ -95,6 +95,12 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
+	err = k.GenerateSecretsMount()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
 	err = masterPolicy.CreateTokenCreater()
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -108,10 +114,10 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
-	//err = masterToken.WriteInitToken()
-	//if err != nil {
-	//	t.Error("unexpected error", err)
-	//	return
-	//}
+	err = masterToken.WriteInitToken()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
 
 }
