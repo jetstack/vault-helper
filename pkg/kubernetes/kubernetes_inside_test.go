@@ -95,7 +95,8 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
-	err = k.GenerateSecretsMount()
+	generic := NewGeneric(k)
+	err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
