@@ -5,13 +5,13 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -379,11 +379,8 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 }
 
 func randomUUID() string {
-	uuid, err := exec.Command("uuidgen").Output()
-	if err != nil {
-		logrus.Fatal("Failed to create random uuid", err)
-	}
-	return string(uuid[:])
+	uuID := uuid.New()
+	return string(uuID[:])
 }
 
 func NewInitToken(policy_name, role_name string, k *Kubernetes) *InitTokenPolicy {
