@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
+	keys "github.com/sdorra/keys.go"
 )
 
 type Backend interface {
@@ -240,7 +241,8 @@ type Generic struct {
 }
 
 func (g *Generic) Ensure() error {
-	return errors.New("implement me")
+	err := GenerateSecretsMount
+	return err
 }
 
 func (g *Generic) Path() string {
@@ -380,6 +382,7 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 
 func randomUUID() string {
 	uuID := uuid.New()
+	fmt.Println("%v", uuID)
 	return string(uuID[:])
 }
 
