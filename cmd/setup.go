@@ -17,8 +17,16 @@ var setupCmd = &cobra.Command{
 	Short: "Setup kubernetes on a running vault server",
 	Run: func(cmd *cobra.Command, args []string) {
 
+		var clusterID string
+
+		if len(args) > 0 {
+			clusterID = args[0]
+		} else {
+			logrus.Fatalf("No cluster id was given")
+		}
+
 		// TODO: this should be a cli parameter
-		clusterID := "vault-setup-test"
+		//clusterID := "vault-setup-test"
 		logrus.Infof("setting up vault on prefix %s", clusterID)
 
 		vault := vault_dev.New()
