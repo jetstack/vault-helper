@@ -6,6 +6,9 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
+//go test -coverprofile=coverage.out
+//  go tool cover -html=coverage.out
+
 func TestKubernetes_Backend_Path(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
