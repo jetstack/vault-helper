@@ -69,7 +69,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "1440h",
 				}
 
-				tokenRole := kubernetes.NewTokenRole(component+"admin", writeData, k)
+				tokenRole := k.NewTokenRole(component+"admin", writeData)
 				logrus.Infof("Writting data %s ...", component)
 				err = tokenRole.WriteTokenRole()
 				if err != nil {
@@ -94,7 +94,7 @@ var setupCmd = &cobra.Command{
 						"ttl":                 "8766h",
 					}
 
-					tokenRole = kubernetes.NewTokenRole(component+role, writeData, k)
+					tokenRole = k.NewTokenRole(component+role, writeData)
 					logrus.Infof("Writting role data %s-%s ...", component, role)
 					err = tokenRole.WriteTokenRole()
 
@@ -121,7 +121,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
-				tokenRole = kubernetes.NewTokenRole(component+"-kubelet", writeData, k)
+				tokenRole = k.NewTokenRole(component+"-kubelet", writeData)
 				logrus.Infof("Writting role data %s-kubelet ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -144,7 +144,7 @@ var setupCmd = &cobra.Command{
 					"ttl":                 "8766h",
 				}
 
-				tokenRole = kubernetes.NewTokenRole(component+"-kube-apiserver", writeData, k)
+				tokenRole = k.NewTokenRole(component+"-kube-apiserver", writeData)
 				logrus.Infof("Writting role data %s-kube-apiserver ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -164,7 +164,7 @@ var setupCmd = &cobra.Command{
 					"client_flag":         "true",
 				}
 
-				tokenRole := kubernetes.NewTokenRole(component+"-client", writeData, k)
+				tokenRole := k.NewTokenRole(component+"-client", writeData)
 				logrus.Infof("Writting role data %s-[Client] ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -184,7 +184,7 @@ var setupCmd = &cobra.Command{
 					"client_flag":         "true",
 				}
 
-				tokenRole = kubernetes.NewTokenRole(component+"server", writeData, k)
+				tokenRole = k.NewTokenRole(component+"server", writeData)
 				logrus.Infof("Writting role data %s-[Server] ...", component)
 				err = tokenRole.WriteTokenRole()
 
@@ -197,7 +197,7 @@ var setupCmd = &cobra.Command{
 
 		}
 
-		generic := kubernetes.NewGeneric(k)
+		generic := k.NewGeneric()
 		err = generic.Ensure()
 		if err != nil {
 			logrus.Fatalf("Unable to ensure new Genetic")
@@ -212,7 +212,7 @@ var setupCmd = &cobra.Command{
 			if role == "master" || role == "worker" {
 				for _, cert_role := range []string{"k8s/sign/kubelet", "k8s/sign/kube-proxy", "etcd-overlay/sign/client"} {
 					rule := "\npath \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
-					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+					policy := k.NewPolicy(policy_name, rule, role)
 
 					err = policy.WritePolicy()
 					if err != nil {
@@ -226,7 +226,7 @@ var setupCmd = &cobra.Command{
 			if role == "master" {
 				for _, cert_role := range []string{"k8s/sign/kube-apiserver", "k8s/sign/kube-scheduler", "k8s/sign/kube-controller-manager", "k8s/sign/admin", "etcd-k8s/sign/client"} {
 					rule := "path \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
-					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+					policy := k.NewPolicy(policy_name, rule, role)
 
 					err = policy.WritePolicy()
 					if err != nil {
@@ -237,7 +237,7 @@ var setupCmd = &cobra.Command{
 			}
 
 			rule := "\npath \"" + secrets_path + "/service-accounts\" {\n    capabilities = [\"read\"]\n}\n"
-			policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+			policy := k.NewPolicy(policy_name, rule, role)
 
 			err = policy.WritePolicy()
 			if err != nil {
@@ -248,7 +248,7 @@ var setupCmd = &cobra.Command{
 				for _, cert_role := range []string{"etcd-k8s/sign/server", "etcd-overlay/sign/server"} {
 
 					rule := "path \"" + basePath + "/" + cert_role + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
-					policy := kubernetes.NewPolicy(policy_name, rule, role, k)
+					policy := k.NewPolicy(policy_name, rule, role)
 
 					err = policy.WritePolicy()
 					if err != nil {
@@ -265,13 +265,13 @@ var setupCmd = &cobra.Command{
 				"path_suffix":      policy_name,
 			}
 
-			tokenRole := kubernetes.NewTokenRole(role, writeData, k)
+			tokenRole := k.NewTokenRole(role, writeData)
 			err = tokenRole.WriteTokenRole()
 			if err != nil {
 				logrus.Fatalf("Error writting token role: ", err)
 			}
 
-			initToken := kubernetes.NewInitToken(policy_name, role, k)
+			initToken := k.NewInitToken(policy_name, role)
 			err = initToken.CreateToken()
 			if err != nil {
 				logrus.Fatalf("Error creating init token", err)
