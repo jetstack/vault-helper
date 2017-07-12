@@ -50,7 +50,7 @@ type InitTokenPolicy struct {
 	kubernetes  *Kubernetes
 }
 
-func WriteComponentRole(path string, writeData map[string]interface{}, k *Kubernetes) error {
+func (k *Kubernetes) WriteComponentRole(path string, writeData map[string]interface{}) error {
 	_, err := k.vaultClient.Logical().Write(path, writeData)
 
 	if err != nil {
@@ -72,7 +72,7 @@ func (t *TokenRole) WriteTokenRole() error {
 	return nil
 }
 
-func NewTokenRole(role_name string, writeData map[string]interface{}, k *Kubernetes) *TokenRole {
+func (k *Kubernetes) NewTokenRole(role_name string, writeData map[string]interface{}) *TokenRole {
 	return &TokenRole{
 		role_name:  role_name,
 		writeData:  writeData,
@@ -121,7 +121,7 @@ func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
 	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay")
 	k.kubernetesPKI = NewPKI(k, "k8s")
 
-	k.secretsGeneric = NewGeneric(k)
+	k.secretsGeneric = k.NewGeneric()
 
 	return k, nil
 }
@@ -148,7 +148,7 @@ func (k *Kubernetes) Path() string {
 	return k.clusterID
 }
 
-func NewGeneric(k *Kubernetes) *Generic {
+func (k *Kubernetes) NewGeneric() *Generic {
 	return &Generic{
 		kubernetes: k,
 	}
@@ -185,7 +185,7 @@ func GetMountByPath(vaultClient *vault.Client, mountPath string) (*vault.MountOu
 	return mount, nil
 }
 
-func NewPolicy(policy_name, rules, role string, k *Kubernetes) *Policy {
+func (k *Kubernetes) NewPolicy(policy_name, rules, role string) *Policy {
 	return &Policy{
 		policy_name: policy_name,
 		rules:       rules,
@@ -243,7 +243,7 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 
 		logrus.Infof("Mounted secrets")
 
-		err = writeKey(k, secrets_path)
+		err = k.writeKey(secrets_path)
 		if err != nil {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
@@ -253,7 +253,7 @@ func (k *Kubernetes) GenerateSecretsMount() error {
 	return nil
 }
 
-func writeKey(k *Kubernetes, secrets_path string) error {
+func (k *Kubernetes) writeKey(secrets_path string) error {
 
 	reader := rand.Reader
 	bitSize := 4096
@@ -284,7 +284,7 @@ func randomUUID() string {
 	return string(uuID[:])
 }
 
-func NewInitToken(policy_name, role_name string, k *Kubernetes) *InitTokenPolicy {
+func (k *Kubernetes) NewInitToken(policy_name, role_name string) *InitTokenPolicy {
 	return &InitTokenPolicy{
 		policy_name: policy_name,
 		role_name:   role_name,

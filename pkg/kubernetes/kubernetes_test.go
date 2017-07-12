@@ -26,7 +26,7 @@ func TestKubernetes_Ensure(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
-	generic := kubernetes.NewGeneric(k)
+	generic := k.NewGeneric()
 	err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)

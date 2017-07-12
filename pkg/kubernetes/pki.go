@@ -26,7 +26,7 @@ type PKI struct {
 	DefaultLeaseTTL time.Duration
 }
 
-func TuneMount(p *PKI, mount *vault.MountOutput) error {
+func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 
 	tuneMountRequired := false
 
@@ -86,7 +86,7 @@ func (p *PKI) Ensure() error {
 		return fmt.Errorf("Mount '%s' already existing", p.Path())
 	}
 
-	err = TuneMount(p, mount)
+	err = p.TuneMount(mount)
 	if err != nil {
 		logrus.Fatalf("Tuning Error")
 		return err
@@ -114,7 +114,7 @@ func (p *PKI) getMaxLeaseTTL() string {
 	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
 }
 
-func getTokenPolicyExists(p *PKI, name string) (bool, error) {
+func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 
 	policy, err := p.kubernetes.vaultClient.Sys().GetPolicy(name)
 	if err != nil {

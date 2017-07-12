@@ -51,7 +51,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		"ttl":                 "140h",
 	}
 
-	adminRole := NewTokenRole("admin", writeData, k)
+	adminRole := k.NewTokenRole("admin", writeData)
 	err = adminRole.WriteTokenRole()
 
 	if err != nil {
@@ -74,7 +74,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		"ttl":                 "140h",
 	}
 
-	kubeSchedulerRole := NewTokenRole("kube-scheduler", writeData, k)
+	kubeSchedulerRole := k.NewTokenRole("kube-scheduler", writeData)
 
 	err = kubeSchedulerRole.WriteTokenRole()
 
@@ -87,7 +87,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
 	role := "master"
 
-	masterPolicy := NewPolicy(policyName, policyRules, role, k)
+	masterPolicy := k.NewPolicy(policyName, policyRules, role)
 
 	err = masterPolicy.WritePolicy()
 	if err != nil {
@@ -95,7 +95,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
-	generic := NewGeneric(k)
+	generic := k.NewGeneric()
 	err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error", err)
@@ -108,7 +108,7 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		return
 	}
 
-	masterToken := NewInitToken(policyName, role, k)
+	masterToken := k.NewInitToken(policyName, role)
 	err = masterToken.CreateToken()
 	if err != nil {
 		t.Error("unexpected error", err)
