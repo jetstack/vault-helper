@@ -40,21 +40,18 @@ type TokenRole struct {
 	kubernetes *Kubernetes
 }
 
+type ComponentRole struct {
+	component  string
+	role       string
+	writeData  map[string]interface{}
+	kubernetes *Kubernetes
+}
+
 type InitTokenPolicy struct {
 	policy_name string
 	role_name   string
 	initToken   string
 	kubernetes  *Kubernetes
-}
-
-func (k *Kubernetes) WriteComponentRole(path string, writeData map[string]interface{}) error {
-	_, err := k.vaultClient.Logical().Write(path, writeData)
-
-	if err != nil {
-		return fmt.Errorf("error writting role data: %s", err)
-	}
-
-	return nil
 }
 
 func (t *TokenRole) WriteTokenRole() error {
@@ -78,10 +75,33 @@ func (k *Kubernetes) NewTokenRole(role_name string, writeData map[string]interfa
 
 }
 
+func (k *Kubernetes) NewComponentRole(component, role string, writeData map[string]interface{}) *ComponentRole {
+	return &ComponentRole{
+		component:  component,
+		role:       role,
+		writeData:  writeData,
+		kubernetes: k,
+	}
+
+}
+
+func (i *ComponentRole) WriteComponentRole() error {
+	path := filepath.Join(i.kubernetes.clusterID, "pki", i.component, "roles", i.role)
+
+	_, err := i.kubernetes.vaultClient.Logical().Write(path, i.writeData)
+
+	if err != nil {
+		return fmt.Errorf("error writting role data: %s", err)
+	}
+
+	return nil
+}
+
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
 func IsValidClusterID(clusterID string) error {
+
 	if !unicode.IsLetter([]rune(clusterID)[0]) {
 		return errors.New("First character is not a valid character")
 	}

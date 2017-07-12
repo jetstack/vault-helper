@@ -26,6 +26,11 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
+	err = k.Ensure()
+	if err != nil {
+		t.Error("unexpected error: ", err)
+	}
+
 	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}

@@ -13,8 +13,8 @@ func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	return &PKI{
 		pkiName:         pkiName,
 		kubernetes:      k,
-		MaxLeaseTTL:     time.Hour * 24 * 60,
-		DefaultLeaseTTL: time.Hour * 24 * 30,
+		MaxLeaseTTL:     MAX_VALIDITY_CA,
+		DefaultLeaseTTL: MAX_VALIDITY_CA,
 	}
 }
 
@@ -30,10 +30,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 
 	tuneMountRequired := false
 
-	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Hours()) {
 		tuneMountRequired = true
 	}
-	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Hours()) {
 		tuneMountRequired = true
 	}
 
@@ -83,7 +83,8 @@ func (p *PKI) Ensure() error {
 		if mount.Type != "pki" {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
-		return fmt.Errorf("Mount '%s' already existing", p.Path())
+		logrus.Infof("Mount '%s' already existing", p.Path())
+		return nil
 	}
 
 	err = p.TuneMount(mount)
@@ -107,11 +108,11 @@ func (p *PKI) getMountConfigInput() vault.MountConfigInput {
 }
 
 func (p *PKI) getDefaultLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds()))
+	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Hours()))
 }
 
 func (p *PKI) getMaxLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
+	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Hours()))
 }
 
 func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
