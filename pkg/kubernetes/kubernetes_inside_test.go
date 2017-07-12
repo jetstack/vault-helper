@@ -31,19 +31,6 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
-	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster-inside/pki/etcd-overlay", k.etcdOverlayPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster-inside/pki/k8s", k.kubernetesPKI.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-	if exp, act := "test-cluster-inside/generic", k.secretsGeneric.Path(); exp != act {
-		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
-	}
-
 	writeData := map[string]interface{}{
 		"use_csr_common_name": false,
 		"enforce_hostnames":   false,
@@ -64,8 +51,6 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected error", err)
-
-		return
 	}
 
 	writeData = map[string]interface{}{
@@ -88,7 +73,6 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	policyName := "test-cluster-inside/master"
@@ -100,33 +84,28 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 	err = masterPolicy.WritePolicy()
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	generic := k.NewGeneric()
 	err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	err = masterPolicy.CreateTokenCreater()
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	masterToken := k.NewInitToken(policyName, role)
 	err = masterToken.CreateToken()
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 	err = masterToken.WriteInitToken()
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
 
 }

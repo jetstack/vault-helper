@@ -59,6 +59,8 @@ func (g *Generic) GenerateSecretsMount() error {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
 
+	} else {
+		logrus.Infof("Secrets already mounted: %s", secrets_path)
 	}
 
 	return nil

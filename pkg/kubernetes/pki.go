@@ -30,10 +30,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 
 	tuneMountRequired := false
 
-	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Hours()) {
+	if mount.Config.DefaultLeaseTTL != int(MAX_VALIDITY_CA.Hours()) {
 		tuneMountRequired = true
 	}
-	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Hours()) {
+	if mount.Config.MaxLeaseTTL != int(MAX_VALIDITY_CA.Hours()) {
 		tuneMountRequired = true
 	}
 
@@ -84,7 +84,6 @@ func (p *PKI) Ensure() error {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
 		logrus.Infof("Mount '%s' already existing", p.Path())
-		return nil
 	}
 
 	err = p.TuneMount(mount)
