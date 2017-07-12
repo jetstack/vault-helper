@@ -37,12 +37,39 @@ func TestPKI_Ensure(t *testing.T) {
 	}
 
 	k.etcdKubernetesPKI.DefaultLeaseTTL = time.Hour * 0
-	k.etcdOverlayPKI.DefaultLeaseTTL = time.Hour * 0
+	k.etcdOverlayPKI.MaxLeaseTTL = time.Hour * 0
 	k.kubernetesPKI.DefaultLeaseTTL = time.Hour * 0
 	k.Ensure()
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
+	}
+
+	basePath := k.clusterID + "/pki"
+	policy_name := k.clusterID + "/" + "master"
+
+	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	if err != nil {
+		t.Error("Error finding policy: ", err)
+	}
+	if exists {
+		t.Error("Policy Found - it should not be")
+	}
+
+	rule := "\npath \"" + basePath + "/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+	policy := k.NewPolicy(policy_name, rule, "master")
+
+	err = policy.WritePolicy()
+	if err != nil {
+		t.Error("Error writting policy: ", err)
+	}
+
+	exists, err = k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	if err != nil {
+		t.Error("Error finding policy: ", err)
+	}
+	if !exists {
+		t.Error("Policy not found")
 	}
 
 }

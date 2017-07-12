@@ -122,8 +122,11 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	}
 
 	if policy == "" {
+		logrus.Infof("Policy Not Found: %s", name)
 		return false, nil
 	}
+
+	logrus.Infof("Policy Found: %s", name)
 
 	return true, nil
 }
