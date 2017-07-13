@@ -27,7 +27,6 @@ func Run(cmd *cobra.Command, args []string) {
 	if err := vault.Start(); err != nil {
 		logrus.Fatalf("unable to initialise vault dev server for integration tests: ", err)
 	}
-	defer vault.Stop()
 
 	k, err := New(vault.Client(), clusterID)
 	if err != nil {
@@ -276,6 +275,31 @@ func Run(cmd *cobra.Command, args []string) {
 		}
 
 	}
+
+	policies, _ := k.vaultClient.Sys().ListPolicies()
+	mounts, _ := k.vaultClient.Sys().ListMounts()
+
+	logrus.Infof("--------------------------")
+	logrus.Infof("POLICIES : ")
+	for _, policy := range policies {
+		logrus.Infof(policy)
+	}
+	logrus.Infof("--------------------------")
+	logrus.Infof("MOUNTS : ")
+	for _, mount := range mounts {
+		logrus.Infof("--")
+		logrus.Infof(mount.Description)
+		logrus.Infof(mount.Type)
+	}
+	logrus.Infof("--------------------------")
+	logrus.Infof("AUTHS : ")
+	auths, _ := k.vaultClient.Sys().ListAuth()
+	for _, auth := range auths {
+		logrus.Infof("--")
+		logrus.Infof(auth.Description)
+		logrus.Infof(auth.Type)
+	}
+	logrus.Infof("--------------------------")
 
 	//kPKI := kubernetes_pki.New(prefix, vault)
 

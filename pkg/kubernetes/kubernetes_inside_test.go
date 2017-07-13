@@ -9,8 +9,34 @@ import (
 //go test -coverprofile=coverage.out
 //  go tool cover -html=coverage.out
 
-func TestKubernetes_Backend_Path(t *testing.T) {
+func TestKubernetes_Run_Setup_Test(t *testing.T) {
+	args := []string{"test-cluster-run"}
+	Run(nil, args)
+}
+
+func TestInvalid_Cluster_ID(t *testing.T) {
 	vault := vault_dev.New()
+
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	}
+	defer vault.Stop()
+
+	_, err := New(vault.Client(), "INVALID CLUSTER ID $^^%*$^")
+	if err == nil {
+		t.Error("Should be invalid vluster ID")
+	}
+
+	_, err = New(vault.Client(), "5INVALID CLUSTER ID $^^%*$^")
+	if err == nil {
+		t.Error("Should be invalid vluster ID")
+	}
+
+}
+
+func TestKubernetes_Double_Ensure(t *testing.T) {
+	vault := vault_dev.New()
+
 	if err := vault.Start(); err != nil {
 		t.Skip("unable to initialise vault dev server for integration tests: ", err)
 	}
@@ -31,6 +57,51 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
+}
+func TestKubernetes_NewPolicy_Role(t *testing.T) {
+	vault := vault_dev.New()
+
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	}
+	defer vault.Stop()
+
+	k, err := New(vault.Client(), "test-cluster-inside")
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	policyName := "test-cluster-inside/master"
+	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	role := "master"
+
+	masterPolicy := k.NewPolicy(policyName, policyRules, role)
+
+	err = masterPolicy.WritePolicy()
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	err = masterPolicy.CreateTokenCreater()
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+}
+
+func TestKubernetes_NewToken_Role(t *testing.T) {
+
+	vault := vault_dev.New()
+
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	}
+	defer vault.Stop()
+
+	k, err := New(vault.Client(), "test-cluster-inside")
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
 	writeData := map[string]interface{}{
 		"use_csr_common_name": false,
 		"enforce_hostnames":   false,
@@ -71,39 +142,6 @@ func TestKubernetes_Backend_Path(t *testing.T) {
 
 	err = kubeSchedulerRole.WriteTokenRole()
 
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	policyName := "test-cluster-inside/master"
-	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
-	role := "master"
-
-	masterPolicy := k.NewPolicy(policyName, policyRules, role)
-
-	err = masterPolicy.WritePolicy()
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	generic := k.NewGeneric()
-	err = generic.Ensure()
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	err = masterPolicy.CreateTokenCreater()
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	masterToken := k.NewInitToken(policyName, role)
-	err = masterToken.CreateToken()
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	err = masterToken.WriteInitToken()
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
