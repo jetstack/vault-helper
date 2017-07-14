@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	//"testing"
+	"testing"
 
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-type FakeClient interface {
+type fakeClient interface {
+	Logical() *vault.Logical
+}
+
+type fakeServer interface {
 	Logical() *vault.Logical
 }
 
@@ -17,7 +21,7 @@ type fakeVault struct {
 	//*vault_dev.VaultDev
 	ctrl *gomock.Controller
 
-	fakeClient FakeClient
+	fakeClient fakeClient
 	//fakeServer FakeServer
 	//vaultRunning chan struct{}
 }
@@ -31,25 +35,117 @@ type fakeVault struct {
 //	vaultRunning chan struct{}
 //}
 
-type FakeKubernetes struct {
+type fakeKubernetes struct {
 	*Kubernetes
 	ctrl *gomock.Controller
 
-	FakeEtcd           *FakePKI
-	FakeOverlay        *FakePKI
-	FakekubernetiesPKI *FakePKI
+	fakeEtcd           *fakePKI
+	fakeOverlay        *fakePKI
+	fakekubernetiesPKI *fakePKI
 }
 
-type FakePKI struct {
+type fakePKI struct {
 	*PKI
 	ctrl *gomock.Controller
 
 	pkiName        string
-	fakekubernetes *FakeKubernetes
+	fakekubernetes *fakeKubernetes
 
 	MaxLeaseTTL     time.Duration
 	DefaultLeaseTTL time.Duration
 }
+
+func newFakeKubernetes(t *testing.T) *fakeKubernetes {
+	vaultClient := &fakeVault{}
+
+	return nil
+
+}
+
+//func (v *fakeVault) Start() error {
+//	port := getUnusedPort()
+//
+//	args := []string{
+//		"server",
+//		"-dev",
+//		"-dev-root-token-id=root-token",
+//		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", port),
+//	}
+//
+//	logrus.Infof("starting vault: %#+v", args)
+//
+//	v.server = exec.Command("vault", args...)
+//
+//	err := v.server.Start()
+//	if err != nil {
+//		return err
+//	}
+//
+//	// this channel will close once vault is stopped
+//	v.vaultRunning = make(chan struct{}, 0)
+//
+//	go func() {
+//		err := v.server.Wait()
+//		if err != nil {
+//			logrus.Warn("vault stopped with error: ", err)
+//
+//		} else {
+//			logrus.Info("vault stopped")
+//		}
+//		close(v.vaultRunning)
+//	}()
+//
+//	v.client, err = vault.NewClient(&vault.Config{
+//		Address: fmt.Sprintf("http://127.0.0.1:%d", port),
+//	})
+//	if err != nil {
+//		return err
+//	}
+//	v.client.SetToken("root-token")
+//
+//	tries := 30
+//	for {
+//		select {
+//		case _, open := <-v.vaultRunning:
+//			if !open {
+//				return fmt.Errorf("vault could not be started")
+//			}
+//		default:
+//		}
+//
+//		_, err := v.client.Auth().Token().LookupSelf()
+//		if err == nil {
+//			break
+//		}
+//		if tries <= 1 {
+//			return fmt.Errorf("vault dev server couldn't be started in time")
+//		}
+//		tries -= 1
+//		time.Sleep(time.Second)
+//	}
+//
+//	return nil
+//}
+
+//	if err := vault.Start(); err != nil {
+//		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+//	}
+//	defer vault.Stop()
+//
+//	k, err := New(vault.Client(), "test-cluster-inside")
+//	if err != nil {
+//		t.Error("unexpected error", err)
+//	}
+//
+//	err = k.Ensure()
+//	if err != nil {
+//		t.Error("unexpected error: ", err)
+//	}
+//
+//	err = k.Ensure()
+//	if err != nil {
+//		t.Error("unexpected error: ", err)
+//	}
 
 ////go test -coverprofile=coverage.out
 ////  go tool cover -html=coverage.out
