@@ -7,11 +7,21 @@ import (
 	"time"
 )
 
-const MAX_VALIDITY_COMPONENTS = time.Hour * 720
-const MAX_VALIDITY_ADMIN = time.Hour * 8766
-const MAX_VALIDITY_CA = time.Hour * 175320
+var MAX_VALIDITY_COMPONENTS = time.Hour * 720
+var MAX_VALIDITY_ADMIN = time.Hour * 8766
+var MAX_VALIDITY_CA = time.Hour * 175320
 
 func Run(cmd *cobra.Command, args []string) {
+
+	if cmd != nil && cmd.Flag("MaxTTL").Value.String() != "" {
+		logrus.Infof("MAX_VALIDITY_COMPONENTS = " + cmd.Flag("MaxTTL").Value.String())
+		_, err := time.ParseDuration(cmd.Flag("MaxTTL").Value.String())
+		if err != nil {
+			logrus.Fatalf("MAX TTL - Invalid time duration ", err)
+		}
+
+		//MAX_VALIDITY_COMPONENTS = cmd.Flag("MaxTTL").Value.String()
+	}
 
 	var clusterID string
 
@@ -157,8 +167,6 @@ func Run(cmd *cobra.Command, args []string) {
 
 			componentRole := k.NewComponentRole(component, "client", writeData)
 			logrus.Infof("Writting role data %s-[Client] ...", component)
-			logrus.Info(MAX_VALIDITY_COMPONENTS)
-			logrus.Info(MAX_VALIDITY_CA)
 			err = componentRole.WriteComponentRole()
 
 			if err != nil {
@@ -287,26 +295,7 @@ func Run(cmd *cobra.Command, args []string) {
 	logrus.Infof("--------------------------")
 	logrus.Infof("MOUNTS : ")
 	for _, mount := range mounts {
-		logrus.Infof("--")
-		logrus.Infof(mount.Description)
-		logrus.Infof(mount.Type)
+		logrus.Infof(mount.Description + " - " + mount.Type)
 	}
 	logrus.Infof("--------------------------")
-	logrus.Infof("AUTHS : ")
-	auths, _ := k.vaultClient.Sys().ListAuth()
-	for _, auth := range auths {
-		logrus.Infof("--")
-		logrus.Infof(auth.Description)
-		logrus.Infof(auth.Type)
-	}
-	logrus.Infof("--------------------------")
-
-	//kPKI := kubernetes_pki.New(prefix, vault)
-
-	//kPKI.MaxValidityAdmin = time.Hour * 24 * 60
-
-	//// TODO ensure that it is setup in that way
-	//// kPKI.Ensure()
-	//logrus.Debugf("kpki: %#+v", kPKI)
-
 }

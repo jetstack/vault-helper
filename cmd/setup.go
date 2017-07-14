@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	//"github.com/Sirupsen/logrus"
-	//vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	//"fmt"
+	//"github.com/Sirupsen/logrus"
 	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
-	//"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
+
+var MaxTTL string
 
 // initCmd represents the init command
 var setupCmd = &cobra.Command{
@@ -22,5 +21,6 @@ var setupCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.PersistentFlags().StringVar(&MaxTTL, "MaxTTL", "", "Maxium Validity CA")
 	RootCmd.AddCommand(setupCmd)
 }

@@ -1,12 +1,11 @@
 package kubernetes
 
 import (
-	"testing"
+	//"testing"
 
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
 	//"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
-	"time"
 )
 
 type fakeClient interface {
@@ -33,34 +32,22 @@ type fakeVault struct {
 //	client       *vault.Client
 //	server       *exec.Cmd
 //	vaultRunning chan struct{}
+
+//func newFakeKubernetes(t *testing.T) *Kubernetes {
+//	vaultClient := &fakeVault{}
+//
+//	port := "20202"
+//
+//	args := []string{
+//		"server",
+//		"-dev",
+//		"-dev-root-token-id=root-token",
+//		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", port),
+//	}
+//
+//	return nil
+//
 //}
-
-type fakeKubernetes struct {
-	*Kubernetes
-	ctrl *gomock.Controller
-
-	fakeEtcd           *fakePKI
-	fakeOverlay        *fakePKI
-	fakekubernetiesPKI *fakePKI
-}
-
-type fakePKI struct {
-	*PKI
-	ctrl *gomock.Controller
-
-	pkiName        string
-	fakekubernetes *fakeKubernetes
-
-	MaxLeaseTTL     time.Duration
-	DefaultLeaseTTL time.Duration
-}
-
-func newFakeKubernetes(t *testing.T) *fakeKubernetes {
-	vaultClient := &fakeVault{}
-
-	return nil
-
-}
 
 //func (v *fakeVault) Start() error {
 //	port := getUnusedPort()
