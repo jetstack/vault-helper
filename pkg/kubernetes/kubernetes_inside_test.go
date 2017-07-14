@@ -3,12 +3,14 @@ package kubernetes
 import (
 	"testing"
 
+	//"github.com/golang/mock/gomock"
+	//vault "github.com/hashicorp/vault/api"
 	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	//"time"
 )
 
 //go test -coverprofile=coverage.out
 //  go tool cover -html=coverage.out
-
 func TestKubernetes_Run_Setup_Test(t *testing.T) {
 	args := []string{"test-cluster-run"}
 	Run(nil, args)
