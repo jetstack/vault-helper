@@ -4,26 +4,47 @@ import (
 	//"testing"
 
 	"github.com/golang/mock/gomock"
-	vault "github.com/hashicorp/vault/api"
-	//"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	//vault "github.com/hashicorp/vault/api"
+	//mocks "gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/mocks"
 )
 
-type fakeClient interface {
-	Logical() *vault.Logical
-}
-
-type fakeServer interface {
-	Logical() *vault.Logical
-}
-
 type fakeVault struct {
-	//*vault_dev.VaultDev
-	ctrl *gomock.Controller
-
-	fakeClient fakeClient
-	//fakeServer FakeServer
-	//vaultRunning chan struct{}
+	fakeVault *MockVault
+	//fakeVault   *mock_kubernetes.MockVault
+	fakeSys     *MockVaultSys
+	fakeLogical *MockVaultLogical
+	fakeAuth    *MockVaultAuth
 }
+
+func newFakeVault(ctrl *gomock.Controller) *fakeVault {
+	v := &fakeVault{
+		fakeVault: NewMockVault(ctrl),
+		fakeSys:   NewMockVaultSys(ctrl),
+	}
+
+	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
+
+	return v
+
+}
+
+//type fakeClient interface {
+//	Logical() *vault.Logical
+//	Sys() *vault.Sys
+//}
+//
+//type fakeServer interface {
+//	Logical() *vault.Logical
+//}
+//
+//type fakeVault struct {
+//	//*vault_dev.VaultDev
+//	ctrl *gomock.Controller
+//
+//	fakeClient fakeClient
+//	//fakeServer FakeServer
+//	//vaultRunning chan struct{}
+//}
 
 //type fakeVault struct {
 //	*VaultDev

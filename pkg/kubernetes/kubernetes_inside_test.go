@@ -24,12 +24,12 @@ func TestInvalid_Cluster_ID(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	_, err := New(vault.Client(), "INVALID CLUSTER ID $^^%*$^")
+	_, err := New(RealVaultFromAPI(vault.Client()), "INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
 		t.Error("Should be invalid vluster ID")
 	}
 
-	_, err = New(vault.Client(), "5INVALID CLUSTER ID $^^%*$^")
+	_, err = New(RealVaultFromAPI(vault.Client()), "5INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
 		t.Error("Should be invalid vluster ID")
 	}
@@ -44,7 +44,7 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := New(vault.Client(), "test-cluster-inside")
+	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -68,7 +68,7 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := New(vault.Client(), "test-cluster-inside")
+	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
@@ -100,7 +100,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := New(vault.Client(), "test-cluster-inside")
+	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}

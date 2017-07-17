@@ -52,7 +52,7 @@ func Run(cmd *cobra.Command, args []string) {
 		logrus.Fatalf("unable to initialise vault dev server for integration tests: ", err)
 	}
 
-	k, err := New(vault.Client(), clusterID)
+	k, err := New(RealVaultFromAPI(vault.Client()), clusterID)
 	if err != nil {
 		logrus.Fatalf("Unable to create new kubernetes")
 	}

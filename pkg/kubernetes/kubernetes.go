@@ -17,9 +17,64 @@ type Backend interface {
 	Path() string
 }
 
+type VaultLogical interface {
+	Write(path string, data map[string]interface{}) (*vault.Secret, error)
+	Read(path string) (*vault.Secret, error)
+}
+
+type VaultSys interface {
+	ListMounts() (map[string]*vault.MountOutput, error)
+	ListPolicies() ([]string, error)
+
+	Mount(path string, mountInfo *vault.MountInput) error
+	PutPolicy(name, rules string) error
+	TuneMount(path string, config vault.MountConfigInput) error
+	GetPolicy(name string) (string, error)
+}
+
+type VaultAuth interface {
+	Token() VaultToken
+}
+
+type VaultToken interface {
+	CreateOrphan(opts *vault.TokenCreateRequest) (*vault.Secret, error)
+}
+
+type Vault interface {
+	Logical() VaultLogical
+	Sys() VaultSys
+	Auth() VaultAuth
+}
+
+type realVault struct {
+	c *vault.Client
+}
+
+type realVaultAuth struct {
+	a *vault.Auth
+}
+
+func (rv *realVault) Auth() VaultAuth {
+	return &realVaultAuth{a: rv.c.Auth()}
+}
+func (rv *realVault) Sys() VaultSys {
+	return rv.c.Sys()
+}
+func (rv *realVault) Logical() VaultLogical {
+	return rv.c.Logical()
+}
+
+func (rva *realVaultAuth) Token() VaultToken {
+	return rva.Token()
+}
+
+func RealVaultFromAPI(vaultClient *vault.Client) Vault {
+	return &realVault{c: vaultClient}
+}
+
 type Kubernetes struct {
 	clusterID   string // clusterID is required parameter, lowercase only, [a-z0-9-]+
-	vaultClient *vault.Client
+	vaultClient Vault
 
 	etcdKubernetesPKI *PKI
 	etcdOverlayPKI    *PKI
@@ -122,7 +177,7 @@ func IsValidClusterID(clusterID string) error {
 
 }
 
-func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
+func New(vaultClient Vault, clusterID string) (*Kubernetes, error) {
 
 	err := IsValidClusterID(clusterID)
 	if err != nil {
@@ -171,7 +226,7 @@ func (k *Kubernetes) NewGeneric() *Generic {
 	}
 }
 
-func GetMountByPath(vaultClient *vault.Client, mountPath string) (*vault.MountOutput, error) {
+func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
 
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {

@@ -19,7 +19,7 @@ func TestPKI_Ensure(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := New(vault.Client(), "test-cluster-inside")
+	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
