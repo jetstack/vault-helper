@@ -4,8 +4,9 @@ import (
 	//"testing"
 
 	"github.com/golang/mock/gomock"
-	//vault "github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	//mocks "gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/mocks"
+	//"github.com/Sirupsen/logrus"
 )
 
 type fakeVault struct {
@@ -15,7 +16,7 @@ type fakeVault struct {
 	fakeAuth    *MockVaultAuth
 }
 
-func newFakeVault(ctrl *gomock.Controller) *fakeVault {
+func NewFakeVault(ctrl *gomock.Controller) *fakeVault {
 	v := &fakeVault{
 		fakeVault: NewMockVault(ctrl),
 		fakeSys:   NewMockVaultSys(ctrl),
@@ -25,6 +26,37 @@ func newFakeVault(ctrl *gomock.Controller) *fakeVault {
 	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
 	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
 
+	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
+
+	mountInput := &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-k8s" + " CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "175320",
+			MaxLeaseTTL:     "175320",
+		},
+	}
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput).AnyTimes().Return(nil)
+
+	mountInput = &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-overlay" + " CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "175320",
+			MaxLeaseTTL:     "175320",
+		},
+	}
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput).AnyTimes().Return(nil)
+
+	mountInput = &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s" + " CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "175320",
+			MaxLeaseTTL:     "175320",
+		},
+	}
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput).AnyTimes().Return(nil)
 	return v
 
 }

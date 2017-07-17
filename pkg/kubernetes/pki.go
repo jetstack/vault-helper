@@ -86,10 +86,12 @@ func (p *PKI) Ensure() error {
 		logrus.Infof("Mount '%s' already existing", p.Path())
 	}
 
-	err = p.TuneMount(mount)
-	if err != nil {
-		logrus.Fatalf("Tuning Error")
-		return err
+	if mount != nil {
+		err = p.TuneMount(mount)
+		if err != nil {
+			logrus.Fatalf("Tuning Error")
+			return err
+		}
 	}
 
 	return nil

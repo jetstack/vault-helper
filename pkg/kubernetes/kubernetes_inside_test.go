@@ -3,7 +3,8 @@ package kubernetes
 import (
 	"testing"
 
-	//"github.com/golang/mock/gomock"
+	///"github.com/Sirupsen/logrus"
+	"github.com/golang/mock/gomock"
 	//vault "github.com/hashicorp/vault/api"
 	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 	//"time"
@@ -17,19 +18,24 @@ func TestKubernetes_Run_Setup_Test(t *testing.T) {
 }
 
 func TestInvalid_Cluster_ID(t *testing.T) {
-	vault := vault_dev.New()
 
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	}
-	defer vault.Stop()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	_, err := New(RealVaultFromAPI(vault.Client()), "INVALID CLUSTER ID $^^%*$^")
+	//vault := vault_dev.New()
+	vault := NewFakeVault(mockCtrl)
+
+	//if err := vault.Start(); err != nil {
+	//	t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	//}
+	//defer vault.Stop()
+
+	_, err := New(vault.fakeVault, "INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
 		t.Error("Should be invalid vluster ID")
 	}
 
-	_, err = New(RealVaultFromAPI(vault.Client()), "5INVALID CLUSTER ID $^^%*$^")
+	_, err = New(vault.fakeVault, "5INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
 		t.Error("Should be invalid vluster ID")
 	}
@@ -37,14 +43,18 @@ func TestInvalid_Cluster_ID(t *testing.T) {
 }
 
 func TestKubernetes_Double_Ensure(t *testing.T) {
-	vault := vault_dev.New()
+	//vault := vault_dev.New()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	}
-	defer vault.Stop()
+	vault := NewFakeVault(mockCtrl)
 
-	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
+	//if err := vault.Start(); err != nil {
+	//	t.Skip("unable to initialise vault dev server for integration tests: ", err)
+	//}
+	//defer vault.Stop()
+
+	k, err := New(vault.fakeVault, "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
