@@ -12,35 +12,35 @@ import (
 
 //go test -coverprofile=coverage.out
 //  go tool cover -html=coverage.out
-func TestKubernetes_Run_Setup_Test(t *testing.T) {
-	args := []string{"test-cluster-run"}
-	Run(nil, args)
-}
+//func TestKubernetes_Run_Setup_Test(t *testing.T) {
+//	args := []string{"test-cluster-run"}
+//	Run(nil, args)
+//}
 
-func TestInvalid_Cluster_ID(t *testing.T) {
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	//vault := vault_dev.New()
-	vault := NewFakeVault(mockCtrl)
-
-	//if err := vault.Start(); err != nil {
-	//	t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	//}
-	//defer vault.Stop()
-
-	_, err := New(vault.fakeVault, "INVALID CLUSTER ID $^^%*$^")
-	if err == nil {
-		t.Error("Should be invalid vluster ID")
-	}
-
-	_, err = New(vault.fakeVault, "5INVALID CLUSTER ID $^^%*$^")
-	if err == nil {
-		t.Error("Should be invalid vluster ID")
-	}
-
-}
+//func TestInvalid_Cluster_ID(t *testing.T) {
+//
+//	//mockCtrl := gomock.NewController(t)
+//	//defer mockCtrl.Finish()
+//
+//	vault := vault_dev.New()
+//	//vault := NewFakeVault(mockCtrl)
+//
+//	if err := vault.Start(); err != nil {
+//		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+//	}
+//	defer vault.Stop()
+//
+//	_, err := New(vault.fakeVault, "INVALID CLUSTER ID $^^%*$^")
+//	if err == nil {
+//		t.Error("Should be invalid vluster ID")
+//	}
+//
+//	_, err = New(vault.fakeVault, "5INVALID CLUSTER ID $^^%*$^")
+//	if err == nil {
+//		t.Error("Should be invalid vluster ID")
+//	}
+//
+//}
 
 func TestKubernetes_Double_Ensure(t *testing.T) {
 	//vault := vault_dev.New()
@@ -48,6 +48,8 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	vault := NewFakeVault(mockCtrl)
+
+	DoubleEnsure(vault)
 
 	//if err := vault.Start(); err != nil {
 	//	t.Skip("unable to initialise vault dev server for integration tests: ", err)
