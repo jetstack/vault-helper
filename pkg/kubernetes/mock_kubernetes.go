@@ -6,7 +6,6 @@ package kubernetes
 import (
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/hashicorp/vault/api"
-	//"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
 
 // MockBackend is a mock of Backend interface
@@ -227,9 +226,9 @@ func (_m *MockVaultAuth) EXPECT() *MockVaultAuthMockRecorder {
 }
 
 // Token mocks base method
-func (_m *MockVaultAuth) Token() kubernetes.VaultToken {
+func (_m *MockVaultAuth) Token() VaultToken {
 	ret := _m.ctrl.Call(_m, "Token")
-	ret0, _ := ret[0].(kubernetes.VaultToken)
+	ret0, _ := ret[0].(VaultToken)
 	return ret0
 }
 
@@ -298,9 +297,9 @@ func (_m *MockVault) EXPECT() *MockVaultMockRecorder {
 }
 
 // Logical mocks base method
-func (_m *MockVault) Logical() kubernetes.VaultLogical {
+func (_m *MockVault) Logical() VaultLogical {
 	ret := _m.ctrl.Call(_m, "Logical")
-	ret0, _ := ret[0].(kubernetes.VaultLogical)
+	ret0, _ := ret[0].(VaultLogical)
 	return ret0
 }
 
@@ -310,9 +309,9 @@ func (_mr *MockVaultMockRecorder) Logical() *gomock.Call {
 }
 
 // Sys mocks base method
-func (_m *MockVault) Sys() kubernetes.VaultSys {
+func (_m *MockVault) Sys() VaultSys {
 	ret := _m.ctrl.Call(_m, "Sys")
-	ret0, _ := ret[0].(kubernetes.VaultSys)
+	ret0, _ := ret[0].(VaultSys)
 	return ret0
 }
 
@@ -322,9 +321,9 @@ func (_mr *MockVaultMockRecorder) Sys() *gomock.Call {
 }
 
 // Auth mocks base method
-func (_m *MockVault) Auth() kubernetes.VaultAuth {
+func (_m *MockVault) Auth() VaultAuth {
 	ret := _m.ctrl.Call(_m, "Auth")
-	ret0, _ := ret[0].(kubernetes.VaultAuth)
+	ret0, _ := ret[0].(VaultAuth)
 	return ret0
 }
 

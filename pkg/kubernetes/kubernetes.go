@@ -65,7 +65,7 @@ func (rv *realVault) Logical() VaultLogical {
 }
 
 func (rva *realVaultAuth) Token() VaultToken {
-	return rva.Token()
+	return rva.a.Token()
 }
 
 func RealVaultFromAPI(vaultClient *vault.Client) Vault {

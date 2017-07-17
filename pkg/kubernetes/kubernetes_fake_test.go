@@ -9,8 +9,7 @@ import (
 )
 
 type fakeVault struct {
-	fakeVault *MockVault
-	//fakeVault   *mock_kubernetes.MockVault
+	fakeVault   *MockVault
 	fakeSys     *MockVaultSys
 	fakeLogical *MockVaultLogical
 	fakeAuth    *MockVaultAuth
@@ -23,6 +22,8 @@ func newFakeVault(ctrl *gomock.Controller) *fakeVault {
 	}
 
 	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
+	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
+	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
 
 	return v
 
