@@ -36,14 +36,14 @@ type fakeVault struct {
 //func newFakeKubernetes(t *testing.T) *Kubernetes {
 //	vaultClient := &fakeVault{}
 //
-//	port := "20202"
+//	//port := "20202"
 //
-//	args := []string{
-//		"server",
-//		"-dev",
-//		"-dev-root-token-id=root-token",
-//		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", port),
-//	}
+//	//args := []string{
+//	//	"server",
+//	//	"-dev",
+//	//	"-dev-root-token-id=root-token",
+//	//	fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", port),
+//	//}
 //
 //	return nil
 //

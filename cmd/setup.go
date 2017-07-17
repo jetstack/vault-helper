@@ -7,7 +7,9 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
 
-var MaxTTL string
+var MaxComponentTTL string
+var MaxAdminTTL string
+var MaxCATTL string
 
 // initCmd represents the init command
 var setupCmd = &cobra.Command{
@@ -21,6 +23,8 @@ var setupCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&MaxTTL, "MaxTTL", "", "Maxium Validity CA")
+	RootCmd.PersistentFlags().StringVar(&MaxComponentTTL, "MaxComponentTTL", "", "Maxium Validity Component CA")
+	RootCmd.PersistentFlags().StringVar(&MaxAdminTTL, "MaxAdminTTL", "", "Maxium Validity Admin CA")
+	RootCmd.PersistentFlags().StringVar(&MaxCATTL, "MaxCATTL", "", "Maxium Validity CA")
 	RootCmd.AddCommand(setupCmd)
 }

@@ -13,14 +13,28 @@ var MAX_VALIDITY_CA = time.Hour * 175320
 
 func Run(cmd *cobra.Command, args []string) {
 
-	if cmd != nil && cmd.Flag("MaxTTL").Value.String() != "" {
-		logrus.Infof("MAX_VALIDITY_COMPONENTS = " + cmd.Flag("MaxTTL").Value.String())
-		_, err := time.ParseDuration(cmd.Flag("MaxTTL").Value.String())
+	if cmd != nil && cmd.Flag("MaxComponentTTL").Value.String() != "" {
+		logrus.Infof("MAX_VALIDITY_COMPONENTS = " + cmd.Flag("MaxComponentTTL").Value.String())
+		_, err := time.ParseDuration(cmd.Flag("MaxComponentTTL").Value.String())
 		if err != nil {
-			logrus.Fatalf("MAX TTL - Invalid time duration ", err)
+			logrus.Fatalf("MAX Compnent TTL - Invalid time duration ", err)
 		}
+	}
 
-		//MAX_VALIDITY_COMPONENTS = cmd.Flag("MaxTTL").Value.String()
+	if cmd != nil && cmd.Flag("MaxAdminTTL").Value.String() != "" {
+		logrus.Infof("MAX_VALIDITY_ADMIN = " + cmd.Flag("MaxAdminTTL").Value.String())
+		_, err := time.ParseDuration(cmd.Flag("MaxAdminTTL").Value.String())
+		if err != nil {
+			logrus.Fatalf("MAX Admin TTL - Invalid time duration ", err)
+		}
+	}
+
+	if cmd != nil && cmd.Flag("MaxCATTL").Value.String() != "" {
+		logrus.Infof("MAX_VALIDITY_CA = " + cmd.Flag("MaxCATTL").Value.String())
+		_, err := time.ParseDuration(cmd.Flag("MaxCATTL").Value.String())
+		if err != nil {
+			logrus.Fatalf("MAX CA TTL - Invalid time duration ", err)
+		}
 	}
 
 	var clusterID string
