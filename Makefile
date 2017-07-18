@@ -18,5 +18,4 @@ test:
 
 
 go_codegen:
-	mockgen -package=mocks -source=pkg/kubernetes/kubernetes.go > pkg/mocks/kubernetes.go
-	#mockgen -package=mocks -source=pkg/tarmak/provider/aws/aws.go > pkg/tarmak/mocks/aws.go
+	mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
