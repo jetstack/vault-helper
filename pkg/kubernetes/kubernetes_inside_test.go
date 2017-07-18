@@ -17,44 +17,32 @@ import (
 //	Run(nil, args)
 //}
 
-//func TestInvalid_Cluster_ID(t *testing.T) {
-//
-//	//mockCtrl := gomock.NewController(t)
-//	//defer mockCtrl.Finish()
-//
-//	vault := vault_dev.New()
-//	//vault := NewFakeVault(mockCtrl)
-//
-//	if err := vault.Start(); err != nil {
-//		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-//	}
-//	defer vault.Stop()
-//
-//	_, err := New(vault.fakeVault, "INVALID CLUSTER ID $^^%*$^")
-//	if err == nil {
-//		t.Error("Should be invalid vluster ID")
-//	}
-//
-//	_, err = New(vault.fakeVault, "5INVALID CLUSTER ID $^^%*$^")
-//	if err == nil {
-//		t.Error("Should be invalid vluster ID")
-//	}
-//
-//}
+func TestInvalid_Cluster_ID(t *testing.T) {
 
-func TestKubernetes_Double_Ensure(t *testing.T) {
-	//vault := vault_dev.New()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	vault := NewFakeVault(mockCtrl)
 
-	DoubleEnsure(vault)
+	_, err := New(vault.fakeVault, "INVALID CLUSTER ID $^^%*$^")
+	if err == nil {
+		t.Error("Should be invalid vluster ID")
+	}
 
-	//if err := vault.Start(); err != nil {
-	//	t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	//}
-	//defer vault.Stop()
+	_, err = New(vault.fakeVault, "5INVALID CLUSTER ID $^^%*$^")
+	if err == nil {
+		t.Error("Should be invalid vluster ID")
+	}
+
+}
+
+func TestKubernetes_Double_Ensure(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	vault := NewFakeVault(mockCtrl)
+
+	DoubleEnsure_fake(vault)
 
 	k, err := New(vault.fakeVault, "test-cluster-inside")
 	if err != nil {
@@ -72,15 +60,16 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 	}
 
 }
+
 func TestKubernetes_NewPolicy_Role(t *testing.T) {
-	vault := vault_dev.New()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	}
-	defer vault.Stop()
+	vault := NewFakeVault(mockCtrl)
 
-	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
+	NewPolicy_fake(vault)
+
+	k, err := New(vault.fakeVault, "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}

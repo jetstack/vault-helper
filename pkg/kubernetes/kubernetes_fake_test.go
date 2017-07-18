@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
-	//mocks "github.com/jetstack-experimental/vault-helper/pkg/mocks"
+	//"github.com/jetstack-experimental/vault-helper/pkg/mocks"
 	//"github.com/Sirupsen/logrus"
 )
 
@@ -30,7 +30,7 @@ func NewFakeVault(ctrl *gomock.Controller) *fakeVault {
 
 }
 
-func DoubleEnsure(v *fakeVault) {
+func DoubleEnsure_fake(v *fakeVault) {
 
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
@@ -60,12 +60,20 @@ func DoubleEnsure(v *fakeVault) {
 	}
 
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
+
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(2).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(2).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(2).Return(nil)
-	//mounts := map[string]*vault.MountOutput{
-	//	Type: "generic",
-	//}
-	//v.fakeSys.EXPECT().ListMounts().Times(1).Return(mounts, nil)
 
+}
+
+func NewPolicy_fake(v *fakeVault) {
+	policyName := "test-cluster-inside/master"
+	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	role := "master"
+	clusterID := "test-cluster-inside"
+	v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
+
+	createrRule := "path \"auth/token/create/" + clusterID + "-" + role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
+	v.fakeSys.EXPECT().PutPolicy(policyName+"-creator", createrRule).Times(1).Return(nil)
 }
