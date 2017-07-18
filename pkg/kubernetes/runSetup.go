@@ -313,4 +313,9 @@ func Run(cmd *cobra.Command, args []string) {
 		logrus.Infof(mount.Description + " - " + mount.Type)
 	}
 	logrus.Infof("--------------------------")
+	logrus.Infof("INIT TOKENS : ")
+	for role, token := range k.InitTokens() {
+		logrus.Infof(role + " - " + token)
+	}
+	logrus.Infof("--------------------------")
 }

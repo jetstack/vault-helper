@@ -13,6 +13,7 @@ import (
 
 type Generic struct {
 	kubernetes *Kubernetes
+	initTokens map[string]string
 }
 
 func (g *Generic) Ensure() error {
@@ -26,7 +27,7 @@ func (g *Generic) Path() string {
 
 func randomUUID() string {
 	uuID := uuid.New()
-	return string(uuID[:])
+	return uuID.String()
 }
 
 func (g *Generic) GenerateSecretsMount() error {

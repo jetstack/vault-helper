@@ -223,6 +223,7 @@ func (k *Kubernetes) Path() string {
 func (k *Kubernetes) NewGeneric() *Generic {
 	return &Generic{
 		kubernetes: k,
+		initTokens: make(map[string]string),
 	}
 }
 
@@ -305,6 +306,11 @@ func (i *InitTokenPolicy) CreateToken() error {
 
 }
 
+func (k *Kubernetes) InitTokens() map[string]string {
+
+	return k.secretsGeneric.initTokens
+}
+
 func (i *InitTokenPolicy) WriteInitToken() error {
 
 	path := filepath.Join(i.kubernetes.clusterID, "secrets", "init-token-"+i.role_name)
@@ -317,6 +323,8 @@ func (i *InitTokenPolicy) WriteInitToken() error {
 		logrus.Fatal("Failed to create init token", err)
 	}
 	logrus.Infof("Written init token %s ", i.policy_name)
+
+	i.kubernetes.secretsGeneric.initTokens[i.role_name] = i.initToken
 
 	return nil
 }

@@ -12,10 +12,10 @@ import (
 
 //go test -coverprofile=coverage.out
 //  go tool cover -html=coverage.out
-//func TestKubernetes_Run_Setup_Test(t *testing.T) {
-//	args := []string{"test-cluster-run"}
-//	Run(nil, args)
-//}
+func TestKubernetes_Run_Setup_Test(t *testing.T) {
+	args := []string{"test-cluster-run"}
+	Run(nil, args)
+}
 
 func TestInvalid_Cluster_ID(t *testing.T) {
 
