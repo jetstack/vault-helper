@@ -19,19 +19,14 @@ func TestKubernetes_Run_Setup_Test(t *testing.T) {
 
 func TestInvalid_Cluster_ID(t *testing.T) {
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	_, err := New(nil, "INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
-		t.Error("Should be invalid vluster ID", err)
-		return
+		t.Error("Should be invalid vluster ID")
 	}
 
 	_, err = New(nil, "5INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
-		t.Error("Should be invalid vluster ID", err)
-		return
+		t.Error("Should be invalid vluster ID")
 	}
 
 }
@@ -46,9 +41,9 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 
 	k, err := New(nil, "test-cluster-inside")
 	if err != nil {
-		t.Error("error creating vault client", err)
-		return
+		t.Error("unexpected error", err)
 	}
+
 	k.vaultClient = vault.fakeVault
 
 	err = k.Ensure()
@@ -74,11 +69,11 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 	NewPolicy_fake(vault)
 
 	k, err := New(nil, "test-cluster-inside")
-	k.vaultClient = vault.fakeVault
 	if err != nil {
-		t.Error("error creating vault client", err)
-		return
+		t.Error("unexpected error", err)
 	}
+
+	k.vaultClient = vault.fakeVault
 
 	policyName := "test-cluster-inside/master"
 	policyRules := `
@@ -114,11 +109,12 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	NewToken_fake(vault)
 
 	k, err := New(nil, "test-cluster-inside")
-	k.vaultClient = vault.fakeVault
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
 	}
+
+	k.vaultClient = vault.fakeVault
 
 	writeData := map[string]interface{}{
 		"use_csr_common_name": false,

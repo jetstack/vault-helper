@@ -122,3 +122,45 @@ func NewToken_fake(v *fakeVault) {
 	v.fakeLogical.EXPECT().Write(rolePath, writeData).Times(1).Return(nil, nil)
 
 }
+
+func PKI_Ensure_fake(v *fakeVault) {
+
+	mountInput1 := &vault.MountInput{
+		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "0",
+			MaxLeaseTTL:     "175320",
+		},
+	}
+
+	mountInput2 := &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-overlay" + " CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "175320",
+			MaxLeaseTTL:     "0",
+		},
+	}
+
+	mountInput3 := &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s" + " CA",
+		Type:        "pki",
+		Config: vault.MountConfigInput{
+			DefaultLeaseTTL: "0",
+			MaxLeaseTTL:     "175320",
+		},
+	}
+	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
+
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
+
+	firstGet := v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("", nil)
+	v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("true", nil).After(firstGet)
+
+	policyName := "test-cluster-inside/master"
+	policyRules := "\npath \"test-cluster-inside/pki/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+	v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
+}

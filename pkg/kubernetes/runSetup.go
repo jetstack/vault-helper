@@ -300,7 +300,6 @@ func Run(cmd *cobra.Command, args []string) {
 
 	policies, _ := k.vaultClient.Sys().ListPolicies()
 	mounts, _ := k.vaultClient.Sys().ListMounts()
-	logrus.Infof("%s", mounts)
 
 	logrus.Infof("--------------------------")
 	logrus.Infof("POLICIES : ")

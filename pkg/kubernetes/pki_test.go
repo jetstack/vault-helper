@@ -4,27 +4,25 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/Sirupsen/logrus"
-	//"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+	//vault_testing "github.com/hashicorp/vault/api"
 
-	vault_testing "github.com/hashicorp/vault/api"
-
-	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	"github.com/golang/mock/gomock"
 )
 
 func TestPKI_Ensure(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-		return
-	}
-	defer vault.Stop()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	k, err := New(vault.Client(), "test-cluster-inside")
+	vault := NewFakeVault(mockCtrl)
+
+	PKI_Ensure_fake(vault)
+
+	k, err := New(nil, "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
-		return
 	}
+
+	k.vaultClient = vault.fakeVault
 
 	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
@@ -88,25 +86,25 @@ path "` + basePath + `/` + `etcd-overlay/sign/client` + `" {
 		return
 	}
 
-	pkiWrongType := NewPKI(k, "wrong-type-pki")
+	//pkiWrongType := NewPKI(k, "wrong-type-pki")
 
-	err = k.vaultClient.Sys().Mount(
-		k.Path()+"/pki/"+"wrong-type-pki",
-		&vault_testing.MountInput{
-			Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
-			Type:        "generic",
-			Config:      k.etcdKubernetesPKI.getMountConfigInput(),
-		},
-	)
-	if err != nil {
-		t.Error("Error Mounting: ", err)
-		return
-	}
+	//err = k.vaultClient.Sys().Mount(
+	//	k.Path()+"/pki/"+"wrong-type-pki",
+	//	&vault_testing.MountInput{
+	//		Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
+	//		Type:        "generic",
+	//		Config:      k.etcdKubernetesPKI.getMountConfigInput(),
+	//	},
+	//)
+	//if err != nil {
+	//	t.Error("Error Mounting: ", err)
+	//	return
+	//}
 
-	err = pkiWrongType.Ensure()
-	if err == nil {
-		t.Error("Should have error from wrong type")
-		return
-	}
+	//err = pkiWrongType.Ensure()
+	//if err == nil {
+	//	t.Error("Should have error from wrong type")
+	//	return
+	//}
 
 }

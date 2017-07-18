@@ -12,7 +12,6 @@ func TestGeneric_Ensure(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-		return
 	}
 	defer vault.Stop()
 
