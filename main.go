@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.jetstack.net/jetstack-experimental/vault-helper/cmd"
+import "github.com/jetstack-experimental/vault-helper/cmd"
 
 func main() {
 	cmd.Execute()

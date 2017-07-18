@@ -6,7 +6,7 @@ import (
 	///"github.com/Sirupsen/logrus"
 	"github.com/golang/mock/gomock"
 	//vault "github.com/hashicorp/vault/api"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 	//"time"
 )
 

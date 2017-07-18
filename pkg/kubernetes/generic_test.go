@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	//"github.com/Sirupsen/logrus"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
 func TestGeneric_Ensure(t *testing.T) {

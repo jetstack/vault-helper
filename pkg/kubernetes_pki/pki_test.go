@@ -6,7 +6,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes_pki"
+	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes_pki"
 )
 
 func TestPKI_Ensure(t *testing.T) {

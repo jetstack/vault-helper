@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	//"github.com/Sirupsen/logrus"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
+	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
 
 var MaxComponentTTL string

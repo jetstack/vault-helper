@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
-	//mocks "gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/mocks"
+	//mocks "github.com/jetstack-experimental/vault-helper/pkg/mocks"
 	//"github.com/Sirupsen/logrus"
 )
 

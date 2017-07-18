@@ -2,8 +2,8 @@ package kubernetes
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 	"github.com/spf13/cobra"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 	"time"
 )
 

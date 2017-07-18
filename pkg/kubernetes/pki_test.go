@@ -5,11 +5,11 @@ import (
 	"time"
 
 	//"github.com/Sirupsen/logrus"
-	//"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
+	//"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 
 	vault_testing "github.com/hashicorp/vault/api"
 
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
 func TestPKI_Ensure(t *testing.T) {

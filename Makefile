@@ -15,3 +15,8 @@ push: image
 
 test:
 	docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(CURDIR):/code --workdir /code ruby:2.3 bash -c "bundle install && bundle exec rake"
+
+
+go_codegen:
+	mockgen -package=mocks -source=pkg/kubernetes/kubernetes.go > pkg/mocks/kubernetes.go
+	#mockgen -package=mocks -source=pkg/tarmak/provider/aws/aws.go > pkg/tarmak/mocks/aws.go
