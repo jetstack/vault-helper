@@ -18,8 +18,9 @@ type fakeVault struct {
 
 func NewFakeVault(ctrl *gomock.Controller) *fakeVault {
 	v := &fakeVault{
-		fakeVault: NewMockVault(ctrl),
-		fakeSys:   NewMockVaultSys(ctrl),
+		fakeVault:   NewMockVault(ctrl),
+		fakeSys:     NewMockVaultSys(ctrl),
+		fakeLogical: NewMockVaultLogical(ctrl),
 	}
 
 	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
@@ -76,4 +77,41 @@ func NewPolicy_fake(v *fakeVault) {
 
 	createrRule := "path \"auth/token/create/" + clusterID + "-" + role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
 	v.fakeSys.EXPECT().PutPolicy(policyName+"-creator", createrRule).Times(1).Return(nil)
+}
+
+func NewToken_fake(v *fakeVault) {
+
+	rolePath := "auth/token/roles/test-cluster-inside-admin"
+	writeData := map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"organization":        "system:masters",
+		"allowed_domains":     "admin",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
+	v.fakeLogical.EXPECT().Write(rolePath, writeData).Times(1).Return(nil, nil)
+
+	rolePath = "auth/token/roles/test-cluster-inside-kube-scheduler"
+	writeData = map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"allowed_domains":     "kube-scheduler,system:kube-scheduler",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
+	v.fakeLogical.EXPECT().Write(rolePath, writeData).Times(1).Return(nil, nil)
+
 }

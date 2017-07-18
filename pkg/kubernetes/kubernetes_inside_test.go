@@ -3,10 +3,10 @@ package kubernetes
 import (
 	"testing"
 
-	///"github.com/Sirupsen/logrus"
+	//"github.com/Sirupsen/logrus"
 	"github.com/golang/mock/gomock"
 	//vault "github.com/hashicorp/vault/api"
-	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	//"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 	//"time"
 )
 
@@ -94,17 +94,18 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 
 func TestKubernetes_NewToken_Role(t *testing.T) {
 
-	vault := vault_dev.New()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	}
-	defer vault.Stop()
+	vault := NewFakeVault(mockCtrl)
 
-	k, err := New(RealVaultFromAPI(vault.Client()), "test-cluster-inside")
+	NewToken_fake(vault)
+
+	k, err := New(vault.fakeVault, "test-cluster-inside")
 	if err != nil {
 		t.Error("unexpected error", err)
 	}
+
 	writeData := map[string]interface{}{
 		"use_csr_common_name": false,
 		"enforce_hostnames":   false,
@@ -121,6 +122,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	}
 
 	adminRole := k.NewTokenRole("admin", writeData)
+
 	err = adminRole.WriteTokenRole()
 
 	if err != nil {
