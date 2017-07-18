@@ -68,7 +68,7 @@ func (rva *realVaultAuth) Token() VaultToken {
 	return rva.a.Token()
 }
 
-func RealVaultFromAPI(vaultClient *vault.Client) Vault {
+func realVaultFromAPI(vaultClient *vault.Client) Vault {
 	return &realVault{c: vaultClient}
 }
 
@@ -177,7 +177,7 @@ func IsValidClusterID(clusterID string) error {
 
 }
 
-func New(vaultClient Vault, clusterID string) (*Kubernetes, error) {
+func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
 
 	err := IsValidClusterID(clusterID)
 	if err != nil {
@@ -185,8 +185,11 @@ func New(vaultClient Vault, clusterID string) (*Kubernetes, error) {
 	}
 
 	k := &Kubernetes{
-		clusterID:   clusterID,
-		vaultClient: vaultClient,
+		clusterID: clusterID,
+	}
+
+	if vaultClient != nil {
+		k.vaultClient = realVaultFromAPI(vaultClient)
 	}
 
 	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s")

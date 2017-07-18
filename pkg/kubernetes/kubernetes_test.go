@@ -14,7 +14,7 @@ func TestKubernetes_Ensure(t *testing.T) {
 		t.Skip("unable to initialise vault dev server for integration tests: ", err)
 	}
 
-	k, err := kubernetes.New(kubernetes.RealVaultFromAPI(vault.Client()), "test-cluster")
+	k, err := kubernetes.New(vault.Client(), "test-cluster")
 
 	if err != nil {
 		t.Error("unexpected error", err)

@@ -15,7 +15,7 @@ func TestGeneric_Ensure(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := kubernetes.New(kubernetes.RealVaultFromAPI(vault.Client()), "test-cluster")
+	k, err := kubernetes.New(vault.Client(), "test-cluster")
 
 	if err != nil {
 		t.Error("unexpected error", err)
