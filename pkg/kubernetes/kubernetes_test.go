@@ -24,12 +24,14 @@ func TestKubernetes_Ensure(t *testing.T) {
 	err = k.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
+		return
 	}
 
 	generic := k.NewGeneric()
 	err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
+		return
 	}
 	defer vault.Stop()
 }

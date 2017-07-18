@@ -86,7 +86,7 @@ func (g *Generic) writeKey(secrets_path string) error {
 	_, err = g.kubernetes.vaultClient.Logical().Write(secrets_path, writeData)
 
 	if err != nil {
-		logrus.Fatal("Error writting key to secrets", err)
+		return fmt.Errorf("Error writting key to secrets: %s", err)
 	}
 	logrus.Infof("Key written to secrets")
 
@@ -104,7 +104,7 @@ func (i *InitTokenPolicy) CreateToken() error {
 
 	_, err := i.kubernetes.vaultClient.Auth().Token().CreateOrphan(writeData)
 	if err != nil {
-		logrus.Fatal("Failed to create init token", err)
+		return fmt.Errorf("Failed to create init token: %s", err)
 	}
 	logrus.Infof("Created init token %s ", i.policy_name)
 
@@ -121,7 +121,7 @@ func (i *InitTokenPolicy) WriteInitToken() error {
 
 	_, err := i.kubernetes.vaultClient.Logical().Write(path, writeData)
 	if err != nil {
-		logrus.Fatal("Failed to create init token", err)
+		return fmt.Errorf("Failed to create init token: %s", err)
 	}
 	logrus.Infof("Written init token %s ", i.policy_name)
 

@@ -70,12 +70,19 @@ func DoubleEnsure_fake(v *fakeVault) {
 
 func NewPolicy_fake(v *fakeVault) {
 	policyName := "test-cluster-inside/master"
-	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	policyRules := `
+path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
+    capabilities = ["create", "read", "update"]
+}
+`
 	role := "master"
 	clusterID := "test-cluster-inside"
 	v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
 
-	createrRule := "path \"auth/token/create/" + clusterID + "-" + role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
+	createrRule := `
+path "auth/token/create"` + clusterID + `-` + role + `+ {
+	capabilities = ["create","read","update"]
+}`
 	v.fakeSys.EXPECT().PutPolicy(policyName+"-creator", createrRule).Times(1).Return(nil)
 }
 

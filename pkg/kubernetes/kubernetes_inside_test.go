@@ -24,12 +24,14 @@ func TestInvalid_Cluster_ID(t *testing.T) {
 
 	_, err := New(nil, "INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
-		t.Error("Should be invalid vluster ID")
+		t.Error("Should be invalid vluster ID", err)
+		return
 	}
 
 	_, err = New(nil, "5INVALID CLUSTER ID $^^%*$^")
 	if err == nil {
-		t.Error("Should be invalid vluster ID")
+		t.Error("Should be invalid vluster ID", err)
+		return
 	}
 
 }
@@ -44,18 +46,21 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 
 	k, err := New(nil, "test-cluster-inside")
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Error("error creating vault client", err)
+		return
 	}
 	k.vaultClient = vault.fakeVault
 
 	err = k.Ensure()
 	if err != nil {
-		t.Error("unexpected error: ", err)
+		t.Error("error ensuring: ", err)
+		return
 	}
 
 	err = k.Ensure()
 	if err != nil {
-		t.Error("unexpected error: ", err)
+		t.Error("error double ensuring: ", err)
+		return
 	}
 
 }
@@ -71,11 +76,16 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 	k, err := New(nil, "test-cluster-inside")
 	k.vaultClient = vault.fakeVault
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Error("error creating vault client", err)
+		return
 	}
 
 	policyName := "test-cluster-inside/master"
-	policyRules := "path \"test-cluster-inside/pki/k8s/sign/kube-apiserver\" {\n        capabilities = [\"create\",\"read\",\"update\"]\n    }\n    "
+	policyRules := `
+path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
+	capabilities = ["create","read","update"]
+}
+`
 	role := "master"
 
 	masterPolicy := k.NewPolicy(policyName, policyRules, role)
@@ -83,11 +93,13 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 	err = masterPolicy.WritePolicy()
 	if err != nil {
 		t.Error("unexpected error", err)
+		return
 	}
 
 	err = masterPolicy.CreateTokenCreater()
 	if err != nil {
 		t.Error("unexpected error", err)
+		return
 	}
 
 }
@@ -105,6 +117,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	k.vaultClient = vault.fakeVault
 	if err != nil {
 		t.Error("unexpected error", err)
+		return
 	}
 
 	writeData := map[string]interface{}{
@@ -128,6 +141,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected error", err)
+		return
 	}
 
 	writeData = map[string]interface{}{
@@ -150,6 +164,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 
 	if err != nil {
 		t.Error("unexpected error", err)
+		return
 	}
 
 }

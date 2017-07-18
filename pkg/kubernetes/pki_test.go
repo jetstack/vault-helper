@@ -16,6 +16,7 @@ func TestPKI_Ensure(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		return
 	}
 	defer vault.Stop()
 
@@ -27,15 +28,19 @@ func TestPKI_Ensure(t *testing.T) {
 
 	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+		return
 	}
 	if exp, act := "test-cluster-inside/pki/etcd-overlay", k.etcdOverlayPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+		return
 	}
 	if exp, act := "test-cluster-inside/pki/k8s", k.kubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+		return
 	}
 	if exp, act := "test-cluster-inside/generic", k.secretsGeneric.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
+		return
 	}
 
 	k.etcdKubernetesPKI.DefaultLeaseTTL = time.Hour * 0
@@ -53,25 +58,34 @@ func TestPKI_Ensure(t *testing.T) {
 	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
 	if err != nil {
 		t.Error("Error finding policy: ", err)
+		return
 	}
 	if exists {
 		t.Error("Policy Found - it should not be")
+		return
 	}
 
-	rule := "\npath \"" + basePath + "/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+	rule := `
+path "` + basePath + `/` + `etcd-overlay/sign/client` + `" {
+	capabilities = ["create","read","update"]
+}
+`
 	policy := k.NewPolicy(policy_name, rule, "master")
 
 	err = policy.WritePolicy()
 	if err != nil {
 		t.Error("Error writting policy: ", err)
+		return
 	}
 
 	exists, err = k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
 	if err != nil {
 		t.Error("Error finding policy: ", err)
+		return
 	}
 	if !exists {
 		t.Error("Policy not found")
+		return
 	}
 
 	pkiWrongType := NewPKI(k, "wrong-type-pki")
@@ -86,11 +100,13 @@ func TestPKI_Ensure(t *testing.T) {
 	)
 	if err != nil {
 		t.Error("Error Mounting: ", err)
+		return
 	}
 
 	err = pkiWrongType.Ensure()
 	if err == nil {
 		t.Error("Should have error from wrong type")
+		return
 	}
 
 }
