@@ -92,3 +92,40 @@ func (g *Generic) writeKey(secrets_path string) error {
 
 	return nil
 }
+
+func (i *InitTokenPolicy) CreateToken() error {
+	writeData := &vault.TokenCreateRequest{
+		ID:          i.initToken,
+		DisplayName: i.policy_name + "-creator",
+		TTL:         "8760h",
+		Period:      "8760h",
+		Policies:    []string{i.policy_name + "-creator"},
+	}
+
+	_, err := i.kubernetes.vaultClient.Auth().Token().CreateOrphan(writeData)
+	if err != nil {
+		logrus.Fatal("Failed to create init token", err)
+	}
+	logrus.Infof("Created init token %s ", i.policy_name)
+
+	return nil
+
+}
+
+func (i *InitTokenPolicy) WriteInitToken() error {
+
+	path := filepath.Join(i.kubernetes.clusterID, "secrets", "init-token-"+i.role_name)
+	writeData := map[string]interface{}{
+		"init_token": i.initToken,
+	}
+
+	_, err := i.kubernetes.vaultClient.Logical().Write(path, writeData)
+	if err != nil {
+		logrus.Fatal("Failed to create init token", err)
+	}
+	logrus.Infof("Written init token %s ", i.policy_name)
+
+	i.kubernetes.secretsGeneric.initTokens[i.role_name] = i.initToken
+
+	return nil
+}
