@@ -4,8 +4,19 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 )
+
+func (k *Kubernetes) WritePolicy(p *Policy) error {
+	err := k.vaultClient.Sys().PutPolicy(p.Name, p.Policy())
+	if err != nil {
+		return fmt.Errorf("error writting policy '%s': %s", err)
+	}
+	logrus.Infof("policy '%s' written", p.Name)
+
+	return nil
+}
 
 func (k *Kubernetes) ensurePolicies() error {
 	var result error

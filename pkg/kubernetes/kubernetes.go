@@ -254,16 +254,6 @@ func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, er
 	return mount, nil
 }
 
-func (k *Kubernetes) WritePolicy(p *Policy) error {
-	err := k.vaultClient.Sys().PutPolicy(p.Name, p.Policy())
-	if err != nil {
-		return fmt.Errorf("error writting policy '%s': %s", err)
-	}
-	logrus.Infof("policy '%s' written", p.Name)
-
-	return nil
-}
-
 func (p *Policy) CreateTokenCreater() error {
 	/*
 		createrRule := "path \"auth/token/create/" + p.kubernetes.clusterID + "-" + p.role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
