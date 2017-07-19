@@ -85,40 +85,9 @@ type Kubernetes struct {
 	MaxValidityAdmin      time.Duration
 	MaxValidityComponents time.Duration
 	MaxValidityCA         time.Duration
-}
+	MaxValidityInitTokens time.Duration
 
-type TokenRole struct {
-	role_name  string
-	writeData  map[string]interface{}
-	kubernetes *Kubernetes
-}
-
-type InitTokenPolicy struct {
-	policy_name string
-	role_name   string
-	initToken   string
-	kubernetes  *Kubernetes
-}
-
-func (t *TokenRole) WriteTokenRole() error {
-	rolePath := filepath.Join("auth/token/roles", t.kubernetes.clusterID+"-"+t.role_name)
-	rolePath = filepath.Clean(rolePath)
-	_, err := t.kubernetes.vaultClient.Logical().Write(rolePath, t.writeData)
-
-	if err != nil {
-		return fmt.Errorf("error writting role data: %s", err)
-	}
-
-	return nil
-}
-
-func (k *Kubernetes) NewTokenRole(role_name string, writeData map[string]interface{}) *TokenRole {
-	return &TokenRole{
-		role_name:  role_name,
-		writeData:  writeData,
-		kubernetes: k,
-	}
-
+	initTokens []*InitToken
 }
 
 var _ Backend = &PKI{}
@@ -165,6 +134,7 @@ func New(vaultClient *vault.Client) *Kubernetes {
 		MaxValidityCA:         time.Hour * 24 * 365 * 20, // Validity period of CA certificates
 		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
 		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
+		MaxValidityInitTokens: time.Hour * 24 * 365 * 5,  // Validity of init tokens
 	}
 
 	if vaultClient != nil {
@@ -216,9 +186,17 @@ func (k *Kubernetes) Ensure() error {
 	if err := k.ensurePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
 		result = multierror.Append(result, err)
 	}
+	if err := k.ensurePKIRolesK8S(k.kubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
 
 	// setup policies
 	if err := k.ensurePolicies(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	// setup init tokens
+	if err := k.ensureInitTokens(); err != nil {
 		result = multierror.Append(result, err)
 	}
 
@@ -254,29 +232,48 @@ func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, er
 	return mount, nil
 }
 
-func (p *Policy) CreateTokenCreater() error {
-	/*
-		createrRule := "path \"auth/token/create/" + p.kubernetes.clusterID + "-" + p.role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
-		err := p.kubernetes.vaultClient.Sys().PutPolicy(p.policy_name+"-creator", createrRule)
-		if err != nil {
-			return fmt.Errorf("error writting creator policy: %s", err)
-		}
-		logrus.Infof("Creator policy written: %s", p.policy_name)
-	*/
-
-	return nil
-}
-
-func (k *Kubernetes) NewInitToken(policy_name, role_name string) *InitTokenPolicy {
-	return &InitTokenPolicy{
-		policy_name: policy_name,
-		role_name:   role_name,
-		initToken:   randomUUID(),
-		kubernetes:  k,
+func (k *Kubernetes) NewInitToken(role string, policies []string) *InitToken {
+	return &InitToken{
+		Role:       role,
+		Policies:   policies,
+		kubernetes: k,
 	}
 }
 
-func (k *Kubernetes) InitTokens() map[string]string {
+func (k *Kubernetes) ensureInitTokens() error {
+	var result error
 
-	return k.secretsGeneric.initTokens
+	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", []string{
+		k.etcdPolicy().Name,
+	}))
+	k.initTokens = append(k.initTokens, k.NewInitToken("master", []string{
+		k.masterPolicy().Name,
+		k.workerPolicy().Name,
+	}))
+	k.initTokens = append(k.initTokens, k.NewInitToken("worker", []string{
+		k.workerPolicy().Name,
+	}))
+	k.initTokens = append(k.initTokens, k.NewInitToken("all", []string{
+		k.etcdPolicy().Name,
+		k.masterPolicy().Name,
+		k.workerPolicy().Name,
+	}))
+
+	for _, initToken := range k.initTokens {
+		if err := initToken.Ensure(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+	return result
+}
+
+func (k *Kubernetes) InitTokens() map[string]string {
+	output := map[string]string{}
+	for _, initToken := range k.initTokens {
+		token, err := initToken.InitToken()
+		if err == nil {
+			output[initToken.Role] = token
+		}
+	}
+	return output
 }

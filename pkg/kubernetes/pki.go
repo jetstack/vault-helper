@@ -66,7 +66,6 @@ func (p *PKI) Ensure() error {
 			&vault.MountInput{
 				Description: "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA",
 				Type:        "pki",
-				Config:      p.getMountConfigInput(),
 			},
 		)
 		if err != nil {
@@ -121,11 +120,11 @@ func (p *PKI) getMountConfigInput() vault.MountConfigInput {
 }
 
 func (p *PKI) getDefaultLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds()))
+	return fmt.Sprintf("%ds", int(p.DefaultLeaseTTL.Seconds()))
 }
 
 func (p *PKI) getMaxLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
+	return fmt.Sprintf("%ds", int(p.MaxLeaseTTL.Seconds()))
 }
 
 func (p *PKI) getTokenPolicyExists(name string) (bool, error) {

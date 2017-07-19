@@ -31,6 +31,8 @@ var setupCmd = &cobra.Command{
 		if err := k.Run(cmd, args); err != nil {
 			logger.Fatal(err)
 		}
+
+		logger.Infof("init_tokens: %#+v", k.InitTokens())
 	},
 }
 

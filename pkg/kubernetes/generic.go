@@ -26,7 +26,7 @@ func (g *Generic) Ensure() error {
 }
 
 func (g *Generic) Path() string {
-	return filepath.Join(g.kubernetes.Path(), "generic")
+	return filepath.Join(g.kubernetes.Path(), "secrets")
 }
 
 func randomUUID() string {
@@ -108,39 +108,48 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	return nil
 }
 
-func (i *InitTokenPolicy) CreateToken() error {
-	writeData := &vault.TokenCreateRequest{
-		ID:          i.initToken,
-		DisplayName: i.policy_name + "-creator",
-		TTL:         "8760h",
-		Period:      "8760h",
-		Policies:    []string{i.policy_name + "-creator"},
+func (g *Generic) InitToken(name, role string, policies []string) (string, error) {
+	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(path); err != nil {
+		return "", fmt.Errorf("error checking for secret %s: %s", path, err)
+	} else if secret != nil {
+		key := "init_token"
+		token, ok := secret.Data[key]
+		if !ok {
+			return "", fmt.Errorf("error secret %s doesn't contain a key '%s'", path, key)
+		}
+
+		tokenStr, ok := token.(string)
+		if !ok {
+			return "", fmt.Errorf("error secret %s key '%s' has wrong type: %T", path, key, token)
+		}
+
+		return tokenStr, nil
 	}
 
-	_, err := i.kubernetes.vaultClient.Auth().Token().CreateOrphan(writeData)
+	// we have to create a new token
+	tokenRequest := &vault.TokenCreateRequest{
+		DisplayName: name,
+		TTL:         fmt.Sprintf("%ds", int(g.kubernetes.MaxValidityInitTokens.Seconds())),
+		Period:      fmt.Sprintf("%ds", int(g.kubernetes.MaxValidityInitTokens.Seconds())),
+		Policies:    policies,
+	}
+
+	token, err := g.kubernetes.vaultClient.Auth().Token().CreateOrphan(tokenRequest)
 	if err != nil {
-		return fmt.Errorf("Failed to create init token: %s", err)
-	}
-	logrus.Infof("Created init token %s ", i.policy_name)
-
-	return nil
-
-}
-
-func (i *InitTokenPolicy) WriteInitToken() error {
-
-	path := filepath.Join(i.kubernetes.clusterID, "secrets", "init-token-"+i.role_name)
-	writeData := map[string]interface{}{
-		"init_token": i.initToken,
+		return "", fmt.Errorf("failed to create init token: %s", err)
 	}
 
-	_, err := i.kubernetes.vaultClient.Logical().Write(path, writeData)
+	dataStoreToken := map[string]interface{}{
+		"init_token": token.Auth.ClientToken,
+	}
+	_, err = g.kubernetes.vaultClient.Logical().Write(path, dataStoreToken)
 	if err != nil {
-		return fmt.Errorf("Failed to create init token: %s", err)
+		return "", fmt.Errorf("failed to store init token in '%s': %s", path, err)
 	}
-	logrus.Infof("Written init token %s ", i.policy_name)
 
-	i.kubernetes.secretsGeneric.initTokens[i.role_name] = i.initToken
+	logrus.Infof("created init token %s", name)
+	return token.Auth.ClientToken, nil
 
-	return nil
 }
