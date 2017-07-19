@@ -36,17 +36,15 @@ func randomUUID() string {
 
 func (g *Generic) GenerateSecretsMount() error {
 
-	secrets_path := filepath.Join(g.kubernetes.clusterID, "secrets")
-
-	mount, err := GetMountByPath(g.kubernetes.vaultClient, secrets_path)
+	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return err
 	}
 
 	if mount == nil {
-		logrus.Infof("No secrects mount found for: %s", secrets_path)
+		logrus.Infof("No secrects mount found for: %s", g.Path())
 		err = g.kubernetes.vaultClient.Sys().Mount(
-			secrets_path,
+			g.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
 				Type:        "generic",
@@ -58,23 +56,24 @@ func (g *Generic) GenerateSecretsMount() error {
 		}
 
 		logrus.Infof("Mounted secrets")
+	}
 
-		err = g.writeKey(secrets_path)
+	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
+		return fmt.Errorf("error checking for secret %s: %s", rsaKeyPath, err)
+	} else if secret == nil {
+		err = g.writeNewRSAKey(rsaKeyPath, 4096)
 		if err != nil {
-			return fmt.Errorf("error creating mount: %s", err)
+			return fmt.Errorf("error creating rsa key at %s: %s", rsaKeyPath, err)
 		}
-
-	} else {
-		logrus.Infof("Secrets already mounted: %s", secrets_path)
 	}
 
 	return nil
 }
 
-func (g *Generic) writeKey(secrets_path string) error {
+func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 
 	reader := rand.Reader
-	bitSize := 4096
 	key, err := rsa.GenerateKey(reader, bitSize)
 	if err != nil {
 		return fmt.Errorf("error generating rsa key: %s", err)
@@ -86,21 +85,23 @@ func (g *Generic) writeKey(secrets_path string) error {
 	}
 
 	var buf bytes.Buffer
-	err = pem.Encode(bufio.NewWriter(&buf), privateKey)
+	writer := bufio.NewWriter(&buf)
+	err = pem.Encode(writer, privateKey)
 	if err != nil {
 		return fmt.Errorf("error encoding rsa key in PEM: %s", err)
+	}
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("error flushing buffer: %s", err)
 	}
 
 	writeData := map[string]interface{}{
 		"key": buf.String(),
 	}
 
-	secrets_path = filepath.Join(secrets_path, "service-accounts")
-
-	_, err = g.kubernetes.vaultClient.Logical().Write(secrets_path, writeData)
+	_, err = g.kubernetes.vaultClient.Logical().Write(secretPath, writeData)
 
 	if err != nil {
-		return fmt.Errorf("Error writting key to secrets: %s", err)
+		return fmt.Errorf("error writting key to secrets: %s", err)
 	}
 	logrus.Infof("Key written to secrets")
 
