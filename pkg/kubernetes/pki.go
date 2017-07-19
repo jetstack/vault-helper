@@ -93,7 +93,57 @@ func (p *PKI) Ensure() error {
 		}
 	}
 
+	return p.ensureCA()
+}
+
+func (p *PKI) ensureCA() error {
+
+	b, err := p.caPathExists()
+	if err != nil {
+		return err
+	}
+
+	if !b {
+		return p.generateCA()
+	}
+
 	return nil
+}
+
+func (p *PKI) generateCA() error {
+
+	path := filepath.Join(p.Path(), "root", "generate", "internal")
+	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
+	data := map[string]interface{}{
+		"common_name": description,
+		"ttl":         p.getMaxLeaseTTL(),
+	}
+
+	_, err := p.kubernetes.vaultClient.Logical().Write(path, data)
+	if err != nil {
+		return fmt.Errorf("error writing new CA: ", err)
+	}
+
+	logrus.Infof("wrote ca")
+
+	return nil
+}
+
+func (p *PKI) caPathExists() (bool, error) {
+
+	path := filepath.Join(p.Path(), "cert", "ca")
+
+	s, err := p.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return false, fmt.Errorf("error reading ca path '%s': ", path, err)
+	}
+
+	if s == nil {
+		return false, nil
+	}
+
+	return true, nil
+
 }
 
 func (p *PKI) WriteRole(role *pkiRole) error {
