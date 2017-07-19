@@ -188,6 +188,7 @@ func (k *Kubernetes) backends() []Backend {
 		k.etcdKubernetesPKI,
 		k.etcdOverlayPKI,
 		k.kubernetesPKI,
+		k.secretsGeneric,
 	}
 }
 
