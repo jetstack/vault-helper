@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Sirupsen/logrus"
+	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -115,13 +115,9 @@ func isValidClusterID(clusterID string) error {
 		return ((r < 'a' || r > 'z') && (r < '0' || r > '9')) && r != '-'
 	}
 
-	logrus.Infof(clusterID)
 	if strings.IndexFunc(clusterID, f) != -1 {
-		logrus.Infof("Invalid cluster ID")
 		return errors.New("Not a valid cluster ID name")
 	}
-
-	logrus.Infof("Valid string")
 
 	return nil
 

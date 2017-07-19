@@ -42,7 +42,7 @@ func (g *Generic) GenerateSecretsMount() error {
 	}
 
 	if mount == nil {
-		logrus.Infof("No secrects mount found for: %s", g.Path())
+		logrus.Debugf("No secrects mount found for: %s", g.Path())
 		err = g.kubernetes.vaultClient.Sys().Mount(
 			g.Path(),
 			&vault.MountInput{
@@ -55,7 +55,7 @@ func (g *Generic) GenerateSecretsMount() error {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
 
-		logrus.Infof("Mounted secrets")
+		logrus.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
 	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
@@ -103,7 +103,7 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	if err != nil {
 		return fmt.Errorf("error writting key to secrets: %s", err)
 	}
-	logrus.Infof("Key written to secrets")
+	logrus.Infof("Key written to secrets '%s'", secretPath)
 
 	return nil
 }

@@ -43,10 +43,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 		if err != nil {
 			return fmt.Errorf("error tuning mount config: %s", err.Error())
 		}
-		logrus.Infof("Tuned Mount: %s", p.pkiName)
+		logrus.Debugf("Tuned Mount: %s", p.pkiName)
 		return nil
 	}
-	logrus.Infof("No tune required: %s", p.pkiName)
+	logrus.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
 
@@ -60,7 +60,7 @@ func (p *PKI) Ensure() error {
 	}
 
 	if mount == nil {
-		logrus.Infof("No mounts found for: %s", p.pkiName)
+		logrus.Debugf("No mounts found for: %s", p.pkiName)
 		err := p.kubernetes.vaultClient.Sys().Mount(
 			p.Path(),
 			&vault.MountInput{
@@ -82,7 +82,7 @@ func (p *PKI) Ensure() error {
 		if mount.Type != "pki" {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
-		logrus.Infof("Mount '%s' already existing", p.Path())
+		logrus.Debugf("Mount '%s' already existing", p.Path())
 	}
 
 	if mount != nil {
@@ -124,7 +124,7 @@ func (p *PKI) generateCA() error {
 		return fmt.Errorf("error writing new CA: ", err)
 	}
 
-	logrus.Infof("wrote ca")
+	logrus.Infof("CA written for '%s'", p.pkiName)
 
 	return nil
 }
@@ -185,11 +185,11 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	}
 
 	if policy == "" {
-		logrus.Infof("Policy Not Found: %s", name)
+		logrus.Debugf("Policy Not Found: %s", name)
 		return false, nil
 	}
 
-	logrus.Infof("Policy Found: %s", name)
+	logrus.Debugf("Policy Found: %s", name)
 
 	return true, nil
 }
