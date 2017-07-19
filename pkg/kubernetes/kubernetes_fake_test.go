@@ -50,28 +50,16 @@ func (v *fakeVault) DoubleEnsure() {
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "175320",
-			MaxLeaseTTL:     "175320",
-		},
 	}
 
 	mountInput2 := &vault.MountInput{
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-overlay" + " CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "175320",
-			MaxLeaseTTL:     "175320",
-		},
 	}
 
 	mountInput3 := &vault.MountInput{
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s" + " CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "175320",
-			MaxLeaseTTL:     "175320",
-		},
 	}
 
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
@@ -79,6 +67,10 @@ func (v *fakeVault) DoubleEnsure() {
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(2).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(2).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(2).Return(nil)
+
+	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/etcd-k8s/cert/ca").Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/etcd-overlay/cert/ca").Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/k8s/cert/ca").Times(1).Return(nil, nil)
 
 }
 
@@ -144,7 +136,7 @@ func (v *fakeVault) PKIEnsure() {
 		Type:        "pki",
 		Config: vault.MountConfigInput{
 			DefaultLeaseTTL: "0",
-			MaxLeaseTTL:     "175320",
+			MaxLeaseTTL:     "630720000",
 		},
 	}
 
@@ -152,7 +144,7 @@ func (v *fakeVault) PKIEnsure() {
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-overlay" + " CA",
 		Type:        "pki",
 		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "175320",
+			DefaultLeaseTTL: "630720000",
 			MaxLeaseTTL:     "0",
 		},
 	}
@@ -162,14 +154,14 @@ func (v *fakeVault) PKIEnsure() {
 		Type:        "pki",
 		Config: vault.MountConfigInput{
 			DefaultLeaseTTL: "0",
-			MaxLeaseTTL:     "175320",
+			MaxLeaseTTL:     "630720000",
 		},
 	}
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
 
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k9s", mountInput3).Times(1).Return(nil)
 
 	firstGet := v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("", nil)
 	v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("true", nil).After(firstGet)
