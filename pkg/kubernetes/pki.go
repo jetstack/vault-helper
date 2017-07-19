@@ -138,7 +138,10 @@ func (p *PKI) caPathExists() (bool, error) {
 		return false, fmt.Errorf("error reading ca path '%s': ", path, err)
 	}
 
-	if s.Data["certificate"] == "" {
+	if s == nil {
+		return false, nil
+	}
+	if val, ok := s.Data["certificate"]; !ok || val == "" {
 		return false, nil
 	}
 
