@@ -95,13 +95,6 @@ type TokenRole struct {
 	kubernetes *Kubernetes
 }
 
-type ComponentRole struct {
-	component  string
-	role       string
-	writeData  map[string]interface{}
-	kubernetes *Kubernetes
-}
-
 type InitTokenPolicy struct {
 	policy_name string
 	role_name   string
@@ -128,28 +121,6 @@ func (k *Kubernetes) NewTokenRole(role_name string, writeData map[string]interfa
 		kubernetes: k,
 	}
 
-}
-
-func (k *Kubernetes) NewComponentRole(component, role string, writeData map[string]interface{}) *ComponentRole {
-	return &ComponentRole{
-		component:  component,
-		role:       role,
-		writeData:  writeData,
-		kubernetes: k,
-	}
-
-}
-
-func (i *ComponentRole) WriteComponentRole() error {
-	path := filepath.Join(i.kubernetes.clusterID, "pki", i.component, "roles", i.role)
-
-	_, err := i.kubernetes.vaultClient.Logical().Write(path, i.writeData)
-
-	if err != nil {
-		return fmt.Errorf("error writting role data: %s", err)
-	}
-
-	return nil
 }
 
 var _ Backend = &PKI{}
@@ -210,12 +181,29 @@ func (k *Kubernetes) backends() []Backend {
 }
 
 func (k *Kubernetes) Ensure() error {
+	if err := isValidClusterID(k.clusterID); err != nil {
+		return fmt.Errorf("error '%s' is not a valid clusterID", k.clusterID)
+	}
+
+	// setup backends
 	var result error
 	for _, backend := range k.backends() {
 		if err := backend.Ensure(); err != nil {
 			result = multierror.Append(result, fmt.Errorf("backend %s: %s", backend.Path(), err))
 		}
 	}
+	if result != nil {
+		return result
+	}
+
+	// setup pki roles
+	if err := k.ensurePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.ensurePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	return result
 }
 
