@@ -32,7 +32,10 @@ var setupCmd = &cobra.Command{
 			logger.Fatal(err)
 		}
 
-		logger.Infof("init_tokens: %#+v", k.InitTokens())
+		for n, t := range k.InitTokens() {
+			logrus.Infof(n + "-init_token := " + t)
+		}
+
 	},
 }
 

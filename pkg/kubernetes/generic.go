@@ -149,7 +149,6 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 		return "", fmt.Errorf("failed to store init token in '%s': %s", path, err)
 	}
 
-	logrus.Infof("created init token %s", name)
 	return token.Auth.ClientToken, nil
 
 }

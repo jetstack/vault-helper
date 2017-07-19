@@ -32,6 +32,7 @@ func (i *InitToken) Ensure() error {
 			result = multierror.Append(result, err)
 		}
 	}
+
 	return result
 }
 

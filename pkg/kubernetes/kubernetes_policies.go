@@ -13,7 +13,6 @@ func (k *Kubernetes) WritePolicy(p *Policy) error {
 	if err != nil {
 		return fmt.Errorf("error writting policy '%s': %s", err)
 	}
-	logrus.Infof("policy '%s' written", p.Name)
 
 	return nil
 }
@@ -21,6 +20,7 @@ func (k *Kubernetes) WritePolicy(p *Policy) error {
 func (k *Kubernetes) ensurePolicies() error {
 	var result error
 
+	str := "Policies written for: "
 	for _, p := range []*Policy{
 		k.etcdPolicy(),
 		k.masterPolicy(),
@@ -28,8 +28,11 @@ func (k *Kubernetes) ensurePolicies() error {
 	} {
 		if err := k.WritePolicy(p); err != nil {
 			result = multierror.Append(result, err)
+		} else {
+			str += "'" + p.Role + "'  "
 		}
 	}
+	logrus.Infof(str)
 
 	return result
 

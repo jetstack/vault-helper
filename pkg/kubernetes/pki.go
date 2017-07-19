@@ -71,8 +71,6 @@ func (p *PKI) Ensure() error {
 		if err != nil {
 			return fmt.Errorf("error creating mount: %s", err)
 		}
-		logrus.Infof("Mounted: %s", p.pkiName)
-
 		mount, err = GetMountByPath(p.kubernetes.vaultClient, p.Path())
 		if err != nil {
 			return err
@@ -123,8 +121,6 @@ func (p *PKI) generateCA() error {
 	if err != nil {
 		return fmt.Errorf("error writing new CA: ", err)
 	}
-
-	logrus.Infof("CA written at '%s'", path)
 
 	return nil
 }
