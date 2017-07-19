@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/Sirupsen/logrus"
@@ -80,6 +81,10 @@ type Kubernetes struct {
 	etcdOverlayPKI    *PKI
 	kubernetesPKI     *PKI
 	secretsGeneric    *Generic
+
+	MaxValidityAdmin      time.Duration
+	MaxValidityComponents time.Duration
+	MaxValidityCA         time.Duration
 }
 
 type Policy struct {
@@ -156,7 +161,10 @@ func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
 	}
 
 	k := &Kubernetes{
-		clusterID: clusterID,
+		// set default validity periods
+		MaxValidityCA:         time.Hour * 24 * 365 * 20, // Validity period of CA certificates
+		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
+		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
 	}
 
 	if vaultClient != nil {

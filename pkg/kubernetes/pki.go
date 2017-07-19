@@ -13,8 +13,8 @@ func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	return &PKI{
 		pkiName:         pkiName,
 		kubernetes:      k,
-		MaxLeaseTTL:     MAX_VALIDITY_CA,
-		DefaultLeaseTTL: MAX_VALIDITY_CA,
+		MaxLeaseTTL:     k.MaxValidityCA,
+		DefaultLeaseTTL: k.MaxValidityCA,
 	}
 }
 
@@ -30,10 +30,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 
 	tuneMountRequired := false
 
-	if mount.Config.DefaultLeaseTTL != int(MAX_VALIDITY_CA.Hours()) {
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
 		tuneMountRequired = true
 	}
-	if mount.Config.MaxLeaseTTL != int(MAX_VALIDITY_CA.Hours()) {
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
 		tuneMountRequired = true
 	}
 
@@ -109,11 +109,11 @@ func (p *PKI) getMountConfigInput() vault.MountConfigInput {
 }
 
 func (p *PKI) getDefaultLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Hours()))
+	return fmt.Sprintf("%d", int(p.DefaultLeaseTTL.Seconds()))
 }
 
 func (p *PKI) getMaxLeaseTTL() string {
-	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Hours()))
+	return fmt.Sprintf("%d", int(p.MaxLeaseTTL.Seconds()))
 }
 
 func (p *PKI) getTokenPolicyExists(name string) (bool, error) {

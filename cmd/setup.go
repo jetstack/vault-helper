@@ -1,30 +1,42 @@
 package cmd
 
 import (
+	"time"
+
+	"github.com/Sirupsen/logrus"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	//"github.com/Sirupsen/logrus"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
-
-var MaxComponentTTL string
-var MaxAdminTTL string
-var MaxCATTL string
 
 // initCmd represents the init command
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Setup kubernetes on a running vault server",
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := logrus.New()
+		logger.Level = logrus.DebugLevel
 
-		kubernetes.Run(cmd, args)
+		v, err := vault.NewClient(nil)
+		if err != nil {
+			logger.Fatal(err)
+		}
 
+		k := kubernetes.New(v)
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		if err := k.Run(cmd, args); err != nil {
+			logger.Fatal(err)
+		}
 	},
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&MaxComponentTTL, "MaxComponentTTL", "", "Maxium Validity Component CA")
-	RootCmd.PersistentFlags().StringVar(&MaxAdminTTL, "MaxAdminTTL", "", "Maxium Validity Admin CA")
-	RootCmd.PersistentFlags().StringVar(&MaxCATTL, "MaxCATTL", "", "Maxium Validity CA")
+	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
+	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium Validity for admin certificates")
+	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium Validity for component certificates")
 	RootCmd.AddCommand(setupCmd)
 }
