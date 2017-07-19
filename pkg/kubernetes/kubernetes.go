@@ -133,6 +133,10 @@ var _ Backend = &Generic{}
 
 func isValidClusterID(clusterID string) error {
 
+	if len(clusterID) < 1 {
+		return errors.New("invalid clusterID - None given")
+	}
+
 	if !unicode.IsLetter([]rune(clusterID)[0]) {
 		return errors.New("First character is not a valid character")
 	}
