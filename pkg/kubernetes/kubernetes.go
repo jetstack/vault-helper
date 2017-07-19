@@ -87,13 +87,6 @@ type Kubernetes struct {
 	MaxValidityCA         time.Duration
 }
 
-type Policy struct {
-	policy_name string
-	rules       string
-	role        string
-	kubernetes  *Kubernetes
-}
-
 type TokenRole struct {
 	role_name  string
 	writeData  map[string]interface{}
@@ -224,6 +217,11 @@ func (k *Kubernetes) Ensure() error {
 		result = multierror.Append(result, err)
 	}
 
+	// setup policies
+	if err := k.ensurePolicies(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	return result
 }
 
@@ -256,35 +254,25 @@ func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, er
 	return mount, nil
 }
 
-func (k *Kubernetes) NewPolicy(policy_name, rules, role string) *Policy {
-	return &Policy{
-		policy_name: policy_name,
-		rules:       rules,
-		role:        role,
-		kubernetes:  k,
-	}
-
-}
-
-func (p *Policy) WritePolicy() error {
-
-	err := p.kubernetes.vaultClient.Sys().PutPolicy(p.policy_name, p.rules)
+func (k *Kubernetes) WritePolicy(p *Policy) error {
+	err := k.vaultClient.Sys().PutPolicy(p.Name, p.Policy())
 	if err != nil {
-		return fmt.Errorf("error writting policy: %s", err)
+		return fmt.Errorf("error writting policy '%s': %s", err)
 	}
-	logrus.Infof("Policy written: %s", p.policy_name)
+	logrus.Infof("policy '%s' written", p.Name)
 
 	return nil
-
 }
 
 func (p *Policy) CreateTokenCreater() error {
-	createrRule := "path \"auth/token/create/" + p.kubernetes.clusterID + "-" + p.role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
-	err := p.kubernetes.vaultClient.Sys().PutPolicy(p.policy_name+"-creator", createrRule)
-	if err != nil {
-		return fmt.Errorf("error writting creator policy: %s", err)
-	}
-	logrus.Infof("Creator policy written: %s", p.policy_name)
+	/*
+		createrRule := "path \"auth/token/create/" + p.kubernetes.clusterID + "-" + p.role + "+\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}"
+		err := p.kubernetes.vaultClient.Sys().PutPolicy(p.policy_name+"-creator", createrRule)
+		if err != nil {
+			return fmt.Errorf("error writting creator policy: %s", err)
+		}
+		logrus.Infof("Creator policy written: %s", p.policy_name)
+	*/
 
 	return nil
 }
