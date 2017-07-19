@@ -1,23 +1,27 @@
 package kubernetes
 
 import (
-	//"testing"
+	"testing"
 
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
-	//"github.com/jetstack-experimental/vault-helper/pkg/mocks"
-	//"github.com/Sirupsen/logrus"
 )
 
 type fakeVault struct {
+	ctrl *gomock.Controller
+
 	fakeVault   *MockVault
 	fakeSys     *MockVaultSys
 	fakeLogical *MockVaultLogical
 	fakeAuth    *MockVaultAuth
 }
 
-func NewFakeVault(ctrl *gomock.Controller) *fakeVault {
+func NewFakeVault(t *testing.T) *fakeVault {
+	ctrl := gomock.NewController(t)
+
 	v := &fakeVault{
+		ctrl: ctrl,
+
 		fakeVault:   NewMockVault(ctrl),
 		fakeSys:     NewMockVaultSys(ctrl),
 		fakeLogical: NewMockVaultLogical(ctrl),
@@ -28,10 +32,20 @@ func NewFakeVault(ctrl *gomock.Controller) *fakeVault {
 	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
 
 	return v
-
 }
 
-func DoubleEnsure_fake(v *fakeVault) {
+func (v *fakeVault) Kubernetes() *Kubernetes {
+	k := New(nil)
+	k.SetClusterID("test-cluster-inside")
+	k.vaultClient = v.fakeVault
+	return k
+}
+
+func (v *fakeVault) Finish() {
+	v.ctrl.Finish()
+}
+
+func (v *fakeVault) DoubleEnsure() {
 
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
@@ -68,7 +82,7 @@ func DoubleEnsure_fake(v *fakeVault) {
 
 }
 
-func NewPolicy_fake(v *fakeVault) {
+func (v *fakeVault) NewPolicy() {
 	policyName := "test-cluster-inside/master"
 	policyRules := `
 path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
@@ -86,7 +100,7 @@ path "auth/token/create"` + clusterID + `-` + role + `+ {
 	v.fakeSys.EXPECT().PutPolicy(policyName+"-creator", createrRule).Times(1).Return(nil)
 }
 
-func NewToken_fake(v *fakeVault) {
+func (v *fakeVault) NewToken() {
 
 	rolePath := "auth/token/roles/test-cluster-inside-admin"
 	writeData := map[string]interface{}{
@@ -123,7 +137,7 @@ func NewToken_fake(v *fakeVault) {
 
 }
 
-func PKI_Ensure_fake(v *fakeVault) {
+func (v *fakeVault) PKIEnsure() {
 
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",

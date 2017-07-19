@@ -3,26 +3,14 @@ package kubernetes
 import (
 	"testing"
 	"time"
-
-	//vault_testing "github.com/hashicorp/vault/api"
-
-	"github.com/golang/mock/gomock"
 )
 
 func TestPKI_Ensure(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
 
-	vault := NewFakeVault(mockCtrl)
-
-	PKI_Ensure_fake(vault)
-
-	k, err := New(nil, "test-cluster-inside")
-	if err != nil {
-		t.Error("unexpected error", err)
-	}
-
-	k.vaultClient = vault.fakeVault
+	vault.PKIEnsure()
 
 	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
@@ -44,8 +32,7 @@ func TestPKI_Ensure(t *testing.T) {
 	k.etcdKubernetesPKI.DefaultLeaseTTL = time.Hour * 0
 	k.etcdOverlayPKI.MaxLeaseTTL = time.Hour * 0
 	k.kubernetesPKI.DefaultLeaseTTL = time.Hour * 0
-	k.Ensure()
-	if err != nil {
+	if err := k.Ensure(); err != nil {
 		t.Error("unexpected error", err)
 		return
 	}

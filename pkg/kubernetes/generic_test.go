@@ -15,15 +15,11 @@ func TestGeneric_Ensure(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k, err := kubernetes.New(vault.Client(), "test-cluster")
-
-	if err != nil {
-		t.Error("unexpected error", err)
-		return
-	}
+	k := kubernetes.New(vault.Client())
+	k.SetClusterID("test-cluster")
 
 	generic := k.NewGeneric()
-	err = generic.Ensure()
+	err := generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
 		return

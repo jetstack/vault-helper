@@ -28,3 +28,112 @@ func TestIsValidClusterID(t *testing.T) {
 	}
 
 }
+
+//go test -coverprofile=coverage.out
+//  go tool cover -html=coverage.out
+
+func TestKubernetes_Double_Ensure(t *testing.T) {
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
+
+	vault.DoubleEnsure()
+
+	err := k.Ensure()
+	if err != nil {
+		t.Error("error ensuring: ", err)
+		return
+	}
+
+	err = k.Ensure()
+	if err != nil {
+		t.Error("error double ensuring: ", err)
+		return
+	}
+
+}
+
+func TestKubernetes_NewPolicy_Role(t *testing.T) {
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
+
+	vault.NewPolicy()
+
+	policyName := "test-cluster-inside/master"
+	policyRules := `
+path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
+	capabilities = ["create","read","update"]
+}
+`
+	role := "master"
+
+	masterPolicy := k.NewPolicy(policyName, policyRules, role)
+
+	err := masterPolicy.WritePolicy()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	err = masterPolicy.CreateTokenCreater()
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+}
+
+func TestKubernetes_NewToken_Role(t *testing.T) {
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
+
+	writeData := map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"organization":        "system:masters",
+		"allowed_domains":     "admin",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
+
+	adminRole := k.NewTokenRole("admin", writeData)
+
+	err := adminRole.WriteTokenRole()
+
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+	writeData = map[string]interface{}{
+		"use_csr_common_name": false,
+		"enforce_hostnames":   false,
+		"allowed_domains":     "kube-scheduler,system:kube-scheduler",
+		"allow_bare_domains":  true,
+		"allow_localhost":     false,
+		"allow_subdomains":    false,
+		"allow_ip_sans":       false,
+		"server_flag":         false,
+		"client_flag":         true,
+		"max_ttl":             "140h",
+		"ttl":                 "140h",
+	}
+
+	kubeSchedulerRole := k.NewTokenRole("kube-scheduler", writeData)
+
+	err = kubeSchedulerRole.WriteTokenRole()
+
+	if err != nil {
+		t.Error("unexpected error", err)
+		return
+	}
+
+}
