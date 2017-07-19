@@ -15,25 +15,30 @@ type InitToken struct {
 	token      *string
 }
 
-func (i *InitToken) Ensure() error {
+func (i *InitToken) Ensure() (bool, error) {
 	var result error
 
-	ensureInitToken := func() error {
-		_, err := i.InitToken()
-		return err
+	ensureInitToken := func() (bool, error) {
+		_, written, err := i.InitToken()
+		return written, err
 	}
 
+	change := false
 	for _, f := range []func() error{
 		i.writeTokenRole,
 		i.writeInitTokenPolicy,
-		ensureInitToken,
 	} {
 		if err := f(); err != nil {
 			result = multierror.Append(result, err)
 		}
+		if written, err := ensureInitToken(); err != nil {
+			result = multierror.Append(result, err)
+		} else if written {
+			change = true
+		}
 	}
 
-	return result
+	return change, result
 }
 
 func (i *InitToken) Name() string {
@@ -84,17 +89,17 @@ func (i *InitToken) writeInitTokenPolicy() error {
 	return i.kubernetes.WritePolicy(p)
 }
 
-func (i *InitToken) InitToken() (string, error) {
+func (i *InitToken) InitToken() (string, bool, error) {
 	if i.token != nil {
-		return *i.token, nil
+		return *i.token, false, nil
 	}
 
 	// get init token from generic
-	token, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.NamePath())})
+	token, written, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.NamePath())})
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	i.token = &token
-	return token, nil
+	return token, written, nil
 }

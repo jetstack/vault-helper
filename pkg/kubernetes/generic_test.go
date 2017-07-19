@@ -19,13 +19,13 @@ func TestGeneric_Ensure(t *testing.T) {
 	k.SetClusterID("test-cluster")
 
 	generic := k.NewGeneric()
-	err := generic.Ensure()
+	_, err := generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
 		return
 	}
 
-	err = generic.Ensure()
+	_, err = generic.Ensure()
 	if err != nil {
 		t.Error("unexpected error: ", err)
 		return

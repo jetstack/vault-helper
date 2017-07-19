@@ -20,9 +20,9 @@ type Generic struct {
 	initTokens map[string]string
 }
 
-func (g *Generic) Ensure() error {
+func (g *Generic) Ensure() (bool, error) {
 	err := g.GenerateSecretsMount()
-	return err
+	return false, err
 }
 
 func (g *Generic) Path() string {
@@ -108,24 +108,24 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	return nil
 }
 
-func (g *Generic) InitToken(name, role string, policies []string) (string, error) {
+func (g *Generic) InitToken(name, role string, policies []string) (string, bool, error) {
 	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
 
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(path); err != nil {
-		return "", fmt.Errorf("error checking for secret %s: %s", path, err)
+		return "", false, fmt.Errorf("error checking for secret %s: %s", path, err)
 	} else if secret != nil {
 		key := "init_token"
 		token, ok := secret.Data[key]
 		if !ok {
-			return "", fmt.Errorf("error secret %s doesn't contain a key '%s'", path, key)
+			return "", false, fmt.Errorf("error secret %s doesn't contain a key '%s'", path, key)
 		}
 
 		tokenStr, ok := token.(string)
 		if !ok {
-			return "", fmt.Errorf("error secret %s key '%s' has wrong type: %T", path, key, token)
+			return "", false, fmt.Errorf("error secret %s key '%s' has wrong type: %T", path, key, token)
 		}
 
-		return tokenStr, nil
+		return tokenStr, false, nil
 	}
 
 	// we have to create a new token
@@ -138,7 +138,7 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 
 	token, err := g.kubernetes.vaultClient.Auth().Token().CreateOrphan(tokenRequest)
 	if err != nil {
-		return "", fmt.Errorf("failed to create init token: %s", err)
+		return "", false, fmt.Errorf("failed to create init token: %s", err)
 	}
 
 	dataStoreToken := map[string]interface{}{
@@ -146,9 +146,9 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	}
 	_, err = g.kubernetes.vaultClient.Logical().Write(path, dataStoreToken)
 	if err != nil {
-		return "", fmt.Errorf("failed to store init token in '%s': %s", path, err)
+		return "", false, fmt.Errorf("failed to store init token in '%s': %s", path, err)
 	}
 
-	return token.Auth.ClientToken, nil
+	return token.Auth.ClientToken, true, nil
 
 }
