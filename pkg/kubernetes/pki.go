@@ -124,7 +124,7 @@ func (p *PKI) generateCA() error {
 		return fmt.Errorf("error writing new CA: ", err)
 	}
 
-	logrus.Infof("CA written for '%s'", p.pkiName)
+	logrus.Infof("CA written at '%s'", path)
 
 	return nil
 }
@@ -138,7 +138,7 @@ func (p *PKI) caPathExists() (bool, error) {
 		return false, fmt.Errorf("error reading ca path '%s': ", path, err)
 	}
 
-	if s == nil {
+	if s.Data["certificate"] == "" {
 		return false, nil
 	}
 
