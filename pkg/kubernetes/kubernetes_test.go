@@ -1,37 +1,30 @@
-package kubernetes_test
+package kubernetes
 
 import (
+	"strings"
 	"testing"
-
-	//"github.com/Sirupsen/logrus"
-	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
-	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
-func TestKubernetes_Ensure(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
-	}
+func TestIsValidClusterID(t *testing.T) {
+	var err error
 
-	k, err := kubernetes.New(vault.Client(), "test-cluster")
-
+	err = isValidClusterID("valid-cluster")
 	if err != nil {
-		t.Error("unexpected error", err)
-		return
+		t.Error("unexpected an error: %s", err)
 	}
 
-	err = k.Ensure()
-	if err != nil {
-		t.Error("unexpected error: ", err)
-		return
+	err = isValidClusterID("")
+	if err == nil {
+		t.Error("expected an error")
+	} else if msg := "invalid clusterID"; !strings.Contains(err.Error(), msg) {
+		t.Errorf("error '%s' should contain '%s'", err, msg)
 	}
 
-	generic := k.NewGeneric()
-	err = generic.Ensure()
-	if err != nil {
-		t.Error("unexpected error: ", err)
-		return
+	err = isValidClusterID("invalid.cluster")
+	if err == nil {
+		t.Error("expected an error")
+	} else if msg := "invalid clusterID"; !strings.Contains(err.Error(), msg) {
+		t.Errorf("error '%s' should contain '%s'", err, msg)
 	}
-	defer vault.Stop()
+
 }

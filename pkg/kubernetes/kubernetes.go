@@ -131,7 +131,7 @@ func (k *Kubernetes) NewTokenRole(role_name string, writeData map[string]interfa
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
-func IsValidClusterID(clusterID string) error {
+func isValidClusterID(clusterID string) error {
 
 	if !unicode.IsLetter([]rune(clusterID)[0]) {
 		return errors.New("First character is not a valid character")
@@ -153,12 +153,7 @@ func IsValidClusterID(clusterID string) error {
 
 }
 
-func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
-
-	err := IsValidClusterID(clusterID)
-	if err != nil {
-		return nil, errors.New("Not a valid cluster ID")
-	}
+func New(vaultClient *vault.Client) *Kubernetes {
 
 	k := &Kubernetes{
 		// set default validity periods
@@ -177,7 +172,11 @@ func New(vaultClient *vault.Client, clusterID string) (*Kubernetes, error) {
 
 	k.secretsGeneric = k.NewGeneric()
 
-	return k, nil
+	return k
+}
+
+func (k *Kubernetes) SetClusterID(clusterID string) {
+	k.clusterID = clusterID
 }
 
 func (k *Kubernetes) backends() []Backend {
