@@ -134,7 +134,7 @@ var _ Backend = &Generic{}
 func isValidClusterID(clusterID string) error {
 
 	if len(clusterID) < 1 {
-		return errors.New("invalid clusterID - None given")
+		return errors.New("Invalid cluster ID - None given")
 	}
 
 	if !unicode.IsLetter([]rune(clusterID)[0]) {
@@ -142,6 +142,14 @@ func isValidClusterID(clusterID string) error {
 	}
 
 	f := func(r rune) bool {
+		return ((r < 'a' || r > 'z') && (r < '0' || r > '9') && (r >= 'A' || r <= 'Z')) && r != '-'
+	}
+
+	if strings.IndexFunc(clusterID, f) != -1 {
+		return errors.New("Invalid cluster ID - contains uppercase")
+	}
+
+	f = func(r rune) bool {
 		return ((r < 'a' || r > 'z') && (r < '0' || r > '9')) && r != '-'
 	}
 

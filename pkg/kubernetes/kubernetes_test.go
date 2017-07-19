@@ -16,14 +16,14 @@ func TestIsValidClusterID(t *testing.T) {
 	err = isValidClusterID("")
 	if err == nil {
 		t.Error("expected an error")
-	} else if msg := "invalid clusterID"; !strings.Contains(err.Error(), msg) {
+	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
 		t.Errorf("error '%s' should contain '%s'", err, msg)
 	}
 
 	err = isValidClusterID("invalid.cluster")
 	if err == nil {
 		t.Error("expected an error")
-	} else if msg := "invalid clusterID"; !strings.Contains(err.Error(), msg) {
+	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
 		t.Errorf("error '%s' should contain '%s'", err, msg)
 	}
 
