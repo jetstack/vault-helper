@@ -97,6 +97,18 @@ func (p *PKI) Ensure() error {
 	return nil
 }
 
+func (p *PKI) WriteRole(role *pkiRole) error {
+
+	path := filepath.Join(p.Path(), "roles", role.Name)
+
+	_, err := p.kubernetes.vaultClient.Logical().Write(path, role.Data)
+	if err != nil {
+		return fmt.Errorf("error writting role '%s' to '%s': %s", role.Name, p.Path(), err)
+	}
+
+	return nil
+}
+
 func (p *PKI) Path() string {
 	return filepath.Join(p.kubernetes.Path(), "pki", p.pkiName)
 }
