@@ -1,8 +1,12 @@
 package kubernetes
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"path/filepath"
 
@@ -72,13 +76,23 @@ func (g *Generic) writeKey(secrets_path string) error {
 	reader := rand.Reader
 	bitSize := 4096
 	key, err := rsa.GenerateKey(reader, bitSize)
-
 	if err != nil {
 		return fmt.Errorf("error generating rsa key: %s", err)
 	}
 
+	var privateKey = &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(bufio.NewWriter(&buf), privateKey)
+	if err != nil {
+		return fmt.Errorf("error encoding rsa key in PEM: %s", err)
+	}
+
 	writeData := map[string]interface{}{
-		"key": key,
+		"key": buf.String(),
 	}
 
 	secrets_path = filepath.Join(secrets_path, "service-accounts")
