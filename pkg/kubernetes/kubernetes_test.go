@@ -13,6 +13,11 @@ func TestIsValidClusterID(t *testing.T) {
 		t.Error("unexpected an error: %s", err)
 	}
 
+	err = isValidClusterID("valid-cluster01")
+	if err != nil {
+		t.Error("unexpected an error: %s", err)
+	}
+
 	err = isValidClusterID("")
 	if err == nil {
 		t.Error("expected an error")
@@ -60,28 +65,13 @@ func TestKubernetes_NewPolicy_Role(t *testing.T) {
 
 	vault.NewPolicy()
 
-	policyName := "test-cluster-inside/master"
-	policyRules := `
-path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
-	capabilities = ["create","read","update"]
-}
-`
-	role := "master"
+	masterPolicy := k.masterPolicy()
 
-	masterPolicy := k.NewPolicy(policyName, policyRules, role)
-
-	err := masterPolicy.WritePolicy()
+	err := k.WritePolicy(masterPolicy)
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
 	}
-
-	err = masterPolicy.CreateTokenCreater()
-	if err != nil {
-		t.Error("unexpected error", err)
-		return
-	}
-
 }
 
 func TestKubernetes_NewToken_Role(t *testing.T) {

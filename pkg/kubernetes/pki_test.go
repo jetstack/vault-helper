@@ -37,7 +37,6 @@ func TestPKI_Ensure(t *testing.T) {
 		return
 	}
 
-	basePath := k.clusterID + "/pki"
 	policy_name := k.clusterID + "/" + "master"
 
 	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
@@ -50,14 +49,9 @@ func TestPKI_Ensure(t *testing.T) {
 		return
 	}
 
-	rule := `
-path "` + basePath + `/` + `etcd-overlay/sign/client` + `" {
-	capabilities = ["create","read","update"]
-}
-`
-	policy := k.NewPolicy(policy_name, rule, "master")
+	policy := k.masterPolicy()
 
-	err = policy.WritePolicy()
+	err = k.WritePolicy(policy)
 	if err != nil {
 		t.Error("Error writting policy: ", err)
 		return
