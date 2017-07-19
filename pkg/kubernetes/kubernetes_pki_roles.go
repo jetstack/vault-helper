@@ -17,6 +17,7 @@ func (k *Kubernetes) etcdClientRole() *pkiRole {
 		Name: "client",
 		Data: map[string]interface{}{
 			"use_csr_common_name": false,
+			"use_csr_sans":        false,
 			"allow_any_name":      true,
 			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
 			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
@@ -32,6 +33,7 @@ func (k *Kubernetes) etcdServerRole() *pkiRole {
 		Name: "server",
 		Data: map[string]interface{}{
 			"use_csr_common_name": false,
+			"use_csr_sans":        false,
 			"allow_any_name":      true,
 			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
 			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
