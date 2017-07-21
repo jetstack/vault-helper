@@ -24,7 +24,7 @@ func TestPKI_Ensure(t *testing.T) {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 		return
 	}
-	if exp, act := "test-cluster-inside/generic", k.secretsGeneric.Path(); exp != act {
+	if exp, act := "test-cluster-inside/secrets", k.secretsGeneric.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 		return
 	}

@@ -58,21 +58,21 @@ func TestKubernetes_Double_Ensure(t *testing.T) {
 
 }
 
-func TestKubernetes_NewPolicy_Role(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
-
-	vault.NewPolicy()
-
-	masterPolicy := k.masterPolicy()
-
-	err := k.WritePolicy(masterPolicy)
-	if err != nil {
-		t.Error("unexpected error", err)
-		return
-	}
-}
+//func TestKubernetes_NewPolicy_Role(t *testing.T) {
+//	vault := NewFakeVault(t)
+//	defer vault.Finish()
+//	k := vault.Kubernetes()
+//
+//	vault.NewPolicy()
+//
+//	masterPolicy := k.masterPolicy()
+//
+//	err := k.WritePolicy(masterPolicy)
+//	if err != nil {
+//		t.Error("unexpected error", err)
+//		return
+//	}
+//}
 
 //func TestKubernetes_NewToken_Role(t *testing.T) {
 //	vault := NewFakeVault(t)
