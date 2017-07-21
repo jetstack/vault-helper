@@ -39,6 +39,8 @@ type VaultAuth interface {
 
 type VaultToken interface {
 	CreateOrphan(opts *vault.TokenCreateRequest) (*vault.Secret, error)
+	RevokeOrphan(token string) error
+	Lookup(token string) (*vault.Secret, error)
 }
 
 type Vault interface {
@@ -87,6 +89,8 @@ type Kubernetes struct {
 	MaxValidityCA         time.Duration
 	MaxValidityInitTokens time.Duration
 
+	FlagInitTokens map[string]interface{}
+
 	initTokens []*InitToken
 }
 
@@ -131,6 +135,13 @@ func New(vaultClient *vault.Client) *Kubernetes {
 		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
 		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
 		MaxValidityInitTokens: time.Hour * 24 * 365 * 5,  // Validity of init tokens
+
+		FlagInitTokens: map[string]interface{}{
+			"etcd":   "",
+			"master": "",
+			"worker": "",
+			"all":    "",
+		},
 	}
 
 	if vaultClient != nil {
@@ -265,24 +276,33 @@ func (k *Kubernetes) ensureInitTokens() error {
 		k.workerPolicy().Name,
 	}))
 
-	change := false
-	strc := "Init_tokens created for: "
-	strw := "Init_tokens written for: "
+	change := map[string]interface{}{
+		"created_init": false,
+		"written_init": false,
+	}
+
+	strc := "Init_tokens generated for: "
+	strw := "Init_tokens written for:   "
 	for _, initToken := range k.initTokens {
 		if changed, err := initToken.Ensure(); err != nil {
 			result = multierror.Append(result, err)
 		} else {
-			strw += "'" + initToken.Name() + "'  "
-			if changed {
-				change = true
+			if changed["created_init"] == true {
+				change["created_init"] = true
 				strc += "'" + initToken.Name() + "'  "
+			}
+			if changed["written_init"] == true {
+				change["written_init"] = true
+				strw += "'" + initToken.Name() + "'  "
 			}
 		}
 	}
-	if change {
+	if change["created_init"] == true {
 		logrus.Infof(strc)
 	}
-	logrus.Infof(strw)
+	if change["written_init"] == true {
+		logrus.Infof(strw)
+	}
 
 	return result
 }

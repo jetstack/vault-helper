@@ -2,10 +2,10 @@ package kubernetes
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/hashicorp/go-multierror"
 	"path/filepath"
 	"strings"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 type InitToken struct {
@@ -15,7 +15,7 @@ type InitToken struct {
 	token      *string
 }
 
-func (i *InitToken) Ensure() (bool, error) {
+func (i *InitToken) Ensure() (map[string]interface{}, error) {
 	var result error
 
 	ensureInitToken := func() (bool, error) {
@@ -23,22 +23,94 @@ func (i *InitToken) Ensure() (bool, error) {
 		return written, err
 	}
 
-	change := false
-	for _, f := range []func() error{
-		i.writeTokenRole,
-		i.writeInitTokenPolicy,
-	} {
-		if err := f(); err != nil {
-			result = multierror.Append(result, err)
+	token, _ := i.GetInitToken()
+
+	change := map[string]interface{}{
+		"created_init": false,
+		"written_init": false,
+	}
+
+	if token != i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
+		for _, f := range []func() error{
+			i.writeTokenRole,
+			i.writeInitTokenPolicy,
+		} {
+			if err := f(); err != nil {
+				result = multierror.Append(result, err)
+			}
+			if _, err := ensureInitToken(); err != nil {
+				result = multierror.Append(result, err)
+			}
 		}
+		b, err := i.SetInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
+		if err != nil {
+			return change, fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
+		}
+		change["written_init"] = b
+		change["created_init"] = false
+
+	} else if token == i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
 		if written, err := ensureInitToken(); err != nil {
 			result = multierror.Append(result, err)
 		} else if written {
-			change = true
+			change["written_init"] = true
+			change["created_init"] = false
 		}
+
+	} else {
+		for _, f := range []func() error{
+			i.writeTokenRole,
+			i.writeInitTokenPolicy,
+		} {
+			if err := f(); err != nil {
+				result = multierror.Append(result, err)
+			}
+			if written, err := ensureInitToken(); err != nil {
+				result = multierror.Append(result, err)
+			} else if written {
+				change["created_init"] = true
+				change["written_init"] = true
+			}
+		}
+
 	}
 
 	return change, result
+}
+
+func (i *InitToken) SetInitToken(string) (bool, error) {
+	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
+
+	s, err := i.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return false, fmt.Errorf("Error reading init token path: %s", s)
+	}
+
+	s.Data["init_token"] = i.kubernetes.FlagInitTokens[i.Role]
+	_, err = i.kubernetes.vaultClient.Logical().Write(path, s.Data)
+	if err != nil {
+		return false, fmt.Errorf("Error writting init token at path: %s", s)
+	}
+
+	token, _ := i.GetInitToken()
+	logrus.Infof("Token written: %s", token)
+	i.token = &token
+
+	return true, nil
+}
+
+func (i *InitToken) GetInitToken() (string, error) {
+	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
+	s, err := i.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return "", fmt.Errorf("Error reading init token.", err)
+	}
+
+	if s == nil {
+		return "", nil
+	}
+
+	return fmt.Sprintf("%s", s.Data["init_token"]), nil
 }
 
 func (i *InitToken) Name() string {

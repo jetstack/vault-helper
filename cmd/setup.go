@@ -43,5 +43,11 @@ func init() {
 	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
 	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
 	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
+
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_etcd, "", "Set init-token-etcd   (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_worker, "", "Set init-token-worker (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_master, "", "Set init-token-master (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_all, "", "Set init-token-all    (Default to new token)")
+
 	RootCmd.AddCommand(setupCmd)
 }

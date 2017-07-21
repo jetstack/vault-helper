@@ -62,34 +62,87 @@ func (v *fakeVault) DoubleEnsure() {
 		Type:        "pki",
 	}
 
+	mountInput4 := &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + " secrets",
+		Type:        "generic",
+	}
+
+	description1 := "Kubernetes test-cluster-inside/etcd-k8s CA"
+	data1 := map[string]interface{}{
+		"common_name": description1,
+		"ttl":         "630720000s",
+	}
+
+	description2 := "Kubernetes test-cluster-inside/etcd-overlay CA"
+	data2 := map[string]interface{}{
+		"common_name": description2,
+		"ttl":         "630720000s",
+	}
+
+	description3 := "Kubernetes test-cluster-inside/k8s CA"
+	data3 := map[string]interface{}{
+		"common_name": description3,
+		"ttl":         "630720000s",
+	}
+
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
 
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(2).Return(nil)
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(2).Return(nil)
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(2).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/secrets", mountInput4).Times(1).Return(nil)
+
+	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/etcd-k8s/root/generate/internal", data1).Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/etcd-overlay/root/generate/internal", data2).Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/root/generate/internal", data3).Times(1).Return(nil, nil)
+	//v.fakeLogical.recorder.Write(nil, nil).AnyTimes().Return(nil, nil)
 
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/etcd-k8s/cert/ca").Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/etcd-overlay/cert/ca").Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/k8s/cert/ca").Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/service-accounts").Times(1).Return(nil, nil)
 
 }
 
 func (v *fakeVault) NewPolicy() {
-	policyName := "test-cluster-inside/master"
-	policyRules := `
-path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
-    capabilities = ["create", "read", "update"]
+	rules := `
+path "test-cluster-inside/pki/etcd-k8s/sign/client" {
+  capabilities = ["create", "read", "update"]
 }
-`
-	role := "master"
-	clusterID := "test-cluster-inside"
-	v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
 
-	createrRule := `
-path "auth/token/create"` + clusterID + `-` + role + `+ {
-	capabilities = ["create","read","update"]
-}`
-	v.fakeSys.EXPECT().PutPolicy(policyName+"-creator", createrRule).Times(1).Return(nil)
+path "test-cluster-inside/secrets/service-accounts" {
+  capabilities = ["read"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/kube-apiserver" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/kube-scheduler" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/kube-controller-manager" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/admin" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/kubelet" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/k8s/sign/kube-proxy" {
+  capabilities = ["create", "read", "update"]
+}
+
+path "test-cluster-inside/pki/etcd-overlay/sign/client" {
+  capabilities = ["create", "read", "update"]
+}
+]`
+	v.fakeSys.EXPECT().PutPolicy("", rules).Times(1).Return(nil)
 }
 
 func (v *fakeVault) NewToken() {
