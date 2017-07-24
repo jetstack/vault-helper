@@ -26,11 +26,13 @@ func NewFakeVault(t *testing.T) *fakeVault {
 		fakeVault:   NewMockVault(ctrl),
 		fakeSys:     NewMockVaultSys(ctrl),
 		fakeLogical: NewMockVaultLogical(ctrl),
+		fakeAuth:    NewMockVaultAuth(ctrl),
 	}
 
 	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
 	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
 	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
+	v.fakeAuth.EXPECT().Token().AnyTimes().Return(v.fakeAuth.Token())
 
 	return v
 }
@@ -229,8 +231,9 @@ func (v *fakeVault) DoubleEnsure() {
 
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/init_token_etcd").AnyTimes().Return(nil, nil)
 
-	// PANICING :
 	v.fakeLogical.EXPECT().Write("auth/token/roles/test-cluster-inside-etcd", gomock.Any()).AnyTimes().Return(nil, nil)
+
+	v.fakeAuth.EXPECT().Token().Times(1).Return(nil)
 }
 
 //func (v *fakeVault) NewPolicy() {
