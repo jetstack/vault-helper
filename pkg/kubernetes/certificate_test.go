@@ -97,16 +97,19 @@ func TestCertificates(t *testing.T) {
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM([]byte(issue_ca))
 	if !ok {
-		panic("failed to parse root certificate")
+		t.Error("failed to parse root certificate")
+		return
 	}
 
 	block, _ := pem.Decode([]byte(cert_ca))
 	if block == nil {
-		panic("failed to parse certificate PEM")
+		t.Error("failed to parse certificate PEM")
+		return
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		panic("failed to parse certificate: " + err.Error())
+		t.Error("failed to parse certificate: " + err.Error())
+		return
 	}
 
 	opts := x509.VerifyOptions{
@@ -116,21 +119,24 @@ func TestCertificates(t *testing.T) {
 
 	_, err = cert.Verify(opts)
 	if err != nil {
-		panic("failed to verify certificate: " + err.Error())
+		t.Error("failed to verify certificate: " + err.Error())
+		return
 	}
 	logrus.Infof("ctcd-1.tarmak.local in certificate")
 
 	opts.DNSName = "localhost"
 	_, err = cert.Verify(opts)
 	if err != nil {
-		panic("failed to verify certificate: " + err.Error())
+		t.Error("failed to verify certificate: " + err.Error())
+		return
 	}
 	logrus.Infof("localhost in certificate")
 
 	opts.DNSName = "127.0.0.1"
 	_, err = cert.Verify(opts)
 	if err != nil {
-		panic("failed to verify certificate: " + err.Error())
+		t.Error("failed to verify certificate: " + err.Error())
+		return
 	}
 	logrus.Infof("127.0.0.1 in certificate")
 
