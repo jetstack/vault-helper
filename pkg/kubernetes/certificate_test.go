@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	//"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -9,13 +8,12 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
-	//"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	//"github.com/certifi/gocertifi"
-	//"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
@@ -46,6 +44,18 @@ func TestCertificates(t *testing.T) {
 		return
 	}
 
+	for _, role := range []string{"server"} {
+		verify_certificate(t, "etcd-k8s", role, vault.Client())
+	}
+
+	for _, role := range []string{"kube-apiserver", "kube-scheduler", "kube-controller-manager", "kube-proxy", "admin"} {
+		verify_certificate(t, "k8s", role, vault.Client())
+	}
+
+}
+
+func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
+
 	pkixName := pkix.Name{
 		Country:            []string{"Earth"},
 		Organization:       []string{"Mother Nature"},
@@ -55,7 +65,7 @@ func TestCertificates(t *testing.T) {
 		StreetAddress:      []string{"Solar System"},
 		PostalCode:         []string{"Planet # 3"},
 		SerialNumber:       "123",
-		CommonName:         "Gaia",
+		CommonName:         "test-cluster",
 	}
 
 	csr, err := createCertificateAuthority(pkixName, time.Hour*60, 2048)
@@ -71,25 +81,21 @@ func TestCertificates(t *testing.T) {
 		return
 	}
 
-	logrus.Infof("pem block: %s", pemBlock)
-	logrus.Infof("pem bytes: %s", pemBytes)
-
-	logrus.Infof("%s", csr)
 	data := map[string]interface{}{
 		"csr":         string(csr),
-		"common_name": "test-cluster",
+		"common_name": role,
 		"alt_names":   "etcd-1.tarmak.local,localhost",
 		"ip_sans":     "127.0.0.1",
 	}
 
-	sec, err := vault.Client().Logical().Write("test-cluster/pki/etcd-k8s/sign/server", data)
+	path := filepath.Join("test-cluster", "pki", name, "sign", role)
+
+	sec, err := vault.Logical().Write(path, data)
 
 	if err != nil {
 		t.Errorf("Error writting signiture: ", err)
 		return
 	}
-
-	logrus.Infof("Secret: %s", sec)
 
 	cert_ca := sec.Data["certificate"].(string)
 	issue_ca := sec.Data["issuing_ca"].(string)
@@ -113,16 +119,15 @@ func TestCertificates(t *testing.T) {
 	}
 
 	opts := x509.VerifyOptions{
-		DNSName: "etcd-1.tarmak.local",
+		DNSName: "127.0.0.1",
 		Roots:   roots,
 	}
-
 	_, err = cert.Verify(opts)
 	if err != nil {
 		t.Error("failed to verify certificate: " + err.Error())
 		return
 	}
-	logrus.Infof("ctcd-1.tarmak.local in certificate")
+	logrus.Infof("127.0.0.1 in certificate %s - %s", name, role)
 
 	opts.DNSName = "localhost"
 	_, err = cert.Verify(opts)
@@ -130,15 +135,15 @@ func TestCertificates(t *testing.T) {
 		t.Error("failed to verify certificate: " + err.Error())
 		return
 	}
-	logrus.Infof("localhost in certificate")
+	logrus.Infof("localhost in certificate %s - %s", name, role)
 
-	opts.DNSName = "127.0.0.1"
+	opts.DNSName = "etcd-1.tarmak.local"
 	_, err = cert.Verify(opts)
 	if err != nil {
 		t.Error("failed to verify certificate: " + err.Error())
 		return
 	}
-	logrus.Infof("127.0.0.1 in certificate")
+	logrus.Infof("ctcd-1.tarmak.local in certificate %s - %s", name, role)
 
 }
 
