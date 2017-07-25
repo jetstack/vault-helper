@@ -10,12 +10,12 @@ func TestIsValidClusterID(t *testing.T) {
 
 	err = isValidClusterID("valid-cluster")
 	if err != nil {
-		t.Error("unexpected an error: %s", err)
+		t.Error("unexpected an error: ", err)
 	}
 
 	err = isValidClusterID("valid-cluster01")
 	if err != nil {
-		t.Error("unexpected an error: %s", err)
+		t.Error("unexpected an error: ", err)
 	}
 
 	err = isValidClusterID("")

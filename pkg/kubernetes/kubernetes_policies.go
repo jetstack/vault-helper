@@ -11,7 +11,7 @@ import (
 func (k *Kubernetes) WritePolicy(p *Policy) error {
 	err := k.vaultClient.Sys().PutPolicy(p.Name, p.Policy())
 	if err != nil {
-		return fmt.Errorf("error writting policy '%s': %s", err)
+		return fmt.Errorf("error writting policy '%s': %v", p.Name, err)
 	}
 
 	return nil

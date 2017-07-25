@@ -41,7 +41,7 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 		mountConfig := p.getMountConfigInput()
 		err := p.kubernetes.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
 		if err != nil {
-			return fmt.Errorf("error tuning mount config: %s", err.Error())
+			return fmt.Errorf("error tuning mount config: %v", err.Error())
 		}
 		logrus.Debugf("Tuned Mount: %s", p.pkiName)
 		return nil
@@ -119,7 +119,7 @@ func (p *PKI) generateCA() (bool, error) {
 
 	_, err := p.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return false, fmt.Errorf("error writing new CA: ", err)
+		return false, fmt.Errorf("error writing new CA: %v", err)
 	}
 
 	return true, nil
@@ -131,7 +131,7 @@ func (p *PKI) caPathExists() (bool, error) {
 
 	s, err := p.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return false, fmt.Errorf("error reading ca path '%s': ", path, err)
+		return false, fmt.Errorf("error reading ca path '%s': %v", path, err)
 	}
 
 	if s == nil {
@@ -151,7 +151,7 @@ func (p *PKI) WriteRole(role *pkiRole) error {
 
 	_, err := p.kubernetes.vaultClient.Logical().Write(path, role.Data)
 	if err != nil {
-		return fmt.Errorf("error writting role '%s' to '%s': %s", role.Name, p.Path(), err)
+		return fmt.Errorf("error writting role '%s' to '%s': %v", role.Name, p.Path(), err)
 	}
 
 	return nil

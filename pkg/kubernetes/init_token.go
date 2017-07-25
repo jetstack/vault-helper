@@ -95,13 +95,13 @@ func (i *InitToken) setInitToken(string) (bool, error) {
 
 	s, err := i.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return false, fmt.Errorf("Error reading init token path: %s", s)
+		return false, fmt.Errorf("Error reading init token path: %v", s)
 	}
 
 	s.Data["init_token"] = i.kubernetes.FlagInitTokens[i.Role]
 	_, err = i.kubernetes.vaultClient.Logical().Write(path, s.Data)
 	if err != nil {
-		return false, fmt.Errorf("Error writting init token at path: %s", s)
+		return false, fmt.Errorf("Error writting init token at path: %v", s)
 	}
 
 	token, _ := i.getInitToken()
@@ -117,7 +117,7 @@ func (i *InitToken) getInitToken() (string, error) {
 
 	s, err := i.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return "", fmt.Errorf("Error reading init token.", err)
+		return "", fmt.Errorf("Error reading init token: %v", err)
 	}
 	if s == nil {
 		return "", nil
@@ -160,7 +160,7 @@ func (i *InitToken) writeTokenRole() error {
 
 	_, err := i.kubernetes.vaultClient.Logical().Write(i.Path(), writeData)
 	if err != nil {
-		return fmt.Errorf("error writing token role %s: %s", i.Path(), err)
+		return fmt.Errorf("error writing token role %s: %v", i.Path(), err)
 	}
 
 	return nil

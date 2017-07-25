@@ -46,7 +46,7 @@ func TestOrganisations(t *testing.T) {
 	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy"} {
 		path := filepath.Join("test-cluster", "pki", "k8s", "sign", role)
 		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
-			t.Error("Error with organisation match: %s", err)
+			t.Error("Error with organisation match: ", err)
 			return
 		}
 	}
@@ -54,20 +54,20 @@ func TestOrganisations(t *testing.T) {
 	for _, role := range []string{"server", "client"} {
 		path := filepath.Join("test-cluster", "pki", "etcd-k8s", "sign", role)
 		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
-			t.Error("Error with organisation match: %s", err)
+			t.Error("Error with organisation match: ", err)
 			return
 		}
 	}
 
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "admin")
 	if err := OrgMatch("admin", path, []string{"system:masters"}, vault.Client()); err != nil {
-		t.Error("Error with organisation match: %s", err)
+		t.Error("Error with organisation match: ", err)
 		return
 	}
 
 	path = filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
 	if err := OrgMatch("kubelet", path, []string{"system:nodes"}, vault.Client()); err != nil {
-		t.Error("Error with organisation match: %s", err)
+		t.Error("Error with organisation match: ", err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 
 	sec, err := writeCertificate(path, data, vaultClient)
 	if err != nil {
-		return fmt.Errorf("Error reading signiture: ", err)
+		return fmt.Errorf("Error reading signiture: %s", err)
 	}
 
 	cert_field, ok := sec.Data["certificate"]
@@ -191,7 +191,7 @@ func TestApiServerCanAdd(t *testing.T) {
 
 	_, err := writeCertificate(path, data, vault.Client())
 	if err != nil {
-		t.Errorf("Error writting signiture: ", err)
+		t.Error("Error writting signiture: ", err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func writeCertificate(path string, data map[string]interface{}, vault *vault.Cli
 
 	csr, err := createCertificateSigningRequest(pkixName, time.Hour*60, 2048)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating certificate: ", err)
+		return nil, fmt.Errorf("Error generating certificate: %v", err)
 	}
 
 	data["csr"] = string(csr)
@@ -223,7 +223,7 @@ func writeCertificate(path string, data map[string]interface{}, vault *vault.Cli
 	pemBytes := []byte(csr)
 	pemBlock, pemBytes := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		return nil, fmt.Errorf("csr contain no data", err)
+		return nil, fmt.Errorf("csr contain no data: %v", err)
 	}
 
 	sec, err := vault.Logical().Write(path, data)
@@ -243,7 +243,7 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	sec, err := writeCertificate(path, data, vault)
 
 	if err != nil {
-		t.Errorf("Error writting signiture: ", err)
+		t.Error("Error writting signiture: ", err)
 		return
 	}
 

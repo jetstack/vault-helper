@@ -40,7 +40,7 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 
 	token, _, err := i.InitToken()
 	if err != nil {
-		t.Error("unexpected error: %s", err)
+		t.Error("unexpected error: ", err)
 	}
 
 	if exp, act := "my-new-token", token; exp != act {
@@ -71,7 +71,7 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 
 	token, _, err := i.InitToken()
 	if err != nil {
-		t.Error("unexpected error: %s", err)
+		t.Error("unexpected error: ", err)
 	}
 
 	if exp, act := "existing-token", token; exp != act {
