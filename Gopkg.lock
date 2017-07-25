@@ -14,6 +14,12 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/errwrap"
   packages = ["."]
@@ -106,6 +112,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4e7dd518faa67e278a769b6a4ad080255b2e5ad9a8fd52d0b35e89b487146d9f"
+  inputs-digest = "91456ff16eb2a18ac8538d650e918d5f63f6e69c3f7730f16ef9a8148a65061e"
   solver-name = "gps-cdcl"
   solver-version = 1

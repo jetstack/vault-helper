@@ -15,6 +15,7 @@ type fakeVault struct {
 	fakeSys     *MockVaultSys
 	fakeLogical *MockVaultLogical
 	fakeAuth    *MockVaultAuth
+	fakeToken   *MockVaultToken
 }
 
 func NewFakeVault(t *testing.T) *fakeVault {
@@ -27,12 +28,13 @@ func NewFakeVault(t *testing.T) *fakeVault {
 		fakeSys:     NewMockVaultSys(ctrl),
 		fakeLogical: NewMockVaultLogical(ctrl),
 		fakeAuth:    NewMockVaultAuth(ctrl),
+		fakeToken:   NewMockVaultToken(ctrl),
 	}
 
 	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
 	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
 	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
-	v.fakeAuth.EXPECT().Token().AnyTimes().Return(v.fakeAuth.Token())
+	v.fakeAuth.EXPECT().Token().AnyTimes().Return(v.fakeToken)
 
 	return v
 }
