@@ -28,8 +28,7 @@ type basicConstraints struct {
 	MaxPathLen int  `asn1:"optional,default:-1"`
 }
 
-func TestKubeletOrganization(t *testing.T) {
-
+func TestOrganisations(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Skip("unable to initialise vault dev server for integration tests: ", err)
@@ -45,17 +44,46 @@ func TestKubeletOrganization(t *testing.T) {
 		return
 	}
 
-	data := map[string]interface{}{
-		"common_name": "kubelet",
+	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy"} {
+		path := filepath.Join("test-cluster", "pki", "k8s", "sign", role)
+		if err := orgMatch(role, path, "", vault.Client()); err != nil {
+			t.Error("Error with organisation match: %s", err)
+			return
+		}
 	}
 
-	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
+	for _, role := range []string{"server", "client"} {
+		path := filepath.Join("test-cluster", "pki", "etcd-k8s", "sign", role)
+		if err := orgMatch(role, path, "", vault.Client()); err != nil {
+			t.Error("Error with organisation match: %s", err)
+			return
+		}
+	}
 
-	sec, err := writeCertificate(path, data, vault.Client())
+	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "admin")
+	if err := orgMatch("admin", path, "system:masters", vault.Client()); err != nil {
+		t.Error("Error with organisation match: %s", err)
+		return
+	}
+
+	path = filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
+	if err := orgMatch("kubelet", path, "system:nodes", vault.Client()); err != nil {
+		t.Error("Error with organisation match: %s", err)
+		return
+	}
+
+}
+
+func orgMatch(role, path, match string, vaultClient *vault.Client) error {
+
+	data := map[string]interface{}{
+		"common_name": role,
+	}
+
+	sec, err := writeCertificate(path, data, vaultClient)
 
 	if err != nil {
-		t.Errorf("Error reading signiture: ", err)
-		return
+		return fmt.Errorf("Error reading signiture: ", err)
 	}
 
 	cert_ca := sec.Data["certificate"].(string)
@@ -63,31 +91,28 @@ func TestKubeletOrganization(t *testing.T) {
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM([]byte(cert_ca))
 	if !ok {
-		t.Error("failed to parse root certificate")
-		return
+		return fmt.Errorf("failed to parse root certificate")
 	}
 
 	block, _ := pem.Decode([]byte(cert_ca))
 	if block == nil {
-		t.Error("failed to parse certificate PEM")
-		return
+		return fmt.Errorf("failed to parse certificate PEM")
 	}
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		logrus.Errorf("%s", err)
-		return
+		return fmt.Errorf("%s", err)
 	}
 
 	for _, org := range cert.Subject.Organization {
-		if org == "system:nodes" || org == "system:masters" {
-			logrus.Infof("%s in kubelet subject", org)
-		} else {
-			t.Errorf("%s shouldn't be in subject", org)
-			return
+		if org != match {
+			return fmt.Errorf("Error, unexpected organisation: exp:%s got:%s", org, match)
 		}
 	}
 
+	logrus.Infof("%s - Expected organisations: '%s'", role, match)
+
+	return nil
 }
 
 func TestCertificates(t *testing.T) {
@@ -199,7 +224,6 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	}
 
 	cert_ca := sec.Data["certificate"].(string)
-	//issue_ca := sec.Data["issuing_ca"].(string)
 
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM([]byte(cert_ca))
@@ -257,9 +281,6 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 
 }
 
-//
-// createCertificateAuthority generates a certificate authority request ready to be signed
-//
 func createCertificateAuthority(names pkix.Name, expiration time.Duration, size int) ([]byte, error) {
 	// step: generate a keypair
 	keys, err := rsa.GenerateKey(rand.Reader, size)

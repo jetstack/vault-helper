@@ -225,15 +225,15 @@ func (v *fakeVault) DoubleEnsure() {
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kubelet", data10).Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kube-proxy", data11).Times(1).Return(nil, nil)
 
-	v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/etcd", gomock.Any()).Times(1).Return(nil)
-	v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/master", gomock.Any()).Times(1).Return(nil)
-	v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/worker", gomock.Any()).Times(1).Return(nil)
+	//v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/etcd", gomock.Any()).Times(1).Return(nil)
+	//v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/master", gomock.Any()).Times(1).Return(nil)
+	//v.fakeSys.EXPECT().PutPolicy("test-cluster-inside/worker", gomock.Any()).Times(1).Return(nil)
 
-	v.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/init_token_etcd").AnyTimes().Return(nil, nil)
+	//v.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/init_token_etcd").AnyTimes().Return(nil, nil)
 
-	v.fakeLogical.EXPECT().Write("auth/token/roles/test-cluster-inside-etcd", gomock.Any()).AnyTimes().Return(nil, nil)
+	//v.fakeLogical.EXPECT().Write("auth/token/roles/test-cluster-inside-etcd", gomock.Any()).AnyTimes().Return(nil, nil)
 
-	v.fakeAuth.EXPECT().Token().Times(1).Return(nil)
+	//v.fakeAuth.EXPECT().Token().Times(1).Return(nil)
 }
 
 //func (v *fakeVault) NewPolicy() {
