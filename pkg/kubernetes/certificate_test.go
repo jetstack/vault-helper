@@ -46,7 +46,7 @@ func TestOrganisations(t *testing.T) {
 
 	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy"} {
 		path := filepath.Join("test-cluster", "pki", "k8s", "sign", role)
-		if err := orgMatch(role, path, "", vault.Client()); err != nil {
+		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
 			t.Error("Error with organisation match: %s", err)
 			return
 		}
@@ -54,27 +54,27 @@ func TestOrganisations(t *testing.T) {
 
 	for _, role := range []string{"server", "client"} {
 		path := filepath.Join("test-cluster", "pki", "etcd-k8s", "sign", role)
-		if err := orgMatch(role, path, "", vault.Client()); err != nil {
+		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
 			t.Error("Error with organisation match: %s", err)
 			return
 		}
 	}
 
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "admin")
-	if err := orgMatch("admin", path, "system:masters", vault.Client()); err != nil {
+	if err := OrgMatch("admin", path, []string{"system:masters"}, vault.Client()); err != nil {
 		t.Error("Error with organisation match: %s", err)
 		return
 	}
 
 	path = filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
-	if err := orgMatch("kubelet", path, "system:nodes", vault.Client()); err != nil {
+	if err := OrgMatch("kubelet", path, []string{"system:nodes"}, vault.Client()); err != nil {
 		t.Error("Error with organisation match: %s", err)
 		return
 	}
 
 }
 
-func orgMatch(role, path, match string, vaultClient *vault.Client) error {
+func OrgMatch(role, path string, match []string, vaultClient *vault.Client) error {
 
 	data := map[string]interface{}{
 		"common_name": role,
@@ -104,13 +104,32 @@ func orgMatch(role, path, match string, vaultClient *vault.Client) error {
 		return fmt.Errorf("%s", err)
 	}
 
+	if len(match) > 0 && match[0] == "" {
+		match = append(match[:0], match[1:]...)
+	}
+
+	matchcp := make([]string, len(match), cap(match))
+	copy(matchcp, match)
+
 	for _, org := range cert.Subject.Organization {
-		if org != match {
-			return fmt.Errorf("Error, unexpected organisation: exp:%s got:%s", org, match)
+		matched := false
+		for i, m := range match {
+			if m == org {
+				match = append(match[:i], match[i+1:]...)
+				matched = true
+				continue
+			}
+		}
+		if !matched {
+			return fmt.Errorf("Error, unexpected organisation: exp:%s got:%s", cert.Subject.Organization, matchcp)
 		}
 	}
 
-	logrus.Infof("%s - Expected organisations: '%s'", role, match)
+	if len(match) > 0 {
+		return fmt.Errorf("Error, organisations not found but expected:%s got:%s", matchcp, cert.Subject.Organization)
+	}
+
+	logrus.Infof("%s - Expected organisations found: '%s'", role, matchcp)
 
 	return nil
 }
