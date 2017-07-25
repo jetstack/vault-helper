@@ -28,6 +28,68 @@ type basicConstraints struct {
 	MaxPathLen int  `asn1:"optional,default:-1"`
 }
 
+func TestKubeletOrganization(t *testing.T) {
+
+	vault := vault_dev.New()
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		return
+	}
+	defer vault.Stop()
+
+	k := New(vault.Client())
+	k.SetClusterID("test-cluster")
+
+	if err := k.Ensure(); err != nil {
+		t.Errorf("Error ensuring %s", err)
+		return
+	}
+
+	data := map[string]interface{}{
+		"common_name": "kubelet",
+	}
+
+	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
+
+	sec, err := writeCertificate(path, data, vault.Client())
+
+	if err != nil {
+		t.Errorf("Error reading signiture: ", err)
+		return
+	}
+
+	cert_ca := sec.Data["certificate"].(string)
+
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM([]byte(cert_ca))
+	if !ok {
+		t.Error("failed to parse root certificate")
+		return
+	}
+
+	block, _ := pem.Decode([]byte(cert_ca))
+	if block == nil {
+		t.Error("failed to parse certificate PEM")
+		return
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		logrus.Errorf("%s", err)
+		return
+	}
+
+	for _, org := range cert.Subject.Organization {
+		if org == "system:nodes" || org == "system:masters" {
+			logrus.Infof("%s in kubelet subject", org)
+		} else {
+			t.Errorf("%s shouldn't be in subject", org)
+			return
+		}
+	}
+
+}
+
 func TestCertificates(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
@@ -44,17 +106,51 @@ func TestCertificates(t *testing.T) {
 		return
 	}
 
-	for _, role := range []string{"server"} {
+	for _, role := range []string{"server", "client"} {
 		verify_certificate(t, "etcd-k8s", role, vault.Client())
 	}
 
-	for _, role := range []string{"kube-apiserver", "kube-scheduler", "kube-controller-manager", "kube-proxy", "admin"} {
+	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy", "admin"} {
 		verify_certificate(t, "k8s", role, vault.Client())
 	}
 
 }
 
-func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
+func TestApiServerCanAdd(t *testing.T) {
+	vault := vault_dev.New()
+	if err := vault.Start(); err != nil {
+		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		return
+	}
+	defer vault.Stop()
+
+	k := New(vault.Client())
+	k.SetClusterID("test-cluster")
+
+	if err := k.Ensure(); err != nil {
+		t.Errorf("Error ensuring %s", err)
+		return
+	}
+
+	data := map[string]interface{}{
+		"common_name": "kube-apiserver",
+		"alt_names":   "THISisAny,HoSTName",
+		"ip_sans":     "245.32.41.23,0.0.0.0,255.255.255.255",
+	}
+
+	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kube-apiserver")
+
+	_, err := writeCertificate(path, data, vault.Client())
+	if err != nil {
+		t.Errorf("Error writting signiture: ", err)
+		return
+	}
+
+	logrus.Infof("Can add any ip/hostname to apiserver")
+
+}
+
+func writeCertificate(path string, data map[string]interface{}, vault *vault.Client) (*vault.Secret, error) {
 
 	pkixName := pkix.Name{
 		Country:            []string{"Earth"},
@@ -65,24 +161,29 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 		StreetAddress:      []string{"Solar System"},
 		PostalCode:         []string{"Planet # 3"},
 		SerialNumber:       "123",
-		CommonName:         "test-cluster",
+		CommonName:         "foo.com",
 	}
 
 	csr, err := createCertificateAuthority(pkixName, time.Hour*60, 2048)
 	if err != nil {
-		t.Errorf("Error generating certificate: ", err)
-		return
+		return nil, fmt.Errorf("Error generating certificate: ", err)
 	}
+
+	data["csr"] = string(csr)
 
 	pemBytes := []byte(csr)
 	pemBlock, pemBytes := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		t.Errorf("csr contain no data", err)
-		return
+		return nil, fmt.Errorf("csr contain no data", err)
 	}
 
+	sec, err := vault.Logical().Write(path, data)
+	return sec, err
+}
+
+func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
+
 	data := map[string]interface{}{
-		"csr":         string(csr),
 		"common_name": role,
 		"alt_names":   "etcd-1.tarmak.local,localhost",
 		"ip_sans":     "127.0.0.1",
@@ -90,7 +191,7 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 
 	path := filepath.Join("test-cluster", "pki", name, "sign", role)
 
-	sec, err := vault.Logical().Write(path, data)
+	sec, err := writeCertificate(path, data, vault)
 
 	if err != nil {
 		t.Errorf("Error writting signiture: ", err)
@@ -98,10 +199,10 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	}
 
 	cert_ca := sec.Data["certificate"].(string)
-	issue_ca := sec.Data["issuing_ca"].(string)
+	//issue_ca := sec.Data["issuing_ca"].(string)
 
 	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(issue_ca))
+	ok := roots.AppendCertsFromPEM([]byte(cert_ca))
 	if !ok {
 		t.Error("failed to parse root certificate")
 		return
@@ -112,38 +213,47 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 		t.Error("failed to parse certificate PEM")
 		return
 	}
+
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		t.Error("failed to parse certificate: " + err.Error())
 		return
 	}
 
+	logrus.Infof("%s - %s", role, cert.IPAddresses)
+
 	opts := x509.VerifyOptions{
 		DNSName: "127.0.0.1",
 		Roots:   roots,
 	}
 	_, err = cert.Verify(opts)
-	if err != nil {
+	if err != nil && (role == "server" || role == "kube-apiserver") {
 		t.Error("failed to verify certificate: " + err.Error())
 		return
 	}
-	logrus.Infof("127.0.0.1 in certificate %s - %s", name, role)
-
-	opts.DNSName = "localhost"
-	_, err = cert.Verify(opts)
-	if err != nil {
-		t.Error("failed to verify certificate: " + err.Error())
-		return
+	if role == "server" || role == "kube-apiserver" {
+		logrus.Infof("127.0.0.1 in certificate %s - %s", name, role)
 	}
-	logrus.Infof("localhost in certificate %s - %s", name, role)
 
 	opts.DNSName = "etcd-1.tarmak.local"
 	_, err = cert.Verify(opts)
-	if err != nil {
+	if err != nil && (role == "server" || role == "kube-apiserver") {
 		t.Error("failed to verify certificate: " + err.Error())
 		return
 	}
-	logrus.Infof("ctcd-1.tarmak.local in certificate %s - %s", name, role)
+	if role == "server" || role == "kube-apiserver" {
+		logrus.Infof("etcd-1.tarmak.local in certificate %s - %s", name, role)
+	}
+
+	opts.DNSName = "localhost"
+	_, err = cert.Verify(opts)
+	if err != nil && (role == "server" || role == "kube-apiserver") {
+		t.Error("failed to verify certificate: " + err.Error())
+		return
+	}
+	if role == "server" || role == "kube-apiserver" {
+		logrus.Infof("localhost in certificate %s - %s", name, role)
+	}
 
 }
 
@@ -187,5 +297,4 @@ func createCertificateAuthority(names pkix.Name, expiration time.Duration, size 
 	})
 
 	return csr, nil
-
 }
