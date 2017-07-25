@@ -320,39 +320,39 @@ func (v *fakeVault) PKIEnsure() {
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "0",
-			MaxLeaseTTL:     "630720000",
-		},
 	}
 
 	mountInput2 := &vault.MountInput{
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "etcd-overlay" + " CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "630720000",
-			MaxLeaseTTL:     "0",
-		},
 	}
 
 	mountInput3 := &vault.MountInput{
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s" + " CA",
 		Type:        "pki",
-		Config: vault.MountConfigInput{
-			DefaultLeaseTTL: "0",
-			MaxLeaseTTL:     "630720000",
-		},
 	}
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
 
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k9s", mountInput3).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
 
-	firstGet := v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("", nil)
-	v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("true", nil).After(firstGet)
+	v.fakeLogical.EXPECT().Read(gomock.Any()).AnyTimes().Return(nil, nil)
 
-	policyName := "test-cluster-inside/master"
-	policyRules := "\npath \"test-cluster-inside/pki/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
-	v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
+	v.fakeLogical.EXPECT().Write(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/secrets", gomock.Any()).Times(1).Return(nil)
+
+	v.fakeSys.EXPECT().PutPolicy(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	v.fakeToken.EXPECT().CreateOrphan(gomock.Any()).AnyTimes().Return(&vault.Secret{
+		Auth: &vault.SecretAuth{
+			ClientToken: "my-new-token",
+		},
+	}, nil)
+	//firstGet := v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("", nil)
+	//v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("true", nil).After(firstGet)
+
+	//policyName := "test-cluster-inside/master"
+	//policyRules := "\npath \"test-cluster-inside/pki/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
+	//v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
 }

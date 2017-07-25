@@ -68,6 +68,7 @@ func (p *PKI) Ensure() (bool, error) {
 				Type:        "pki",
 			},
 		)
+
 		if err != nil {
 			return false, fmt.Errorf("error creating mount: %s", err)
 		}

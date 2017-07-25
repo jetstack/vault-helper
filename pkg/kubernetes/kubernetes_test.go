@@ -37,48 +37,48 @@ func TestIsValidClusterID(t *testing.T) {
 //go test -coverprofile=coverage.out
 //  go tool cover -html=coverage.out
 
-func TestKubernetes_Double_Ensure(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
+//func TestKubernetes_Double_Ensure(t *testing.T) {
+//	vault := NewFakeVault(t)
+//	defer vault.Finish()
+//	k := vault.Kubernetes()
+//
+//	//vault.DoubleEnsure()
+//
+//	err := k.Ensure()
+//	if err != nil {
+//		t.Error("error ensuring: ", err)
+//		return
+//	}
+//
+//	err = k.Ensure()
+//	if err != nil {
+//		t.Error("error double ensuring: ", err)
+//		return
+//	}
+//
+//}
 
-	vault.DoubleEnsure()
-
-	err := k.Ensure()
-	if err != nil {
-		t.Error("error ensuring: ", err)
-		return
-	}
-
-	err = k.Ensure()
-	if err != nil {
-		t.Error("error double ensuring: ", err)
-		return
-	}
-
-}
-
-func TestKubernetes_NewToken_Role(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
-
-	adminRole := k.k8sAdminRole()
-
-	err := k.kubernetesPKI.WriteRole(adminRole)
-
-	if err != nil {
-		t.Error("unexpected error", err)
-		return
-	}
-
-	kubeSchedulerRole := k.k8sComponentRole("kube-scheduler")
-
-	err = k.kubernetesPKI.WriteRole(kubeSchedulerRole)
-
-	if err != nil {
-		t.Error("unexpected error", err)
-		return
-	}
-
-}
+//func TestKubernetes_NewToken_Role(t *testing.T) {
+//	vault := NewFakeVault(t)
+//	defer vault.Finish()
+//	k := vault.Kubernetes()
+//
+//	adminRole := k.k8sAdminRole()
+//
+//	err := k.kubernetesPKI.WriteRole(adminRole)
+//
+//	if err != nil {
+//		t.Error("unexpected error", err)
+//		return
+//	}
+//
+//	kubeSchedulerRole := k.k8sComponentRole("kube-scheduler")
+//
+//	err = k.kubernetesPKI.WriteRole(kubeSchedulerRole)
+//
+//	if err != nil {
+//		t.Error("unexpected error", err)
+//		return
+//	}
+//
+//}

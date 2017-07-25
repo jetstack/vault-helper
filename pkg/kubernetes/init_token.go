@@ -123,6 +123,7 @@ func (i *InitToken) getInitToken() (string, error) {
 		return "", nil
 	}
 
+	//TODO: this is unsafe:
 	return fmt.Sprintf("%s", s.Data["init_token"]), nil
 }
 
