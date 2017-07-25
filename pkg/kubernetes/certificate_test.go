@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"path/filepath"
@@ -81,15 +80,21 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 	}
 
 	sec, err := writeCertificate(path, data, vaultClient)
-
 	if err != nil {
 		return fmt.Errorf("Error reading signiture: ", err)
 	}
 
-	cert_ca := sec.Data["certificate"].(string)
+	cert_field, ok := sec.Data["certificate"]
+	if !ok {
+		return fmt.Errorf("Error, certificate field not found")
+	}
+	cert_ca, ok := cert_field.(string)
+	if !ok {
+		return fmt.Errorf("Error, certificate field not string")
+	}
 
 	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(cert_ca))
+	ok = roots.AppendCertsFromPEM([]byte(cert_ca))
 	if !ok {
 		return fmt.Errorf("failed to parse root certificate")
 	}
@@ -208,7 +213,7 @@ func writeCertificate(path string, data map[string]interface{}, vault *vault.Cli
 		CommonName:         "foo.com",
 	}
 
-	csr, err := createCertificateAuthority(pkixName, time.Hour*60, 2048)
+	csr, err := createCertificateSigningRequest(pkixName, time.Hour*60, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("Error generating certificate: ", err)
 	}
@@ -300,29 +305,17 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 
 }
 
-func createCertificateAuthority(names pkix.Name, expiration time.Duration, size int) ([]byte, error) {
+func createCertificateSigningRequest(names pkix.Name, expiration time.Duration, size int) ([]byte, error) {
 	// step: generate a keypair
 	keys, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
 		return nil, fmt.Errorf("unable to genarate private keys, error: %s", err)
 	}
 
-	val, err := asn1.Marshal(basicConstraints{true, 0})
-	if err != nil {
-		return nil, err
-	}
-
 	// step: generate a csr template
 	var csrTemplate = x509.CertificateRequest{
 		Subject:            names,
 		SignatureAlgorithm: x509.SHA512WithRSA,
-		ExtraExtensions: []pkix.Extension{
-			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
-				Value:    val,
-				Critical: true,
-			},
-		},
 	}
 
 	// step: generate the csr request

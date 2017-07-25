@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/google/uuid"
 	vault "github.com/hashicorp/vault/api"
 )
 
@@ -27,11 +26,6 @@ func (g *Generic) Ensure() (bool, error) {
 
 func (g *Generic) Path() string {
 	return filepath.Join(g.kubernetes.Path(), "secrets")
-}
-
-func randomUUID() string {
-	uuID := uuid.New()
-	return uuID.String()
 }
 
 func (g *Generic) GenerateSecretsMount() error {

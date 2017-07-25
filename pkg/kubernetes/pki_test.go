@@ -1,16 +1,17 @@
 package kubernetes
 
 import (
+	vault "github.com/hashicorp/vault/api"
 	"testing"
 	"time"
 )
 
 func TestPKI_Ensure(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
+	fakeVault := NewFakeVault(t)
+	defer fakeVault.Finish()
+	k := fakeVault.Kubernetes()
 
-	vault.PKIEnsure()
+	fakeVault.PKIEnsure()
 
 	if exp, act := "test-cluster-inside/pki/etcd-k8s", k.etcdKubernetesPKI.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
@@ -67,25 +68,25 @@ func TestPKI_Ensure(t *testing.T) {
 		return
 	}
 
-	//pkiWrongType := NewPKI(k, "wrong-type-pki")
+	pkiWrongType := NewPKI(k, "wrong-type-pki")
 
-	//err = k.vaultClient.Sys().Mount(
-	//	k.Path()+"/pki/"+"wrong-type-pki",
-	//	&vault_testing.MountInput{
-	//		Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
-	//		Type:        "generic",
-	//		Config:      k.etcdKubernetesPKI.getMountConfigInput(),
-	//	},
-	//)
-	//if err != nil {
-	//	t.Error("Error Mounting: ", err)
-	//	return
-	//}
+	err = k.vaultClient.Sys().Mount(
+		k.Path()+"/pki/"+"wrong-type-pki",
+		&vault.MountInput{
+			Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
+			Type:        "generic",
+			Config:      k.etcdKubernetesPKI.getMountConfigInput(),
+		},
+	)
+	if err != nil {
+		t.Error("Error Mounting: ", err)
+		return
+	}
 
-	//err = pkiWrongType.Ensure()
-	//if err == nil {
-	//	t.Error("Should have error from wrong type")
-	//	return
-	//}
+	_, err = pkiWrongType.Ensure()
+	if err == nil {
+		t.Error("Should have error from wrong type")
+		return
+	}
 
 }

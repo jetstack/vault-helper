@@ -276,10 +276,7 @@ func (k *Kubernetes) ensureInitTokens() error {
 		k.workerPolicy().Name,
 	}))
 
-	change := map[string]interface{}{
-		"created_init": false,
-		"written_init": false,
-	}
+	var change Change
 
 	strc := "Init_tokens generated for: "
 	strw := "Init_tokens written for:   "
@@ -287,20 +284,20 @@ func (k *Kubernetes) ensureInitTokens() error {
 		if changed, err := initToken.Ensure(); err != nil {
 			result = multierror.Append(result, err)
 		} else {
-			if changed["created_init"] == true {
-				change["created_init"] = true
+			if changed.Created == true {
+				change.Created = true
 				strc += "'" + initToken.Name() + "'  "
 			}
-			if changed["written_init"] == true {
-				change["written_init"] = true
+			if changed.Written == true {
+				change.Written = true
 				strw += "'" + initToken.Name() + "'  "
 			}
 		}
 	}
-	if change["created_init"] == true {
+	if change.Created == true {
 		logrus.Infof(strc)
 	}
-	if change["written_init"] == true {
+	if change.Written == true {
 		logrus.Infof(strw)
 	}
 

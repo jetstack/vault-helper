@@ -15,7 +15,12 @@ type InitToken struct {
 	token      *string
 }
 
-func (i *InitToken) Ensure() (map[string]interface{}, error) {
+type Change struct {
+	Written bool
+	Created bool
+}
+
+func (i *InitToken) Ensure() (Change, error) {
 	var result error
 
 	ensureInitToken := func() (bool, error) {
@@ -23,14 +28,17 @@ func (i *InitToken) Ensure() (map[string]interface{}, error) {
 		return written, err
 	}
 
-	token, _ := i.GetInitToken()
-
-	change := map[string]interface{}{
-		"created_init": false,
-		"written_init": false,
+	token, err := i.getInitToken()
+	if err != nil {
+		return Change{false, false}, err
 	}
 
+	// Used to pass if there has been change in init tokens
+	var change Change
+
+	// If token != user flag and the user token flag != ""
 	if token != i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
+		// Write the init token role and policy using the user token flag
 		for _, f := range []func() error{
 			i.writeTokenRole,
 			i.writeInitTokenPolicy,
@@ -42,21 +50,24 @@ func (i *InitToken) Ensure() (map[string]interface{}, error) {
 				result = multierror.Append(result, err)
 			}
 		}
-		b, err := i.SetInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
+		b, err := i.setInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
 		if err != nil {
 			return change, fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
 		}
-		change["written_init"] = b
-		change["created_init"] = false
+		// User token written - not created
+		change.Written = b
+		change.Created = false
 
+		// Token == user flag and the flag != "" - just need to ensure the init token
 	} else if token == i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
 		if written, err := ensureInitToken(); err != nil {
 			result = multierror.Append(result, err)
 		} else if written {
-			change["written_init"] = true
-			change["created_init"] = false
+			change.Written = true
+			change.Created = false
 		}
 
+		// No flag. Generate an init token and write to vault
 	} else {
 		for _, f := range []func() error{
 			i.writeTokenRole,
@@ -68,8 +79,8 @@ func (i *InitToken) Ensure() (map[string]interface{}, error) {
 			if written, err := ensureInitToken(); err != nil {
 				result = multierror.Append(result, err)
 			} else if written {
-				change["created_init"] = true
-				change["written_init"] = true
+				change.Created = true
+				change.Written = true
 			}
 		}
 
@@ -78,7 +89,8 @@ func (i *InitToken) Ensure() (map[string]interface{}, error) {
 	return change, result
 }
 
-func (i *InitToken) SetInitToken(string) (bool, error) {
+// Write init token from user flag
+func (i *InitToken) setInitToken(string) (bool, error) {
 	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
 
 	s, err := i.kubernetes.vaultClient.Logical().Read(path)
@@ -92,20 +104,21 @@ func (i *InitToken) SetInitToken(string) (bool, error) {
 		return false, fmt.Errorf("Error writting init token at path: %s", s)
 	}
 
-	token, _ := i.GetInitToken()
-	logrus.Infof("Token written: %s", token)
+	token, _ := i.getInitToken()
+	logrus.Infof("User token written for %s: %s", i.Role, token)
 	i.token = &token
 
 	return true, nil
 }
 
-func (i *InitToken) GetInitToken() (string, error) {
+// Read init token from vault at path
+func (i *InitToken) getInitToken() (string, error) {
 	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
+
 	s, err := i.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
 		return "", fmt.Errorf("Error reading init token.", err)
 	}
-
 	if s == nil {
 		return "", nil
 	}
@@ -113,22 +126,27 @@ func (i *InitToken) GetInitToken() (string, error) {
 	return fmt.Sprintf("%s", s.Data["init_token"]), nil
 }
 
+// Get init token name
 func (i *InitToken) Name() string {
 	return fmt.Sprintf("%s-%s", i.kubernetes.clusterID, i.Role)
 }
 
-func (i *InitToken) NamePath() string {
+// Get name path suffix for token role
+func (i *InitToken) namePath() string {
 	return fmt.Sprintf("%s/%s", i.kubernetes.clusterID, i.Role)
 }
 
-func (i *InitToken) CreatePath() string {
+// Construct file path for ../create
+func (i *InitToken) createPath() string {
 	return filepath.Join("auth/token/create", i.Name())
 }
 
+// Construct file path for ../auth
 func (i *InitToken) Path() string {
 	return filepath.Join("auth/token/roles", i.Name())
 }
 
+// Write token role to vault
 func (i *InitToken) writeTokenRole() error {
 	policies := i.Policies
 	policies = append(policies, "default")
@@ -137,7 +155,7 @@ func (i *InitToken) writeTokenRole() error {
 		"period":           fmt.Sprintf("%ds", int(i.kubernetes.MaxValidityComponents.Seconds())),
 		"orphan":           true,
 		"allowed_policies": strings.Join(policies, ","),
-		"path_suffix":      i.NamePath(),
+		"path_suffix":      i.namePath(),
 	}
 
 	_, err := i.kubernetes.vaultClient.Logical().Write(i.Path(), writeData)
@@ -148,12 +166,13 @@ func (i *InitToken) writeTokenRole() error {
 	return nil
 }
 
+// Construct policy and send to kubernetes to be written to vault
 func (i *InitToken) writeInitTokenPolicy() error {
 	p := &Policy{
-		Name: fmt.Sprintf("%s-creator", i.NamePath()),
+		Name: fmt.Sprintf("%s-creator", i.namePath()),
 		Policies: []*policyPath{
 			&policyPath{
-				path:         i.CreatePath(),
+				path:         i.createPath(),
 				capabilities: []string{"create", "read", "update"},
 			},
 		},
@@ -161,13 +180,15 @@ func (i *InitToken) writeInitTokenPolicy() error {
 	return i.kubernetes.WritePolicy(p)
 }
 
+// Return init token if token exists
+// Retrieve from generic if !exists
 func (i *InitToken) InitToken() (string, bool, error) {
 	if i.token != nil {
 		return *i.token, false, nil
 	}
 
 	// get init token from generic
-	token, written, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.NamePath())})
+	token, written, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
 	if err != nil {
 		return "", false, err
 	}
