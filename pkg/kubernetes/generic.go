@@ -170,6 +170,17 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 	return token, nil
 }
 
+func (g *Generic) revokeToken(token, path, role string) error {
+	err := g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(token)
+	if err != nil {
+		return fmt.Errorf("Error revoking init token at path: %v", path)
+	}
+
+	logrus.Infof("Revoked Token '%s': '%s'", role, token)
+
+	return nil
+}
+
 func (g *Generic) SetInitTokenStore(role string, token string) error {
 
 	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
@@ -178,24 +189,26 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	if err != nil {
 		return fmt.Errorf("Error reading init token path: %v", s)
 	}
+	if s != nil {
+		logrus.Infof("Token found in vault for role: %s", role)
 
-	dat, ok := s.Data["init_token"]
-	if !ok {
-		return fmt.Errorf("Error finding current init token data: %v", s)
-	}
-	oldToken, ok := dat.(string)
-	if !ok {
-		return fmt.Errorf("Error converting init_token data to string: %v", s)
-	}
-	logrus.Infof("Revoked Token '%s': '%s'", role, oldToken)
+		dat, ok := s.Data["init_token"]
+		if !ok {
+			return fmt.Errorf("Error finding current init token data: %v", s)
+		}
+		oldToken, ok := dat.(string)
+		if !ok {
+			return fmt.Errorf("Error converting init_token data to string: %v", s)
+		}
 
-	err = g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(oldToken)
-	if err != nil {
-		return fmt.Errorf("Error revoking init token at path: %v", s)
+		g.revokeToken(oldToken, path, role)
+
 	}
 
-	s.Data["init_token"] = token
-	_, err = g.kubernetes.vaultClient.Logical().Write(path, s.Data)
+	data := map[string]interface{}{
+		"init_token": token,
+	}
+	_, err = g.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
 		return fmt.Errorf("Error writting init token at path: %v", s)
 	}

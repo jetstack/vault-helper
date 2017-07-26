@@ -160,42 +160,19 @@ func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
 
 	// expect a read and vault says secret is not existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
-		nil,
-		nil,
-	)
-
-	// expect a create new orphan
-	fv.fakeToken.EXPECT().CreateOrphan(gomock.Any()).Return(&vault.Secret{
-		Auth: &vault.SecretAuth{
-			ClientToken: "a-random-token",
-		},
-	}, nil)
-
-	// expect a write of the new token
-	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "a-random-token"}).Return(
-		nil,
-		nil,
-	)
-
 	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
-		&vault.Secret{
-			Data: map[string]interface{}{"init_token": "a-random-token"},
-		},
+		nil,
 		nil,
 	)
 
-	// expect to revoke the random token to then write over
-	// ** Intended behavour?
-	fv.fakeToken.EXPECT().RevokeOrphan("a-random-token").Return(nil)
-
-	// expect a write of the new token
+	// expect a write of the new token from user flag
 	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "expected-token"}).Return(
 		nil,
 		nil,
 	)
 
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
+	// expect to read out token from user
+	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "expected-token"},
 		},
@@ -219,8 +196,8 @@ func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
 	}
 }
 
+// General policy and write calls when init token ensuring
 func InitTokenEnsure_EXPECTs(fv *fakeVault) {
 	fv.fakeLogical.EXPECT().Write("auth/token/roles/test-cluster-inside-etcd", gomock.Any()).AnyTimes().Return(nil, nil)
-	//fv.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/init_token_etcd").AnyTimes().Return(nil, nil)
 	fv.fakeSys.EXPECT().PutPolicy(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 }
