@@ -14,6 +14,7 @@ RUN curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAUL
 
 ADD vault-helper /usr/local/bin/vault-helper
 ADD vault-setup /usr/local/bin/vault-setup
+ADD vault-helper-golang_linux_amd64 /usr/local/bin/vault-helper-golang
 
 ENV VAULT_ADDR=http://127.0.0.1:8200
 
