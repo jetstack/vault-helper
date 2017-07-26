@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	"path/filepath"
 	"strings"
@@ -63,6 +62,7 @@ func (i *InitToken) Ensure() error {
 			result = multierror.Append(result, err)
 		}
 
+		// Write the init token role and policy using the user token flag
 		// No flag. Generate an init token and write to vault
 	} else {
 		for _, f := range writeTokenRole_Police {
@@ -77,11 +77,6 @@ func (i *InitToken) Ensure() error {
 	}
 
 	return result
-}
-
-// Write init token from user flag
-func (i *InitToken) setInitToken(string) error {
-	return nil
 }
 
 // Get init token name

@@ -144,7 +144,6 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	}
 
 	return token.Auth.ClientToken, nil
-
 }
 
 func (g *Generic) InitTokenStore(role string) (token string, err error) {
