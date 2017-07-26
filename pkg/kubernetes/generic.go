@@ -146,3 +146,47 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	return token.Auth.ClientToken, nil
 
 }
+
+func (g *Generic) InitTokenStore(role string) (token string, err error) {
+
+	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+
+	s, err := g.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return "", fmt.Errorf("Error reading init token: %v", err)
+	}
+	if s == nil {
+		return "", nil
+	}
+
+	dat, ok := s.Data["init_token"]
+	if !ok {
+		return "", fmt.Errorf("Error finding init token data at '%s': %v", path, err)
+	}
+	token, ok = dat.(string)
+	if !ok {
+		return "", fmt.Errorf("Error converting token data to string: %v", err)
+	}
+
+	return token, nil
+}
+
+func (g *Generic) SetInitTokenStore(role string, token string) error {
+
+	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+
+	s, err := g.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return fmt.Errorf("Error reading init token path: %v", s)
+	}
+
+	s.Data["init_token"] = token
+	_, err = g.kubernetes.vaultClient.Logical().Write(path, s.Data)
+	if err != nil {
+		return fmt.Errorf("Error writting init token at path: %v", s)
+	}
+
+	logrus.Infof("User token written for %s: %s", role, token)
+
+	return nil
+}

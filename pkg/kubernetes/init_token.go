@@ -2,7 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	"path/filepath"
 	"strings"
@@ -24,7 +24,7 @@ func (i *InitToken) Ensure() error {
 		return err
 	}
 
-	token, err := i.getInitToken()
+	token, err := i.secretsGeneric().InitTokenStore(i.Role)
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,17 @@ func (i *InitToken) Ensure() error {
 				result = multierror.Append(result, err)
 			}
 		}
-		err := i.setInitToken(fmt.Sprintf("%s", i.ExpectedToken))
+
+		err := i.secretsGeneric().SetInitTokenStore(i.Role, i.ExpectedToken)
 		if err != nil {
 			return fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
 		}
+
+		tokenStr, err := i.secretsGeneric().InitTokenStore(i.Role)
+		if err != nil {
+			return fmt.Errorf("Failed to read '%s' init token: '%s'", i.Role, err)
+		}
+		i.token = &tokenStr
 
 		// Token == user flag and the flag != "" - just need to ensure the init token
 	} else if token == i.ExpectedToken && i.ExpectedToken != "" {
@@ -75,40 +82,7 @@ func (i *InitToken) Ensure() error {
 
 // Write init token from user flag
 func (i *InitToken) setInitToken(string) error {
-	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
-
-	s, err := i.kubernetes.vaultClient.Logical().Read(path)
-	if err != nil {
-		return fmt.Errorf("Error reading init token path: %v", s)
-	}
-
-	s.Data["init_token"] = i.ExpectedToken
-	_, err = i.kubernetes.vaultClient.Logical().Write(path, s.Data)
-	if err != nil {
-		return fmt.Errorf("Error writting init token at path: %v", s)
-	}
-
-	token, _ := i.getInitToken()
-	logrus.Infof("User token written for %s: %s", i.Role, token)
-	i.token = &token
-
 	return nil
-}
-
-// Read init token from vault at path
-func (i *InitToken) getInitToken() (string, error) {
-	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
-
-	s, err := i.kubernetes.vaultClient.Logical().Read(path)
-	if err != nil {
-		return "", fmt.Errorf("Error reading init token: %v", err)
-	}
-	if s == nil {
-		return "", nil
-	}
-
-	//TODO: this is unsafe:
-	return fmt.Sprintf("%s", s.Data["init_token"]), nil
 }
 
 // Get init token name
@@ -173,11 +147,15 @@ func (i *InitToken) InitToken() (string, error) {
 	}
 
 	// get init token from generic
-	token, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
+	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
 	if err != nil {
 		return "", err
 	}
 
 	i.token = &token
 	return token, nil
+}
+
+func (i *InitToken) secretsGeneric() *Generic {
+	return i.kubernetes.secretsGeneric
 }
