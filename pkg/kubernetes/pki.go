@@ -59,6 +59,7 @@ func (p *PKI) Ensure() error {
 		return err
 	}
 
+	// Mount doesn't Exist
 	if mount == nil {
 		logrus.Debugf("No mounts found for: %s", p.pkiName)
 		err := p.kubernetes.vaultClient.Sys().Mount(
@@ -76,6 +77,7 @@ func (p *PKI) Ensure() error {
 		if err != nil {
 			return err
 		}
+		logrus.Infof("Mounted '%s'", p.pkiName)
 
 	} else {
 		if mount.Type != "pki" {

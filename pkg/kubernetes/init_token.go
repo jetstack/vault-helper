@@ -24,6 +24,11 @@ func (i *InitToken) Ensure() error {
 		return err
 	}
 
+	writeTokenRole_Police := []func() error{
+		i.writeTokenRole,
+		i.writeInitTokenPolicy,
+	}
+
 	token, err := i.secretsGeneric().InitTokenStore(i.Role)
 	if err != nil {
 		return err
@@ -32,10 +37,7 @@ func (i *InitToken) Ensure() error {
 	// If token != user flag and the user token flag != ""
 	if token != i.ExpectedToken && i.ExpectedToken != "" {
 		// Write the init token role and policy using the user token flag
-		for _, f := range []func() error{
-			i.writeTokenRole,
-			i.writeInitTokenPolicy,
-		} {
+		for _, f := range writeTokenRole_Police {
 			if err := f(); err != nil {
 				result = multierror.Append(result, err)
 			}
@@ -63,10 +65,7 @@ func (i *InitToken) Ensure() error {
 
 		// No flag. Generate an init token and write to vault
 	} else {
-		for _, f := range []func() error{
-			i.writeTokenRole,
-			i.writeInitTokenPolicy,
-		} {
+		for _, f := range writeTokenRole_Police {
 			if err := f(); err != nil {
 				result = multierror.Append(result, err)
 			}

@@ -186,7 +186,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 		return fmt.Errorf("Error writting init token at path: %v", s)
 	}
 
-	logrus.Infof("User token written for %s: %s", role, token)
+	logrus.Infof("User token written for '%s': '%s'", role, token)
 
 	return nil
 }

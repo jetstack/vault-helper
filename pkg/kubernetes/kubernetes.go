@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Sirupsen/logrus"
+	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -186,13 +186,11 @@ func (k *Kubernetes) Ensure() error {
 
 	// setup backends
 	var result error
-	str := "Mounted & CA written for: "
 	for _, backend := range k.backends() {
 		if err := backend.Ensure(); err != nil {
 			result = multierror.Append(result, fmt.Errorf("backend %s: %s", backend.Path(), err))
 		}
 	}
-	logrus.Infof(str)
 	if result != nil {
 		return result
 	}
