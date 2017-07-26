@@ -12,7 +12,7 @@ build:golang:
   - docker
   image: golang:1.8-alpine
   script:
-  - apk --update add curl unzip
+  - apk --update add curl unzip make
   - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
   - mkdir -p /go/src/github.com/jetstack-experimental
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
