@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	//vault "github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	//"github.com/Sirupsen/logrus"
 	"testing"
 	"time"
@@ -39,55 +39,55 @@ func TestPKI_Ensure(t *testing.T) {
 		return
 	}
 
-	//	policy_name := k.clusterID + "/" + "master"
-	//
-	//	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
-	//	if err != nil {
-	//		t.Error("Error finding policy: ", err)
-	//		return
-	//	}
-	//	if exists {
-	//		t.Error("Policy Found - it should not be")
-	//		return
-	//	}
+	policy_name := k.clusterID + "/" + "master"
 
-	//policy := k.masterPolicy()
+	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	if err != nil {
+		t.Error("Error finding policy: ", err)
+		return
+	}
+	if exists {
+		t.Error("Policy Found - it should not be")
+		return
+	}
 
-	//err = k.WritePolicy(policy)
-	//if err != nil {
-	//	t.Error("Error writting policy: ", err)
-	//	return
-	//}
+	policy := k.masterPolicy()
 
-	//exists, err = k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
-	//if err != nil {
-	//	t.Error("Error finding policy: ", err)
-	//	return
-	//}
-	//if !exists {
-	//	t.Error("Policy not found")
-	//	return
-	//}
+	err = k.WritePolicy(policy)
+	if err != nil {
+		t.Error("Error writting policy: ", err)
+		return
+	}
 
-	//pkiWrongType := NewPKI(k, "wrong-type-pki")
+	exists, err = k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	if err != nil {
+		t.Error("Error finding policy: ", err)
+		return
+	}
+	if !exists {
+		t.Error("Policy not found")
+		return
+	}
 
-	//err = k.vaultClient.Sys().Mount(
-	//	k.Path()+"/pki/"+"wrong-type-pki",
-	//	&vault.MountInput{
-	//		Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
-	//		Type:        "generic",
-	//		Config:      k.etcdKubernetesPKI.getMountConfigInput(),
-	//	},
-	//)
-	//if err != nil {
-	//	t.Error("Error Mounting: ", err)
-	//	return
-	//}
+	pkiWrongType := NewPKI(k, "wrong-type-pki")
 
-	//_, err = pkiWrongType.Ensure()
-	//if err == nil {
-	//	t.Error("Should have error from wrong type")
-	//	return
-	//}
+	err = k.vaultClient.Sys().Mount(
+		k.Path()+"/pki/"+"wrong-type-pki",
+		&vault.MountInput{
+			Description: "Kubernetes " + k.clusterID + "/" + "wrong-type-pki" + " CA",
+			Type:        "generic",
+			Config:      k.etcdKubernetesPKI.getMountConfigInput(),
+		},
+	)
+	if err != nil {
+		t.Error("Error Mounting: ", err)
+		return
+	}
+
+	err = pkiWrongType.Ensure()
+	if err == nil {
+		t.Error("Should have error from wrong type")
+		return
+	}
 
 }

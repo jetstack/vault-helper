@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -349,10 +350,10 @@ func (v *fakeVault) PKIEnsure() {
 			ClientToken: "my-new-token",
 		},
 	}, nil)
-	//firstGet := v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("", nil)
-	//v.fakeSys.EXPECT().GetPolicy("test-cluster-inside/master").Times(1).Return("true", nil).After(firstGet)
 
-	//policyName := "test-cluster-inside/master"
-	//policyRules := "\npath \"test-cluster-inside/pki/" + "etcd-overlay/sign/client" + "\" {\n    capabilities = [\"create\",\"read\",\"update\"]\n}\n"
-	//v.fakeSys.EXPECT().PutPolicy(policyName, policyRules).Times(1).Return(nil)
+	v.fakeSys.EXPECT().GetPolicy(gomock.Any()).Return("", nil)
+	v.fakeSys.EXPECT().GetPolicy(gomock.Any()).Return("policy", nil)
+
+	first := v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(fmt.Errorf("wrong type")).After(first)
 }
