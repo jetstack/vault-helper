@@ -1,34 +1,80 @@
-package kubernetes_test
+package kubernetes
 
 import (
+	"strings"
 	"testing"
-
-	//"github.com/Sirupsen/logrus"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/kubernetes"
-	"gitlab.jetstack.net/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
-func TestKubernetes_Ensure(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+func TestIsValidClusterID(t *testing.T) {
+	var err error
+
+	err = isValidClusterID("valid-cluster")
+	if err != nil {
+		t.Error("unexpected an error: ", err)
 	}
 
-	k, err := kubernetes.New(vault.Client(), "test-cluster")
+	err = isValidClusterID("valid-cluster01")
+	if err != nil {
+		t.Error("unexpected an error: ", err)
+	}
+
+	err = isValidClusterID("")
+	if err == nil {
+		t.Error("expected an error")
+	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
+		t.Errorf("error '%s' should contain '%s'", err, msg)
+	}
+
+	err = isValidClusterID("invalid.cluster")
+	if err == nil {
+		t.Error("expected an error")
+	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
+		t.Errorf("error '%s' should contain '%s'", err, msg)
+	}
+
+}
+
+//go test -coverprofile=coverage.out
+//  go tool cover -html=coverage.out
+
+func TestKubernetes_Ensure(t *testing.T) {
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
+
+	vault.Ensure()
+
+	err := k.Ensure()
+	if err != nil {
+		t.Error("error ensuring: ", err)
+		return
+	}
+
+}
+
+func TestKubernetes_NewToken_Role(t *testing.T) {
+	vault := NewFakeVault(t)
+	defer vault.Finish()
+	k := vault.Kubernetes()
+
+	vault.NewToken()
+
+	adminRole := k.k8sAdminRole()
+
+	err := k.kubernetesPKI.WriteRole(adminRole)
 
 	if err != nil {
 		t.Error("unexpected error", err)
 		return
 	}
 
-	err = k.Ensure()
+	kubeSchedulerRole := k.k8sComponentRole("kube-scheduler")
+
+	err = k.kubernetesPKI.WriteRole(kubeSchedulerRole)
+
 	if err != nil {
-		t.Error("unexpected error: ", err)
+		t.Error("unexpected error", err)
+		return
 	}
 
-	err = k.GenerateSecretsMount()
-	if err != nil {
-		t.Error("unexpected error: ", err)
-	}
-	defer vault.Stop()
 }
