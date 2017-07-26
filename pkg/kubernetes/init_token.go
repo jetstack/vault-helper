@@ -15,26 +15,18 @@ type InitToken struct {
 	token      *string
 }
 
-type Change struct {
-	Written bool
-	Created bool
-}
-
-func (i *InitToken) Ensure() (Change, error) {
+func (i *InitToken) Ensure() error {
 	var result error
 
-	ensureInitToken := func() (bool, error) {
-		_, written, err := i.InitToken()
-		return written, err
+	ensureInitToken := func() error {
+		_, err := i.InitToken()
+		return err
 	}
 
 	token, err := i.getInitToken()
 	if err != nil {
-		return Change{false, false}, err
+		return err
 	}
-
-	// Used to pass if there has been change in init tokens
-	var change Change
 
 	// If token != user flag and the user token flag != ""
 	if token != i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
@@ -46,25 +38,19 @@ func (i *InitToken) Ensure() (Change, error) {
 			if err := f(); err != nil {
 				result = multierror.Append(result, err)
 			}
-			if _, err := ensureInitToken(); err != nil {
+			if err := ensureInitToken(); err != nil {
 				result = multierror.Append(result, err)
 			}
 		}
-		b, err := i.setInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
+		err := i.setInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
 		if err != nil {
-			return change, fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
+			return fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
 		}
-		// User token written - not created
-		change.Written = b
-		change.Created = false
 
 		// Token == user flag and the flag != "" - just need to ensure the init token
 	} else if token == i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
-		if written, err := ensureInitToken(); err != nil {
+		if err := ensureInitToken(); err != nil {
 			result = multierror.Append(result, err)
-		} else if written {
-			change.Written = true
-			change.Created = false
 		}
 
 		// No flag. Generate an init token and write to vault
@@ -76,39 +62,36 @@ func (i *InitToken) Ensure() (Change, error) {
 			if err := f(); err != nil {
 				result = multierror.Append(result, err)
 			}
-			if written, err := ensureInitToken(); err != nil {
+			if err := ensureInitToken(); err != nil {
 				result = multierror.Append(result, err)
-			} else if written {
-				change.Created = true
-				change.Written = true
 			}
 		}
 
 	}
 
-	return change, result
+	return result
 }
 
 // Write init token from user flag
-func (i *InitToken) setInitToken(string) (bool, error) {
+func (i *InitToken) setInitToken(string) error {
 	path := filepath.Join(i.kubernetes.secretsGeneric.Path(), fmt.Sprintf("init_token_%s", i.Role))
 
 	s, err := i.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return false, fmt.Errorf("Error reading init token path: %v", s)
+		return fmt.Errorf("Error reading init token path: %v", s)
 	}
 
 	s.Data["init_token"] = i.kubernetes.FlagInitTokens[i.Role]
 	_, err = i.kubernetes.vaultClient.Logical().Write(path, s.Data)
 	if err != nil {
-		return false, fmt.Errorf("Error writting init token at path: %v", s)
+		return fmt.Errorf("Error writting init token at path: %v", s)
 	}
 
 	token, _ := i.getInitToken()
 	logrus.Infof("User token written for %s: %s", i.Role, token)
 	i.token = &token
 
-	return true, nil
+	return nil
 }
 
 // Read init token from vault at path
@@ -183,17 +166,17 @@ func (i *InitToken) writeInitTokenPolicy() error {
 
 // Return init token if token exists
 // Retrieve from generic if !exists
-func (i *InitToken) InitToken() (string, bool, error) {
+func (i *InitToken) InitToken() (string, error) {
 	if i.token != nil {
-		return *i.token, false, nil
+		return *i.token, nil
 	}
 
 	// get init token from generic
-	token, written, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
+	token, err := i.kubernetes.secretsGeneric.InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 
 	i.token = &token
-	return token, written, nil
+	return token, nil
 }

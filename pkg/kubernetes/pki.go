@@ -52,11 +52,11 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 
 }
 
-func (p *PKI) Ensure() (bool, error) {
+func (p *PKI) Ensure() error {
 
 	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if mount == nil {
@@ -70,16 +70,16 @@ func (p *PKI) Ensure() (bool, error) {
 		)
 
 		if err != nil {
-			return false, fmt.Errorf("error creating mount: %s", err)
+			return fmt.Errorf("error creating mount: %s", err)
 		}
 		mount, err = GetMountByPath(p.kubernetes.vaultClient, p.Path())
 		if err != nil {
-			return false, err
+			return err
 		}
 
 	} else {
 		if mount.Type != "pki" {
-			return false, fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
+			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
 		logrus.Debugf("Mount '%s' already existing", p.Path())
 	}
@@ -88,28 +88,28 @@ func (p *PKI) Ensure() (bool, error) {
 		err = p.TuneMount(mount)
 		if err != nil {
 			logrus.Fatalf("Tuning Error")
-			return false, err
+			return err
 		}
 	}
 
 	return p.ensureCA()
 }
 
-func (p *PKI) ensureCA() (bool, error) {
+func (p *PKI) ensureCA() error {
 
 	b, err := p.caPathExists()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if !b {
 		return p.generateCA()
 	}
 
-	return false, nil
+	return nil
 }
 
-func (p *PKI) generateCA() (bool, error) {
+func (p *PKI) generateCA() error {
 
 	path := filepath.Join(p.Path(), "root", "generate", "internal")
 	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
@@ -120,10 +120,10 @@ func (p *PKI) generateCA() (bool, error) {
 
 	_, err := p.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return false, fmt.Errorf("error writing new CA: %v", err)
+		return fmt.Errorf("error writing new CA: %v", err)
 	}
 
-	return true, nil
+	return nil
 }
 
 func (p *PKI) caPathExists() (bool, error) {

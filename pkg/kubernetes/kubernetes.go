@@ -14,7 +14,7 @@ import (
 )
 
 type Backend interface {
-	Ensure() (bool, error)
+	Ensure() error
 	Path() string
 }
 
@@ -177,21 +177,13 @@ func (k *Kubernetes) Ensure() error {
 
 	// setup backends
 	var result error
-	change := false
 	str := "Mounted & CA written for: "
 	for _, backend := range k.backends() {
-		if changed, err := backend.Ensure(); err != nil {
+		if err := backend.Ensure(); err != nil {
 			result = multierror.Append(result, fmt.Errorf("backend %s: %s", backend.Path(), err))
-		} else {
-			if changed {
-				change = true
-				str += "'" + backend.Path() + "'  "
-			}
 		}
 	}
-	if change {
-		logrus.Infof(str)
-	}
+	logrus.Infof(str)
 	if result != nil {
 		return result
 	}
@@ -276,38 +268,20 @@ func (k *Kubernetes) ensureInitTokens() error {
 		k.workerPolicy().Name,
 	}))
 
-	var change Change
-
-	strc := "Init_tokens generated for: "
-	strw := "Init_tokens written for:   "
+	//strc := "Init_tokens generated for: "
+	//strw := "Init_tokens written for:   "
 	for _, initToken := range k.initTokens {
-		if changed, err := initToken.Ensure(); err != nil {
+		if err := initToken.Ensure(); err != nil {
 			result = multierror.Append(result, err)
-		} else {
-			if changed.Created == true {
-				change.Created = true
-				strc += "'" + initToken.Name() + "'  "
-			}
-			if changed.Written == true {
-				change.Written = true
-				strw += "'" + initToken.Name() + "'  "
-			}
 		}
 	}
-	if change.Created == true {
-		logrus.Infof(strc)
-	}
-	if change.Written == true {
-		logrus.Infof(strw)
-	}
-
 	return result
 }
 
 func (k *Kubernetes) InitTokens() map[string]string {
 	output := map[string]string{}
 	for _, initToken := range k.initTokens {
-		token, _, err := initToken.InitToken()
+		token, err := initToken.InitToken()
 		if err == nil {
 			output[initToken.Role] = token
 		}
