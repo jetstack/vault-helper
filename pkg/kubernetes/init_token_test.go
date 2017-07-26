@@ -13,9 +13,10 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
 
 	i := &InitToken{
-		Role:       "etcd",
-		Policies:   []string{"etcd"},
-		kubernetes: fv.Kubernetes(),
+		Role:          "etcd",
+		Policies:      []string{"etcd"},
+		kubernetes:    fv.Kubernetes(),
+		ExpectedToken: "",
 	}
 
 	// expect a read and vault says secret is not existing

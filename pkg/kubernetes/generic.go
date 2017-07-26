@@ -180,6 +180,21 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 		return fmt.Errorf("Error reading init token path: %v", s)
 	}
 
+	dat, ok := s.Data["init_token"]
+	if !ok {
+		return fmt.Errorf("Error finding current init token data: %v", s)
+	}
+	oldToken, ok := dat.(string)
+	if !ok {
+		return fmt.Errorf("Error converting init_token data to string: %v", s)
+	}
+	logrus.Infof("Revoked Token '%s': '%s'", role, oldToken)
+
+	err = g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(oldToken)
+	if err != nil {
+		return fmt.Errorf("Error revoking init token at path: %v", s)
+	}
+
 	s.Data["init_token"] = token
 	_, err = g.kubernetes.vaultClient.Logical().Write(path, s.Data)
 	if err != nil {
