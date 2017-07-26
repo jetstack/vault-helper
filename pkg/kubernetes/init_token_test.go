@@ -60,7 +60,7 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 		kubernetes: fv.Kubernetes(),
 	}
 
-	// expect a read and vault says secret is not existing
+	// expect a read and vault says secret is existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
 	fv.fakeLogical.EXPECT().Read(genericPath).Return(
 		&vault.Secret{

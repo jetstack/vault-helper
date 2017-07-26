@@ -9,10 +9,11 @@ import (
 )
 
 type InitToken struct {
-	Role       string
-	Policies   []string
-	kubernetes *Kubernetes
-	token      *string
+	Role          string
+	Policies      []string
+	kubernetes    *Kubernetes
+	token         *string
+	ExpectedToken string
 }
 
 func (i *InitToken) Ensure() error {
@@ -29,7 +30,7 @@ func (i *InitToken) Ensure() error {
 	}
 
 	// If token != user flag and the user token flag != ""
-	if token != i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
+	if token != i.ExpectedToken && i.ExpectedToken != "" {
 		// Write the init token role and policy using the user token flag
 		for _, f := range []func() error{
 			i.writeTokenRole,
@@ -42,13 +43,13 @@ func (i *InitToken) Ensure() error {
 				result = multierror.Append(result, err)
 			}
 		}
-		err := i.setInitToken(fmt.Sprintf("%s", i.kubernetes.FlagInitTokens[i.Role]))
+		err := i.setInitToken(fmt.Sprintf("%s", i.ExpectedToken))
 		if err != nil {
 			return fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
 		}
 
 		// Token == user flag and the flag != "" - just need to ensure the init token
-	} else if token == i.kubernetes.FlagInitTokens[i.Role] && i.kubernetes.FlagInitTokens[i.Role] != "" {
+	} else if token == i.ExpectedToken && i.ExpectedToken != "" {
 		if err := ensureInitToken(); err != nil {
 			result = multierror.Append(result, err)
 		}
@@ -81,7 +82,7 @@ func (i *InitToken) setInitToken(string) error {
 		return fmt.Errorf("Error reading init token path: %v", s)
 	}
 
-	s.Data["init_token"] = i.kubernetes.FlagInitTokens[i.Role]
+	s.Data["init_token"] = i.ExpectedToken
 	_, err = i.kubernetes.vaultClient.Logical().Write(path, s.Data)
 	if err != nil {
 		return fmt.Errorf("Error writting init token at path: %v", s)

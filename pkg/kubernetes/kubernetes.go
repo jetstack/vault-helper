@@ -89,7 +89,12 @@ type Kubernetes struct {
 	MaxValidityCA         time.Duration
 	MaxValidityInitTokens time.Duration
 
-	FlagInitTokens map[string]interface{}
+	FlagInitTokens struct {
+		etcd   string
+		master string
+		worker string
+		all    string
+	}
 
 	initTokens []*InitToken
 }
@@ -135,12 +140,16 @@ func New(vaultClient *vault.Client) *Kubernetes {
 		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
 		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
 		MaxValidityInitTokens: time.Hour * 24 * 365 * 5,  // Validity of init tokens
-
-		FlagInitTokens: map[string]interface{}{
-			"etcd":   "",
-			"master": "",
-			"worker": "",
-			"all":    "",
+		FlagInitTokens: struct {
+			etcd   string
+			master string
+			worker string
+			all    string
+		}{
+			etcd:   "",
+			master: "",
+			worker: "",
+			all:    "",
 		},
 	}
 
@@ -241,28 +250,29 @@ func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, er
 	return mount, nil
 }
 
-func (k *Kubernetes) NewInitToken(role string, policies []string) *InitToken {
+func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *InitToken {
 	return &InitToken{
-		Role:       role,
-		Policies:   policies,
-		kubernetes: k,
+		Role:          role,
+		Policies:      policies,
+		kubernetes:    k,
+		ExpectedToken: expected,
 	}
 }
 
 func (k *Kubernetes) ensureInitTokens() error {
 	var result error
 
-	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", k.FlagInitTokens.etcd, []string{
 		k.etcdPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("master", []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("master", k.FlagInitTokens.master, []string{
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("worker", []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("worker", k.FlagInitTokens.worker, []string{
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("all", []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("all", k.FlagInitTokens.all, []string{
 		k.etcdPolicy().Name,
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
