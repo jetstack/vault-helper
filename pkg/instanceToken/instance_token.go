@@ -26,6 +26,8 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("No token role was given. Token role is required for this command:\n --%s", FlagTokenRole)
 	}
 
-	return nil
+	i.role = value
+
+	return i.tokenRenewRun()
 
 }

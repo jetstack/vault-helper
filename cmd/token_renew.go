@@ -14,6 +14,7 @@ var renewtokenCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logrus.New()
 		logger.Level = logrus.DebugLevel
+		log := logrus.NewEntry(logger)
 		//logger.WithField(
 
 		v, err := vault.NewClient(nil)
@@ -21,7 +22,7 @@ var renewtokenCmd = &cobra.Command{
 			logger.Fatal(err)
 		}
 
-		i := instanceToken.New(v)
+		i := instanceToken.New(v, log)
 
 		if err := i.Run(cmd, args); err != nil {
 			logger.Fatal(err)
