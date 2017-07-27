@@ -14,7 +14,7 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		i.clusterID = args[0]
 	} else {
-		return errors.New("no cluster id was given")
+		return errors.New("No cluster id was given")
 	}
 
 	value, err := cmd.PersistentFlags().GetString(FlagTokenRole)
