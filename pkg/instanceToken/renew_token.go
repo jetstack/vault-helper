@@ -87,7 +87,37 @@ func (i *InstanceToken) TokenRetrieve() (token string, err error) {
 	return "", nil
 }
 
-func (i *InstanceToken) tokenNew() error {
+func (i *InstanceToken) writeTokenFile(filePath, token string) error {
+
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("Error opening file: %s\n %s", filePath, err)
+	}
+
+	defer f.Close()
+
+	if _, err = f.WriteString(token); err != nil {
+		return fmt.Errorf("Error writting to file: %s\n %s", filePath, err)
+	}
+	return nil
+}
+
+func (i *InstanceToken) wipeTokenFile(filePath string) error {
+
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("Error opening file: %s\n %s", filePath, err)
+	}
+
+	defer f.Close()
+
+	if _, err = f.WriteString(""); err != nil {
+		return fmt.Errorf("Error writting to file: %s\n %s", filePath, err)
+	}
+	return nil
+}
+
+func (i *InstanceToken) initTokenNew() error {
 
 	exists, err := i.fileExists(Init_Token_File)
 	if err != nil {
@@ -109,19 +139,91 @@ func (i *InstanceToken) tokenNew() error {
 
 	// Check init policies and init role are set (in enviroment?). Exit here if they are not.
 
+	policies, err := i.tokenPolicies(init_token)
+	if err != nil {
+		return fmt.Errorf("Error finding init token policies: \n%s", err)
+	}
+
+	newToken, err := i.createToken(policies)
+	if err != nil {
+		return err
+	}
+	i.token = newToken
+
+	i.log.Debugf("New token: %s", i.token)
+
 	return nil
+}
+
+func (i *InstanceToken) tokenPolicies(token string) (policies []string, err error) {
+
+	s, err := i.tokenLookup(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if s == nil {
+		return nil, fmt.Errorf("Error, no secret from init token lookup: %s", token)
+	}
+
+	dat, ok := s.Data["policies"]
+	if !ok {
+		return nil, fmt.Errorf("Error getting policy data from init token lookup")
+	}
+
+	d, ok := dat.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Error converting data to []interface")
+	}
+
+	policies = make([]string, len(d))
+
+	for n, m := range d {
+		str, ok := m.(string)
+		if !ok {
+			return nil, fmt.Errorf("Error converting interface to string")
+		}
+		policies[n] = str
+	}
+
+	return policies, nil
+}
+
+func (i *InstanceToken) createToken(policies []string) (token string, err error) {
+
+	tCreateRequest := &vault.TokenCreateRequest{
+		DisplayName: i.role,
+		Policies:    policies,
+	}
+
+	newToken, err := i.vaultClient.Auth().Token().CreateOrphan(tCreateRequest)
+	if err != nil {
+		return "", fmt.Errorf("failed to create init token: %s", err)
+	}
+
+	return newToken.Auth.ClientToken, nil
+}
+
+func (i *InstanceToken) tokenLookup(token string) (secret *vault.Secret, err error) {
+	s, err := i.vaultClient.Auth().Token().Lookup(token)
+	if err != nil {
+		return nil, fmt.Errorf("Error looking up token: %s\n \n%s", token, err)
+	}
+
+	if s == nil {
+		return nil, fmt.Errorf("Error finding secret with token from vault '%s'", token)
+	}
+
+	return s, nil
 
 }
 
 func (i *InstanceToken) tokenRenew() error {
 	// Check if renewable
-	s, err := i.vaultClient.Auth().Token().Lookup(i.token)
-	if err != nil {
-		return fmt.Errorf("Error looking up token %s: %s - %s", i.role, i.token, err)
-	}
 
-	if s == nil {
-		return fmt.Errorf("Error finding secret with token from vault '%s'", i.token)
+	s, err := i.tokenLookup(i.token)
+	if err != nil {
+		return nil
 	}
 
 	dat, ok := s.Data["renewable"]
@@ -149,7 +251,7 @@ func (i *InstanceToken) tokenRenewRun() error {
 
 	token, err := i.TokenRetrieve()
 	if err != nil {
-		i.log.Errorf("Error retreiving token from file: %s", err)
+		return fmt.Errorf("Error retreiving token from file: %s", err)
 	}
 
 	if token != "" {
@@ -165,10 +267,19 @@ func (i *InstanceToken) tokenRenewRun() error {
 
 	//Token Doesn't exist
 	i.log.Debugf("Token doesn't exist, generating new")
-	err = i.tokenNew()
+	err = i.initTokenNew()
 	if err != nil {
-		i.log.Errorf("Error generating new token: %s", err)
+		i.log.Errorf("Error generating new token: \n%s", err)
 	}
+
+	if err := i.writeTokenFile("/etc/vault/token", i.token); err != nil {
+		return fmt.Errorf("Error writting token to file: %s", err)
+	}
+	if err := i.wipeTokenFile("/etc/vault/init-token"); err != nil {
+		return fmt.Errorf("Error wiping token from file: %s", err)
+	}
+
+	i.log.Debugf("New init token written to file")
 
 	return nil
 }
