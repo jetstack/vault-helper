@@ -2,6 +2,7 @@ package instanceToken_test
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ import (
 var vault *vault_dev.VaultDev
 var test int
 
-const tests = 1
+const tests = 2
 const Token_File = "/etc/vault/token"
 const Init_Token_File = "/etc/vault/init-token"
 
@@ -85,7 +86,26 @@ func TestRenew_Token_Exists(t *testing.T) {
 
 }
 
-// TODO: Token exists at /etc/vault/token, token renew
+func TestRenew_Token_NotExists(t *testing.T) {
+	test++
+
+	if vault == nil {
+		initVaultDev(t)
+	}
+	if test == tests {
+		defer vault.Stop()
+	}
+
+	k := initKubernetes(t)
+	i := initInstanceToken()
+
+	token := k.InitTokens()["master"]
+	if err := i.WriteTokenFile(Token_File, token); err != nil {
+		t.Errorf("Error setting token for test: \n%s", err)
+		return
+	}
+}
+
 // TODO: Token doesn't exist at /etc/vault/token, create token, renew
 // TODO: Token exists but can't be renewed
 // TODO: Token doesn't exist at either file
@@ -125,6 +145,30 @@ func initInstanceToken() *instanceToken.InstanceToken {
 
 	i := instanceToken.New(vault.Client(), log)
 	i.SetRole("master")
+
+	if _, err := os.Stat("/etc/vault"); os.IsNotExist(err) {
+		os.Mkdir("/etc/vault", os.ModeDir)
+	}
+
+	var _, err = os.Stat(Init_Token_File)
+	if os.IsNotExist(err) {
+		ifile, err := os.Create(Init_Token_File)
+		if err != nil {
+			logrus.Errorf("%s", err)
+			return nil
+		}
+		defer ifile.Close()
+	}
+
+	_, err = os.Stat(Token_File)
+	if os.IsNotExist(err) {
+		tfile, err := os.Create(Token_File)
+		if err != nil {
+			logrus.Errorf("%s", err)
+			return nil
+		}
+		defer tfile.Close()
+	}
 
 	i.WipeTokenFile(Init_Token_File)
 	i.WipeTokenFile(Token_File)
