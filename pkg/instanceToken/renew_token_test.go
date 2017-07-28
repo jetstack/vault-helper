@@ -147,7 +147,7 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 	newToken, err := vaultDev.Client().Auth().Token().CreateOrphan(tCreateRequest)
 	if err != nil {
-		t.Error("Unexpexted error creating unrenewable token:\n%s", err)
+		t.Errorf("Unexpexted error creating unrenewable token:\n%s", err)
 		return
 	}
 
