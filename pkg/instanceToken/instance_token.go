@@ -17,8 +17,20 @@ func (i *InstanceToken) SetRole(role string) {
 	i.role = role
 }
 
-func (i *InstanceToken) SetClusterID(custer string) {
+func (i *InstanceToken) Role() (role string) {
+	return i.role
+}
 
+func (i *InstanceToken) SetToken(token string) {
+	i.token = token
+}
+
+func (i *InstanceToken) Token() (token string) {
+	return i.token
+}
+
+func (i *InstanceToken) SetClusterID(clusterID string) {
+	i.clusterID = clusterID
 }
 
 func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {

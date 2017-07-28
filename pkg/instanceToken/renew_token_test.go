@@ -66,24 +66,7 @@ func TestRenew_Token_Exists(t *testing.T) {
 		return
 	}
 
-	fileToken, err := i.TokenFromFile(Token_File)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-	if fileToken != token {
-		t.Errorf("Token in file should equal the one that has been renewed. Exp=%s Got=%s", token, fileToken)
-		return
-	}
-
-	fileToken, err = i.TokenFromFile(Init_Token_File)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-	if fileToken != "" {
-		t.Errorf("Expexted no token in file '%s' but got= '%s'", Init_Token_File, fileToken)
-		return
-	}
-
+	tokenCheckFiles(t, i)
 }
 
 func TestRenew_Token_NotExists(t *testing.T) {
@@ -99,14 +82,41 @@ func TestRenew_Token_NotExists(t *testing.T) {
 	k := initKubernetes(t)
 	i := initInstanceToken()
 
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(Token_File, token); err != nil {
+	if err := i.WriteTokenFile(Init_Token_File, k.InitTokens()["master"]); err != nil {
 		t.Errorf("Error setting token for test: \n%s", err)
 		return
 	}
+
+	i.Log.Debugf("Waiting for lower ttl . . .")
+	time.Sleep(time.Second * 5)
+
+	ttl, err := getTTL(vault, i.Token(), i)
+	if err != nil {
+		t.Errorf("%s", err)
+		return
+	}
+
+	if err := i.TokenRenewRun(); err != nil {
+		t.Errorf("Error renewing token from token file (!Exist): \n%s", err)
+		return
+	}
+
+	newttl, err := getTTL(vault, i.Token(), i)
+	if err != nil {
+		t.Errorf("%s", err)
+		return
+	}
+
+	i.Log.Debugf("old ttl: %ss    new ttl: %ss", strconv.Itoa(ttl), strconv.Itoa(newttl))
+
+	if ttl > newttl {
+		t.Errorf("Token was not renewed - old ttl higher than new\nold=%s new=%s", strconv.Itoa(ttl), strconv.Itoa(newttl))
+		return
+	}
+
+	tokenCheckFiles(t, i)
 }
 
-// TODO: Token doesn't exist at /etc/vault/token, create token, renew
 // TODO: Token exists but can't be renewed
 // TODO: Token doesn't exist at either file
 
@@ -125,7 +135,6 @@ func getTTL(v *vault_dev.VaultDev, token string, i *instanceToken.InstanceToken)
 	if !ok {
 		return -1, fmt.Errorf("Error ttl policy data from init token lookup")
 	}
-
 	// This is bad --
 	str := fmt.Sprintf("%s", dat)
 	// --
@@ -145,6 +154,7 @@ func initInstanceToken() *instanceToken.InstanceToken {
 
 	i := instanceToken.New(vault.Client(), log)
 	i.SetRole("master")
+	i.SetClusterID("test-cluster")
 
 	if _, err := os.Stat("/etc/vault"); os.IsNotExist(err) {
 		os.Mkdir("/etc/vault", os.ModeDir)
@@ -174,6 +184,26 @@ func initInstanceToken() *instanceToken.InstanceToken {
 	i.WipeTokenFile(Token_File)
 
 	return i
+}
+
+func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
+	fileToken, err := i.TokenFromFile(Token_File)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if fileToken != i.Token() {
+		t.Errorf("Token in file should equal the one that has been renewed. Exp=%s Got=%s", i.Token(), fileToken)
+		return
+	}
+
+	fileToken, err = i.TokenFromFile(Init_Token_File)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if fileToken != "" {
+		t.Errorf("Expexted no token in file '%s' but got= '%s'", Init_Token_File, fileToken)
+		return
+	}
 }
 
 func initKubernetes(t *testing.T) *kubernetes.Kubernetes {

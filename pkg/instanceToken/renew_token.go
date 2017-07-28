@@ -144,9 +144,9 @@ func (i *InstanceToken) initTokenNew() error {
 	if err != nil {
 		return err
 	}
-	i.token = newToken
+	i.SetToken(newToken)
 
-	i.Log.Debugf("New token: %s", i.token)
+	i.Log.Debugf("New token: %s", i.Token())
 
 	return nil
 }
@@ -188,7 +188,7 @@ func (i *InstanceToken) tokenPolicies(token string) (policies []string, err erro
 func (i *InstanceToken) createToken(policies []string) (token string, err error) {
 
 	tCreateRequest := &vault.TokenCreateRequest{
-		DisplayName: i.role,
+		DisplayName: i.Role(),
 		Policies:    policies,
 	}
 
@@ -217,7 +217,7 @@ func (i *InstanceToken) TokenLookup(token string) (secret *vault.Secret, err err
 func (i *InstanceToken) tokenRenew() error {
 	// Check if renewable
 
-	s, err := i.TokenLookup(i.token)
+	s, err := i.TokenLookup(i.Token())
 	if err != nil {
 		return nil
 	}
@@ -233,12 +233,12 @@ func (i *InstanceToken) tokenRenew() error {
 	i.Log.Debugf("Token renewable")
 
 	// Renew against vault
-	s, err = i.vaultClient.Auth().Token().Renew(i.token, 0)
+	s, err = i.vaultClient.Auth().Token().Renew(i.Token(), 0)
 	if err != nil {
-		return fmt.Errorf("Error renewing token %s: %s - %s", i.role, i.token, err)
+		return fmt.Errorf("Error renewing token %s: %s - %s", i.Role(), i.Token(), err)
 	}
 
-	i.Log.Infof("Renewed token: %s", i.token)
+	i.Log.Infof("Renewed token: %s", i.Token())
 
 	return nil
 }
@@ -254,7 +254,7 @@ func (i *InstanceToken) TokenRenewRun() error {
 		// Token exists in file
 		// Renew token
 		logrus.Debugf("Token to renew: %s", token)
-		i.token = token
+		i.SetToken(token)
 		if err := i.tokenRenew(); err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func (i *InstanceToken) TokenRenewRun() error {
 		i.Log.Errorf("Error generating new token: \n%s", err)
 	}
 
-	if err := i.WriteTokenFile(Token_File, i.token); err != nil {
+	if err := i.WriteTokenFile(Token_File, i.Token()); err != nil {
 		return fmt.Errorf("Error writting token to file: %s", err)
 	}
 	if err := i.WipeTokenFile(Init_Token_File); err != nil {
