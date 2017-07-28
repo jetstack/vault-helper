@@ -146,7 +146,7 @@ func (i *InstanceToken) initTokenNew() error {
 	}
 	i.SetToken(newToken)
 
-	i.Log.Debugf("New token: %s", i.Token())
+	i.Log.Infof("New token: %s", i.Token())
 
 	return nil
 }
@@ -262,7 +262,7 @@ func (i *InstanceToken) TokenRenewRun() error {
 	}
 
 	//Token Doesn't exist
-	i.Log.Debugf("Token doesn't exist, generating new")
+	i.Log.Infof("Token doesn't exist, generating new")
 	err = i.initTokenNew()
 	if err != nil {
 		return fmt.Errorf("Error generating new token: \n%s", err)
@@ -275,7 +275,7 @@ func (i *InstanceToken) TokenRenewRun() error {
 		return fmt.Errorf("Error wiping token from file: %s", err)
 	}
 
-	i.Log.Debugf("New init token written to file")
+	i.Log.Infof("Token written to file: %s", Token_File)
 
 	return nil
 }
