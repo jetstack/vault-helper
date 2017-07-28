@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	//"github.com/Sirupsen/logrus"
-	//vault "github.com/hashicorp/vault/api"
+	"github.com/Sirupsen/logrus"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
 	"github.com/spf13/cobra"
 )
@@ -13,20 +13,20 @@ var certCmd = &cobra.Command{
 	// TODO: Make short better
 	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role",
 	Run: func(cmd *cobra.Command, args []string) {
-		//logger := logrus.New()
-		//logger.Level = logrus.DebugLevel
-		//log := logrus.NewEntry(logger)
+		logger := logrus.New()
+		logger.Level = logrus.DebugLevel
+		log := logrus.NewEntry(logger)
 
-		//v, err := vault.NewClient(nil)
-		//if err != nil {
-		//	logger.Fatal(err)
-		//}
+		v, err := vault.NewClient(nil)
+		if err != nil {
+			logger.Fatal(err)
+		}
 
-		//i := instanceToken.New(v, log)
+		c := cert.New(v, log)
 
-		//if err := i.Run(cmd, args); err != nil {
-		//	logger.Fatal(err)
-		//}
+		if err := c.Run(cmd, args); err != nil {
+			logger.Fatal(err)
+		}
 
 	},
 }
