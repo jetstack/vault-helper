@@ -1,33 +1,41 @@
 package instanceToken
 
 import (
-	"errors"
-	"fmt"
-
-	"github.com/spf13/cobra"
+	"github.com/Sirupsen/logrus"
+	vault "github.com/hashicorp/vault/api"
 )
 
-const FlagTokenRole = "role"
+type InstanceToken struct {
+	token       string
+	role        string
+	Log         *logrus.Entry
+	clusterID   string
+	vaultClient *vault.Client
+}
 
-func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
+func (i *InstanceToken) SetRole(role string) {
+	i.role = role
+}
 
-	if len(args) > 0 {
-		i.clusterID = args[0]
-	} else {
-		return errors.New("No cluster id was given")
+func (i *InstanceToken) SetClusterID(custer string) {
+
+}
+
+func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
+	i := &InstanceToken{
+		role:      "",
+		token:     "",
+		clusterID: "",
 	}
 
-	value, err := cmd.PersistentFlags().GetString(FlagTokenRole)
-	if err != nil {
-		return fmt.Errorf("Error parsing %s '%s': %s", FlagTokenRole, value, err)
+	if vaultClient != nil {
+		i.vaultClient = vaultClient
 	}
 
-	if value == "" {
-		return fmt.Errorf("No token role was given. Token role is required for this command:\n --%s", FlagTokenRole)
+	if logger != nil {
+		i.Log = logger
 	}
 
-	i.role = value
-
-	return i.tokenRenewRun()
+	return i
 
 }

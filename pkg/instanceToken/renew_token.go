@@ -13,34 +13,7 @@ import (
 const Token_File = "/etc/vault/token"
 const Init_Token_File = "/etc/vault/init-token"
 
-type InstanceToken struct {
-	token       string
-	role        string
-	log         *logrus.Entry
-	clusterID   string
-	vaultClient *vault.Client
-}
-
-func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
-	i := &InstanceToken{
-		role:      "",
-		token:     "",
-		clusterID: "",
-	}
-
-	if vaultClient != nil {
-		i.vaultClient = vaultClient
-	}
-
-	if logger != nil {
-		i.log = logger
-	}
-
-	return i
-
-}
-
-func (i *InstanceToken) tokenFromFile(path string) (token string, err error) {
+func (i *InstanceToken) TokenFromFile(path string) (token string, err error) {
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -77,8 +50,8 @@ func (i *InstanceToken) TokenRetrieve() (token string, err error) {
 	}
 
 	if exists {
-		i.log.Debugf("File exists: %s", Token_File)
-		token, err := i.tokenFromFile(Token_File)
+		i.Log.Debugf("File exists: %s", Token_File)
+		token, err := i.TokenFromFile(Token_File)
 		if err != nil {
 			return "", fmt.Errorf("%s", err)
 		}
@@ -87,7 +60,7 @@ func (i *InstanceToken) TokenRetrieve() (token string, err error) {
 	return "", nil
 }
 
-func (i *InstanceToken) writeTokenFile(filePath, token string) error {
+func (i *InstanceToken) WriteTokenFile(filePath, token string) error {
 
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
@@ -102,7 +75,7 @@ func (i *InstanceToken) writeTokenFile(filePath, token string) error {
 	return nil
 }
 
-func (i *InstanceToken) wipeTokenFile(filePath string) error {
+func (i *InstanceToken) WipeTokenFile(filePath string) error {
 
 	if err := deleteFile(filePath); err != nil {
 		return fmt.Errorf("Error deleting token file '%s' to be wiped: \n%s", filePath, err)
@@ -149,8 +122,8 @@ func (i *InstanceToken) initTokenNew() error {
 	if !exists {
 		return fmt.Errorf("No init token file: '%s' exiting.", Init_Token_File)
 	}
-	i.log.Debugf("File exists at: %s", Init_Token_File)
-	init_token, err := i.tokenFromFile(Init_Token_File)
+	i.Log.Debugf("File exists at: %s", Init_Token_File)
+	init_token, err := i.TokenFromFile(Init_Token_File)
 	if err != nil {
 		return fmt.Errorf("Error reading init token from file: %s", err)
 	}
@@ -158,7 +131,7 @@ func (i *InstanceToken) initTokenNew() error {
 		return fmt.Errorf("Init token was not read from file: %s", Init_Token_File)
 	}
 
-	i.log.Debugf("Init token found '%s' at '%s'", init_token, Init_Token_File)
+	i.Log.Debugf("Init token found '%s' at '%s'", init_token, Init_Token_File)
 
 	// Check init policies and init role are set (in enviroment?). Exit here if they are not.
 
@@ -173,14 +146,14 @@ func (i *InstanceToken) initTokenNew() error {
 	}
 	i.token = newToken
 
-	i.log.Debugf("New token: %s", i.token)
+	i.Log.Debugf("New token: %s", i.token)
 
 	return nil
 }
 
 func (i *InstanceToken) tokenPolicies(token string) (policies []string, err error) {
 
-	s, err := i.tokenLookup(token)
+	s, err := i.TokenLookup(token)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +200,7 @@ func (i *InstanceToken) createToken(policies []string) (token string, err error)
 	return newToken.Auth.ClientToken, nil
 }
 
-func (i *InstanceToken) tokenLookup(token string) (secret *vault.Secret, err error) {
+func (i *InstanceToken) TokenLookup(token string) (secret *vault.Secret, err error) {
 	s, err := i.vaultClient.Auth().Token().Lookup(token)
 	if err != nil {
 		return nil, fmt.Errorf("Error looking up token: %s\n \n%s", token, err)
@@ -244,7 +217,7 @@ func (i *InstanceToken) tokenLookup(token string) (secret *vault.Secret, err err
 func (i *InstanceToken) tokenRenew() error {
 	// Check if renewable
 
-	s, err := i.tokenLookup(i.token)
+	s, err := i.TokenLookup(i.token)
 	if err != nil {
 		return nil
 	}
@@ -254,10 +227,10 @@ func (i *InstanceToken) tokenRenew() error {
 		return fmt.Errorf("Unable to get renewable token data from secret")
 	}
 	if dat == false {
-		i.log.Infof("Token not renewable")
+		i.Log.Infof("Token not renewable")
 		return nil
 	}
-	i.log.Debugf("Token renewable")
+	i.Log.Debugf("Token renewable")
 
 	// Renew against vault
 	s, err = i.vaultClient.Auth().Token().Renew(i.token, 0)
@@ -265,12 +238,12 @@ func (i *InstanceToken) tokenRenew() error {
 		return fmt.Errorf("Error renewing token %s: %s - %s", i.role, i.token, err)
 	}
 
-	i.log.Infof("Renewed token: %s", i.token)
+	i.Log.Infof("Renewed token: %s", i.token)
 
 	return nil
 }
 
-func (i *InstanceToken) tokenRenewRun() error {
+func (i *InstanceToken) TokenRenewRun() error {
 
 	token, err := i.TokenRetrieve()
 	if err != nil {
@@ -289,20 +262,20 @@ func (i *InstanceToken) tokenRenewRun() error {
 	}
 
 	//Token Doesn't exist
-	i.log.Debugf("Token doesn't exist, generating new")
+	i.Log.Debugf("Token doesn't exist, generating new")
 	err = i.initTokenNew()
 	if err != nil {
-		i.log.Errorf("Error generating new token: \n%s", err)
+		i.Log.Errorf("Error generating new token: \n%s", err)
 	}
 
-	if err := i.writeTokenFile(Token_File, i.token); err != nil {
+	if err := i.WriteTokenFile(Token_File, i.token); err != nil {
 		return fmt.Errorf("Error writting token to file: %s", err)
 	}
-	if err := i.wipeTokenFile(Init_Token_File); err != nil {
+	if err := i.WipeTokenFile(Init_Token_File); err != nil {
 		return fmt.Errorf("Error wiping token from file: %s", err)
 	}
 
-	i.log.Debugf("New init token written to file")
+	i.Log.Debugf("New init token written to file")
 
 	return nil
 }

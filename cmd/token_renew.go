@@ -15,7 +15,6 @@ var renewtokenCmd = &cobra.Command{
 		logger := logrus.New()
 		logger.Level = logrus.DebugLevel
 		log := logrus.NewEntry(logger)
-		//logger.WithField(
 
 		v, err := vault.NewClient(nil)
 		if err != nil {
