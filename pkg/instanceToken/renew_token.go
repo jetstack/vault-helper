@@ -104,16 +104,39 @@ func (i *InstanceToken) writeTokenFile(filePath, token string) error {
 
 func (i *InstanceToken) wipeTokenFile(filePath string) error {
 
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err := deleteFile(filePath); err != nil {
+		return fmt.Errorf("Error deleting token file '%s' to be wiped: \n%s", filePath, err)
+	}
+
+	if err := createFile(filePath); err != nil {
+		return fmt.Errorf("Error creating token file '%s' that was wiped: \n%s", filePath, err)
+	}
+
+	return nil
+}
+
+func deleteFile(path string) error {
+	err := os.Remove(path)
 	if err != nil {
-		return fmt.Errorf("Error opening file: %s\n %s", filePath, err)
+		return err
+	}
+	return nil
+}
+
+func createFile(path string) error {
+	// detect if file exists
+	var _, err = os.Stat(path)
+
+	// create file if not exists
+	if os.IsNotExist(err) {
+		file, err := os.Create(path)
+
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 	}
 
-	defer f.Close()
-
-	if _, err = f.WriteString(""); err != nil {
-		return fmt.Errorf("Error writting to file: %s\n %s", filePath, err)
-	}
 	return nil
 }
 
@@ -242,7 +265,7 @@ func (i *InstanceToken) tokenRenew() error {
 		return fmt.Errorf("Error renewing token %s: %s - %s", i.role, i.token, err)
 	}
 
-	i.log.Debugf("Renewed token: %s", i.token)
+	i.log.Infof("Renewed token: %s", i.token)
 
 	return nil
 }
@@ -272,10 +295,10 @@ func (i *InstanceToken) tokenRenewRun() error {
 		i.log.Errorf("Error generating new token: \n%s", err)
 	}
 
-	if err := i.writeTokenFile("/etc/vault/token", i.token); err != nil {
+	if err := i.writeTokenFile(Token_File, i.token); err != nil {
 		return fmt.Errorf("Error writting token to file: %s", err)
 	}
-	if err := i.wipeTokenFile("/etc/vault/init-token"); err != nil {
+	if err := i.wipeTokenFile(Init_Token_File); err != nil {
 		return fmt.Errorf("Error wiping token from file: %s", err)
 	}
 
