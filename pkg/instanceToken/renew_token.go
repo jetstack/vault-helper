@@ -135,7 +135,7 @@ func (i *InstanceToken) initTokenNew() error {
 
 	// Check init policies and init role are set (in enviroment?). Exit here if they are not.
 
-	policies, err := i.tokenPolicies(init_token)
+	policies, err := i.TokenPolicies(init_token)
 	if err != nil {
 		return fmt.Errorf("Error finding init token policies: \n%s", err)
 	}
@@ -151,7 +151,7 @@ func (i *InstanceToken) initTokenNew() error {
 	return nil
 }
 
-func (i *InstanceToken) tokenPolicies(token string) (policies []string, err error) {
+func (i *InstanceToken) TokenPolicies(token string) (policies []string, err error) {
 
 	s, err := i.TokenLookup(token)
 	if err != nil {
@@ -226,9 +226,9 @@ func (i *InstanceToken) tokenRenew() error {
 	if !ok {
 		return fmt.Errorf("Unable to get renewable token data from secret")
 	}
+
 	if dat == false {
-		i.Log.Infof("Token not renewable")
-		return nil
+		return fmt.Errorf("Token not renewable: %s", i.Token())
 	}
 	i.Log.Debugf("Token renewable")
 
@@ -265,7 +265,7 @@ func (i *InstanceToken) TokenRenewRun() error {
 	i.Log.Debugf("Token doesn't exist, generating new")
 	err = i.initTokenNew()
 	if err != nil {
-		i.Log.Errorf("Error generating new token: \n%s", err)
+		return fmt.Errorf("Error generating new token: \n%s", err)
 	}
 
 	if err := i.WriteTokenFile(Token_File, i.Token()); err != nil {
