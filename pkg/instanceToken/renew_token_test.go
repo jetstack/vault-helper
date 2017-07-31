@@ -263,7 +263,7 @@ func initVaultDev(t *testing.T) *vault_dev.VaultDev {
 	vaultDev := vault_dev.New()
 
 	if err := vaultDev.Start(); err != nil {
-		t.Fatalf("unable to initialise vault dev server for integration tests: ", err)
+		t.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
 	}
 
 	return vaultDev
