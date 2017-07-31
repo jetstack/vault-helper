@@ -12,8 +12,8 @@ import (
 
 // initCmd represents the init command
 var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Setup kubernetes on a running vault server",
+	Use:   "setup [cluster ID]",
+	Short: "Setup kubernetes on a running vault server.",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logrus.New()
 		logger.Level = logrus.DebugLevel
