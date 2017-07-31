@@ -2,6 +2,7 @@ package instanceToken_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
@@ -15,6 +16,8 @@ import (
 
 var vaultDev *vault_dev.VaultDev
 
+var tempDirs []string
+
 func TestMain(m *testing.M) {
 	vaultDev = initVaultDev()
 
@@ -23,6 +26,11 @@ func TestMain(m *testing.M) {
 
 	// shutdown vault
 	vaultDev.Stop()
+
+	// clean up tempdirs
+	for _, dir := range tempDirs {
+		os.RemoveAll(dir)
+	}
 
 	// return exit code according to the test runs
 	os.Exit(returnCode)
@@ -197,14 +205,16 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToke
 	i := instanceToken.New(vaultDev.Client(), log)
 	i.SetRole("master")
 	i.SetClusterID("test-cluster")
-	i.SetVaultConfigPath("/etc/test-token-path")
 
-	if _, err := os.Stat(i.VaultConfigPath()); os.IsNotExist(err) {
-		os.MkdirAll(i.VaultConfigPath(), os.ModeDir)
+	// setup temporary directory for tests
+	dir, err := ioutil.TempDir("", "vault-helper-init-token")
+	if err != nil {
+		t.Fatal(err)
 	}
+	tempDirs = append(tempDirs, dir)
+	i.SetVaultConfigPath(dir)
 
-	var _, err = os.Stat(i.InitTokenFilePath())
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(i.InitTokenFilePath()); os.IsNotExist(err) {
 		ifile, err := os.Create(i.InitTokenFilePath())
 		if err != nil {
 			t.Fatalf("%s", err)
