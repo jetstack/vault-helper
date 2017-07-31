@@ -16,20 +16,23 @@ import (
 const Token_File = "/etc/vault/token"
 const Init_Token_File = "/etc/vault/init-token"
 
-func TestMain(t *testing.T) {
-	v := initVaultDev(t)
-	initKubernetes(t, v)
+var vaultDev *vault_dev.VaultDev
 
-	testRenew_Token_Exists(t, v)
-	testRenew_Token_NotExists(t, v)
-	testRenew_Token_NeitherExist(t, v)
-	testRenew_Token_Exists_NoRenew(t, v)
+func TestMain(m *testing.M) {
+	vaultDev = initVaultDev()
 
-	v.Stop()
+	// this runs all tests
+	returnCode := m.Run()
+
+	// shutdown vault
+	vaultDev.Stop()
+
+	// return exit code according to the test runs
+	os.Exit(returnCode)
 }
 
 // Token exists at token_file - renew
-func testRenew_Token_Exists(t *testing.T, vaultDev *vault_dev.VaultDev) {
+func TestRenew_Token_Exists(t *testing.T) {
 
 	k := initKubernetes(t, vaultDev)
 	i := initInstanceToken(vaultDev)
@@ -65,7 +68,7 @@ func testRenew_Token_Exists(t *testing.T, vaultDev *vault_dev.VaultDev) {
 }
 
 // Token doesn't exist at token file - generate a new form init_token file; renew token
-func testRenew_Token_NotExists(t *testing.T, vaultDev *vault_dev.VaultDev) {
+func TestRenew_Token_NotExists(t *testing.T) {
 
 	k := initKubernetes(t, vaultDev)
 	i := initInstanceToken(vaultDev)
@@ -100,7 +103,7 @@ func testRenew_Token_NotExists(t *testing.T, vaultDev *vault_dev.VaultDev) {
 }
 
 // Token exists but can't be renewed - return error
-func testRenew_Token_Exists_NoRenew(t *testing.T, vaultDev *vault_dev.VaultDev) {
+func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 	initKubernetes(t, vaultDev)
 	i := initInstanceToken(vaultDev)
@@ -138,7 +141,7 @@ func testRenew_Token_Exists_NoRenew(t *testing.T, vaultDev *vault_dev.VaultDev) 
 }
 
 // Token doesn't exist at either file - return error
-func testRenew_Token_NeitherExist(t *testing.T, vaultDev *vault_dev.VaultDev) {
+func TestRenew_Token_NeitherExist(t *testing.T) {
 
 	initKubernetes(t, vaultDev)
 	i := initInstanceToken(vaultDev)
@@ -259,11 +262,11 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 }
 
 // Start vault_dev for testing
-func initVaultDev(t *testing.T) *vault_dev.VaultDev {
+func initVaultDev() *vault_dev.VaultDev {
 	vaultDev := vault_dev.New()
 
 	if err := vaultDev.Start(); err != nil {
-		t.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
+		logrus.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
 	}
 
 	return vaultDev
