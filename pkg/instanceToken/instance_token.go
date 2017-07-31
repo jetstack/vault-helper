@@ -1,15 +1,19 @@
 package instanceToken
 
 import (
+	"path/filepath"
+
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
 )
 
 type InstanceToken struct {
-	token       string
-	role        string
+	token           string
+	role            string
+	clusterID       string
+	vaultConfigPath string
+
 	Log         *logrus.Entry
-	clusterID   string
 	vaultClient *vault.Client
 }
 
@@ -33,11 +37,27 @@ func (i *InstanceToken) SetClusterID(clusterID string) {
 	i.clusterID = clusterID
 }
 
+func (i *InstanceToken) SetVaultConfigPath(path string) {
+	i.vaultConfigPath = path
+}
+
+func (i *InstanceToken) VaultConfigPath() (path string) {
+	return i.vaultConfigPath
+}
+
+func (i *InstanceToken) TokenFilePath() (path string) {
+	return filepath.Join(i.VaultConfigPath(), "token")
+}
+func (i *InstanceToken) InitTokenFilePath() (path string) {
+	return filepath.Join(i.VaultConfigPath(), "init-token")
+}
+
 func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
 	i := &InstanceToken{
-		role:      "",
-		token:     "",
-		clusterID: "",
+		role:            "",
+		token:           "",
+		clusterID:       "",
+		vaultConfigPath: "/etc/vault",
 	}
 
 	if vaultClient != nil {

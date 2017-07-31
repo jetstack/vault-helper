@@ -13,9 +13,6 @@ import (
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
-const Token_File = "/etc/vault/token"
-const Init_Token_File = "/etc/vault/init-token"
-
 var vaultDev *vault_dev.VaultDev
 
 func TestMain(m *testing.M) {
@@ -35,10 +32,10 @@ func TestMain(m *testing.M) {
 func TestRenew_Token_Exists(t *testing.T) {
 
 	k := initKubernetes(t, vaultDev)
-	i := initInstanceToken(vaultDev)
+	i := initInstanceToken(t, vaultDev)
 
 	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(Token_File, token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
 		t.Fatalf("Error setting token for test: \n%s", err)
 	}
 
@@ -71,9 +68,9 @@ func TestRenew_Token_Exists(t *testing.T) {
 func TestRenew_Token_NotExists(t *testing.T) {
 
 	k := initKubernetes(t, vaultDev)
-	i := initInstanceToken(vaultDev)
+	i := initInstanceToken(t, vaultDev)
 
-	if err := i.WriteTokenFile(Init_Token_File, k.InitTokens()["master"]); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), k.InitTokens()["master"]); err != nil {
 		t.Fatalf("Error setting token for test: \n%s", err)
 	}
 
@@ -106,7 +103,7 @@ func TestRenew_Token_NotExists(t *testing.T) {
 func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 	initKubernetes(t, vaultDev)
-	i := initInstanceToken(vaultDev)
+	i := initInstanceToken(t, vaultDev)
 
 	notRenewable := false
 	tCreateRequest := &vault.TokenCreateRequest{
@@ -120,7 +117,7 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 		t.Fatalf("Unexpexted error creating unrenewable token:\n%s", err)
 	}
 
-	if err := i.WriteTokenFile(Token_File, newToken.Auth.ClientToken); err != nil {
+	if err := i.WriteTokenFile(i.TokenFilePath(), newToken.Auth.ClientToken); err != nil {
 		t.Fatalf("Error setting token for test: \n%s", err)
 	}
 
@@ -144,7 +141,7 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 func TestRenew_Token_NeitherExist(t *testing.T) {
 
 	initKubernetes(t, vaultDev)
-	i := initInstanceToken(vaultDev)
+	i := initInstanceToken(t, vaultDev)
 
 	err := i.TokenRenewRun()
 
@@ -153,7 +150,8 @@ func TestRenew_Token_NeitherExist(t *testing.T) {
 	}
 
 	i.Log.Debugf("%s", err)
-	if err.Error() == "Error generating new token: \nInit token was not read from file: /etc/vault/init-token" {
+	str := "Error generating new token: \nInit token was not read from file: " + i.InitTokenFilePath()
+	if err.Error() == str {
 		i.Log.Debugf("Error returned successfully - no init token in file")
 	} else {
 		t.Errorf("Unexpected error. Fail.\n%s", err)
@@ -191,7 +189,7 @@ func getTTL(v *vault_dev.VaultDev, token string, i *instanceToken.InstanceToken)
 }
 
 // Init instace token for testing
-func initInstanceToken(vaultDev *vault_dev.VaultDev) *instanceToken.InstanceToken {
+func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToken.InstanceToken {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 	log := logrus.NewEntry(logger)
@@ -199,38 +197,39 @@ func initInstanceToken(vaultDev *vault_dev.VaultDev) *instanceToken.InstanceToke
 	i := instanceToken.New(vaultDev.Client(), log)
 	i.SetRole("master")
 	i.SetClusterID("test-cluster")
+	i.SetVaultConfigPath("/etc/test-token-path")
 
-	if _, err := os.Stat("/etc/vault"); os.IsNotExist(err) {
-		os.Mkdir("/etc/vault", os.ModeDir)
+	if _, err := os.Stat(i.VaultConfigPath()); os.IsNotExist(err) {
+		os.MkdirAll(i.VaultConfigPath(), os.ModeDir)
 	}
 
-	var _, err = os.Stat(Init_Token_File)
+	var _, err = os.Stat(i.InitTokenFilePath())
 	if os.IsNotExist(err) {
-		ifile, err := os.Create(Init_Token_File)
+		ifile, err := os.Create(i.InitTokenFilePath())
 		if err != nil {
-			logrus.Fatalf("%s", err)
+			t.Fatalf("%s", err)
 		}
 		defer ifile.Close()
 	}
 
-	_, err = os.Stat(Token_File)
+	_, err = os.Stat(i.TokenFilePath())
 	if os.IsNotExist(err) {
-		tfile, err := os.Create(Token_File)
+		tfile, err := os.Create(i.TokenFilePath())
 		if err != nil {
-			logrus.Fatalf("%s", err)
+			t.Fatalf("%s", err)
 		}
 		defer tfile.Close()
 	}
 
-	i.WipeTokenFile(Init_Token_File)
-	i.WipeTokenFile(Token_File)
+	i.WipeTokenFile(i.InitTokenFilePath())
+	i.WipeTokenFile(i.TokenFilePath())
 
 	return i
 }
 
 // Check the token in file to be corrent
 func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
-	fileToken, err := i.TokenFromFile(Token_File)
+	fileToken, err := i.TokenFromFile(i.TokenFilePath())
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -238,12 +237,12 @@ func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 		t.Fatalf("Token in file should equal the one that has been renewed. Exp=%s Got=%s", i.Token(), fileToken)
 	}
 
-	fileToken, err = i.TokenFromFile(Init_Token_File)
+	fileToken, err = i.TokenFromFile(i.InitTokenFilePath())
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 	if fileToken != "" {
-		t.Fatalf("Expexted no token in file '%s' but got= '%s'", Init_Token_File, fileToken)
+		t.Fatalf("Expexted no token in file '%s' but got= '%s'", i.InitTokenFilePath(), fileToken)
 	}
 
 	return

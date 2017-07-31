@@ -10,9 +10,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-const Token_File = "/etc/vault/token"
-const Init_Token_File = "/etc/vault/init-token"
-
 func (i *InstanceToken) TokenFromFile(path string) (token string, err error) {
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -44,14 +41,14 @@ func (i *InstanceToken) fileExists(path string) (bool, error) {
 
 func (i *InstanceToken) TokenRetrieve() (token string, err error) {
 
-	exists, err := i.fileExists(Token_File)
+	exists, err := i.fileExists(i.TokenFilePath())
 	if err != nil {
 		return "", fmt.Errorf("Error checking file exists: %s", err)
 	}
 
 	if exists {
-		i.Log.Debugf("File exists: %s", Token_File)
-		token, err := i.TokenFromFile(Token_File)
+		i.Log.Debugf("File exists: %s", i.TokenFilePath())
+		token, err := i.TokenFromFile(i.TokenFilePath())
 		if err != nil {
 			return "", fmt.Errorf("%s", err)
 		}
@@ -115,27 +112,27 @@ func createFile(path string) error {
 
 func (i *InstanceToken) initTokenNew() error {
 
-	exists, err := i.fileExists(Init_Token_File)
+	exists, err := i.fileExists(i.InitTokenFilePath())
 	if err != nil {
 		return fmt.Errorf("Error checking file exists: %s", err)
 	}
 	if !exists {
-		return fmt.Errorf("No init token file: '%s' exiting.", Init_Token_File)
+		return fmt.Errorf("No init token file: '%s' exiting.", i.InitTokenFilePath())
 	}
-	i.Log.Debugf("File exists at: %s", Init_Token_File)
-	init_token, err := i.TokenFromFile(Init_Token_File)
+	i.Log.Debugf("File exists at: %s", i.InitTokenFilePath())
+	initToken, err := i.TokenFromFile(i.InitTokenFilePath())
 	if err != nil {
 		return fmt.Errorf("Error reading init token from file: %s", err)
 	}
-	if init_token == "" {
-		return fmt.Errorf("Init token was not read from file: %s", Init_Token_File)
+	if initToken == "" {
+		return fmt.Errorf("Init token was not read from file: %s", i.InitTokenFilePath())
 	}
 
-	i.Log.Debugf("Init token found '%s' at '%s'", init_token, Init_Token_File)
+	i.Log.Debugf("Init token found '%s' at '%s'", initToken, i.InitTokenFilePath())
 
 	// Check init policies and init role are set (in enviroment?). Exit here if they are not.
 
-	policies, err := i.TokenPolicies(init_token)
+	policies, err := i.TokenPolicies(initToken)
 	if err != nil {
 		return fmt.Errorf("Error finding init token policies: \n%s", err)
 	}
@@ -268,14 +265,14 @@ func (i *InstanceToken) TokenRenewRun() error {
 		return fmt.Errorf("Error generating new token: \n%s", err)
 	}
 
-	if err := i.WriteTokenFile(Token_File, i.Token()); err != nil {
+	if err := i.WriteTokenFile(i.TokenFilePath(), i.Token()); err != nil {
 		return fmt.Errorf("Error writting token to file: %s", err)
 	}
-	if err := i.WipeTokenFile(Init_Token_File); err != nil {
+	if err := i.WipeTokenFile(i.InitTokenFilePath()); err != nil {
 		return fmt.Errorf("Error wiping token from file: %s", err)
 	}
 
-	i.Log.Infof("Token written to file: %s", Token_File)
+	i.Log.Infof("Token written to file: %s", i.TokenFilePath())
 
 	return nil
 }

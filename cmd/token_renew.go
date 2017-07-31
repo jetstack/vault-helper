@@ -31,7 +31,8 @@ var renewtokenCmd = &cobra.Command{
 }
 
 func init() {
-	renewtokenCmd.PersistentFlags().String(instanceToken.FlagTokenRole, "", "Set role of token to renew (Default to *no role*")
+	renewtokenCmd.PersistentFlags().String(instanceToken.FlagTokenRole, "", "Set role of token to renew (default *no role*)")
+	renewtokenCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
 
 	RootCmd.AddCommand(renewtokenCmd)
 }
