@@ -18,8 +18,8 @@ type Cert struct {
 	role        string
 	commonName  string
 	destination string
-	bitSize     int64
-	pemSize     int64
+	bitSize     int
+	pemSize     int
 	keyType     string
 	ipSans      []string
 	sanHosts    []string
@@ -164,7 +164,6 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	}
 
 	size := pemfileinfo.Size()
-
 	pembytes := make([]byte, size)
 
 	// read pemfile content into pembytes
@@ -179,8 +178,11 @@ func (c *Cert) loadKeyFromFile(path string) error {
 		return fmt.Errorf("Error decoding pem file. There was data in rest:\n%s", rest)
 	}
 
-	// TODO: FIX THIS
-	c.SetPemSize(2048)
+	k, err := x509.ParsePKCS1PrivateKey(data.Bytes)
+	if err != nil {
+		return fmt.Errorf("Error parsing private key bytes: \n%s", err)
+	}
+	c.SetPemSize(k.D.BitLen())
 
 	c.SetData(data)
 	c.SetKeyType(data.Type)
@@ -194,7 +196,7 @@ func (c *Cert) loadKeyFromFile(path string) error {
 }
 
 func (c *Cert) generateKey(path string) error {
-	size := int(c.BitSize())
+	size := c.BitSize()
 	key, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
 		return fmt.Errorf("Error generating rsa key:\n%s", err)
@@ -258,17 +260,17 @@ func (c *Cert) Destination() string {
 	return c.destination
 }
 
-func (c *Cert) SetBitSize(size int64) {
+func (c *Cert) SetBitSize(size int) {
 	c.bitSize = size
 }
-func (c *Cert) BitSize() int64 {
+func (c *Cert) BitSize() int {
 	return c.bitSize
 }
 
-func (c *Cert) SetPemSize(size int64) {
+func (c *Cert) SetPemSize(size int) {
 	c.pemSize = size
 }
-func (c *Cert) PemSize() int64 {
+func (c *Cert) PemSize() int {
 	return c.pemSize
 }
 

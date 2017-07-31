@@ -24,7 +24,7 @@ func (c *Cert) Run(cmd *cobra.Command, args []string) error {
 	c.SetCommonName(args[1])
 	c.SetDestination(args[2])
 
-	vInt, err := cmd.PersistentFlags().GetInt64(FlagKeyBitSize)
+	vInt, err := cmd.PersistentFlags().GetInt(FlagKeyBitSize)
 	if err != nil {
 		return fmt.Errorf("Error parsing %s [int] '%d': %s", FlagKeyBitSize, vInt, err)
 	}

@@ -32,7 +32,7 @@ var certCmd = &cobra.Command{
 }
 
 func init() {
-	certCmd.PersistentFlags().Int64(cert.FlagKeyBitSize, 2048, "Bit size used for generating key. [int]")
+	certCmd.PersistentFlags().Int(cert.FlagKeyBitSize, 2048, "Bit size used for generating key. [int]")
 	certCmd.PersistentFlags().String(cert.FlagKeyType, "RSA", "Type of key to generate. [string]")
 	certCmd.PersistentFlags().StringSlice(cert.FlagIpSans, []string{}, "IP sans. [[]string] (default none)")
 	certCmd.PersistentFlags().StringSlice(cert.FlagSanHosts, []string{}, "Host Sans. [[]string] (default none)")
