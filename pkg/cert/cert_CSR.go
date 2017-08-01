@@ -6,6 +6,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	vault "github.com/hashicorp/vault/api"
@@ -16,56 +18,70 @@ func (c *Cert) RequestCertificate() error {
 	ipSans := strings.Join(c.IPSans(), ",")
 	hosts := strings.Join(c.SanHosts(), ",")
 
+	path := filepath.Join(c.Role())
+
 	data := map[string]interface{}{
 		"common_name": c.CommonName(),
 		"ip_sans":     ipSans,
 		"alt_names":   hosts,
 	}
-	sec, err := c.writeCSR(c.Destination(), data)
+	sec, err := c.writeCSR(path, data)
 	if err != nil {
-		return fmt.Errorf("Error writing CSR to vault at '%s':\n%s", c.Destination(), err)
+		return fmt.Errorf("Error writing CSR to vault at '%s':\n%s", c.Role(), err)
 	}
 
-	cert, err := c.decodeSec(sec)
+	cert, certCA, err := c.decodeSec(sec)
 	if err != nil {
 		return fmt.Errorf("Error decoding secret from CSR:\n%s", err)
 	}
 
-	if cert == nil {
+	if cert == "" {
 		return fmt.Errorf("No certificate received.")
+	}
+	if certCA == "" {
+		return fmt.Errorf("No ca certificate received.")
 	}
 
 	c.Log.Infof("New certificate received for: %s", c.CommonName())
-	c.Log.Debugf("%s", cert)
+
+	certPath := filepath.Join(c.Destination(), ".pem")
+	caPath := filepath.Join(c.Destination(), "-ca.pem")
+
+	if err := c.storeCertificate(certPath, cert); err != nil {
+		return fmt.Errorf("Error storing certificate at path '%s':\n%s", certPath, err)
+	}
+	if err := c.storeCertificate(caPath, certCA); err != nil {
+		return fmt.Errorf("Error storing ca certificate at path '%s':\n%s", caPath, err)
+	}
 
 	return nil
 }
 
-func (c *Cert) decodeSec(sec *vault.Secret) (cert []byte, err error) {
+func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err error) {
 
-	cert_field, ok := sec.Data["certificate"]
+	if sec == nil {
+		return "", "", fmt.Errorf("Error, no secret return from vault")
+	}
+
+	certCAField, ok := sec.Data["issuing_ca"]
 	if !ok {
-		return nil, fmt.Errorf("Error, certificate field not found")
+		return "", "", fmt.Errorf("Error, certificate field not found")
 	}
-	cert_ca, ok := cert_field.(string)
+	certCA, ok = certCAField.(string)
 	if !ok {
-		return nil, fmt.Errorf("Error converting certificiate field to string")
+		return "", "", fmt.Errorf("Error converting certificiate field to string")
 	}
 
-	roots := x509.NewCertPool()
-	ok = roots.AppendCertsFromPEM([]byte(cert_ca))
+	certField, ok := sec.Data["certificate"]
 	if !ok {
-		return nil, fmt.Errorf("failed to parse root certificate")
+		return "", "", fmt.Errorf("Error, certificate field not found")
+	}
+	cert, ok = certField.(string)
+	if !ok {
+		return "", "", fmt.Errorf("Error converting certificiate field to string")
 	}
 
-	block, _ := pem.Decode([]byte(cert_ca))
-	if block == nil {
-		return nil, fmt.Errorf("failed to parse certificate PEM")
-	}
-
-	resp, err := x509.ParseCertificate(block.Bytes)
-
-	return resp.Raw, err
+	return cert, certCA, err
 }
 
 func (c *Cert) createCSR() (csr []byte, err error) {
@@ -109,4 +125,25 @@ func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault
 	data["csr"] = string(csr)
 
 	return c.vaultClient.Logical().Write(path, data)
+}
+
+func (c *Cert) storeCertificate(path, cert string) error {
+
+	fi, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("Error opening file '%s': \n%s", path, err)
+	}
+	defer fi.Close()
+
+	if _, err := fi.Write([]byte(cert)); err != nil {
+		return fmt.Errorf("Error writting certificate to file '%s':\n%s", path, err)
+	}
+
+	if err := c.WritePermissions(path, 0644); err != nil {
+		return fmt.Errorf("Error setting permissons of certificate file '%s':\n%s", path, err)
+	}
+
+	c.Log.Infof("Certificate written to: %s", path)
+
+	return nil
 }

@@ -3,6 +3,9 @@ package cert
 import (
 	"encoding/pem"
 	"fmt"
+	"os"
+	"os/user"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
@@ -33,6 +36,46 @@ func (c *Cert) RunCert() error {
 	if err := c.RequestCertificate(); err != nil {
 		return fmt.Errorf("Error requesting certificate:\n%s", err)
 	}
+	return nil
+}
+
+func (c *Cert) DeleteFile(path string) error {
+	if err := os.Remove(path); err != nil {
+		return fmt.Errorf("Error removing file at '%s':\n%s", path, err)
+	}
+
+	return nil
+}
+
+func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
+
+	if err := os.Chmod(path, perm); err != nil {
+		return fmt.Errorf("Error changing permissons of file '%s' to 0600:\n%s", path, err)
+	}
+
+	usr, err := user.Lookup(c.Owner())
+	if err != nil {
+		return fmt.Errorf("Error finding user '%s' on system:\n%s", c.Owner(), err)
+	}
+	uid, err := strconv.Atoi(usr.Uid)
+	if err != nil {
+		return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", usr.Uid, err)
+	}
+	grp, err := user.LookupGroup(c.Group())
+	if err != nil {
+		return fmt.Errorf("Error finding group '%s' on system:\n%s", c.Group(), err)
+	}
+	gid, err := strconv.Atoi(grp.Gid)
+	if err != nil {
+		return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", grp.Gid, err)
+	}
+
+	if err := os.Chown(path, uid, gid); err != nil {
+		return fmt.Errorf("Error changing group and owner of file '%s' to usr:'%s' grp:'%s' :\n%s", path, c.owner, c.group, err)
+	}
+
+	c.Log.Debugf("Set permissons on file: %s", path)
+
 	return nil
 }
 

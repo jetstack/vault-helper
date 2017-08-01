@@ -8,9 +8,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strconv"
 )
 
 // Ensure -key.pem exists, and has correct size and key type
@@ -27,9 +25,9 @@ func (c *Cert) EnsureKey() error {
 		c.Log.Debugf("Pem file doesn't exist")
 		c.Log.Infof("Key doesn't exist at path: %s", path)
 		if err := c.genAndWriteKey(path); err != nil {
-			return nil
+			return err
 		}
-		return c.ensureFilePerm(path)
+		return c.WritePermissions(path, 0600)
 	}
 
 	//Path Exists
@@ -42,7 +40,7 @@ func (c *Cert) EnsureKey() error {
 		c.Log.Infof("Key doesn't match expected type at path '%s'. exp=%s got=%s", path, c.KeyType(), c.Data().Type)
 		// Wrong key type
 		// Delete File, Generate new and write to file
-		if err := c.deleteFile(path); err != nil {
+		if err := c.DeleteFile(path); err != nil {
 			return err
 		}
 		return c.genAndWriteKey(path)
@@ -51,13 +49,13 @@ func (c *Cert) EnsureKey() error {
 		c.Log.Infof("Key doesn't match expected size at path '%s'. exp=%d got=%d", path, c.BitSize(), c.PemSize())
 		//Wrong bit size
 		// Delete file, generate new and write to file
-		if err := c.deleteFile(path); err != nil {
+		if err := c.DeleteFile(path); err != nil {
 			return err
 		}
 		return c.genAndWriteKey(path)
 	}
 
-	return c.ensureFilePerm(path)
+	return c.WritePermissions(path, 0600)
 }
 
 // Ensure destination path is a directory
@@ -71,7 +69,7 @@ func (c *Cert) ensureDestination() error {
 
 	// Path doesn't exist
 	if err != nil && os.IsNotExist(err) {
-		os.Mkdir(c.Destination(), 0755)
+		os.MkdirAll(c.Destination(), 0755)
 		c.Log.Debugf("Destination directory doesn't exist. Directory created: %s", c.Destination())
 		return nil
 	}
@@ -179,45 +177,6 @@ func (c *Cert) writeKeyToFile(path string) error {
 	if err := pemfile.Close(); err != nil {
 		return fmt.Errorf("Error closing pem file at '%s':\n%s", path, err)
 	}
-
-	return nil
-}
-
-func (c *Cert) deleteFile(path string) error {
-	if err := os.Remove(path); err != nil {
-		return fmt.Errorf("Error removing file at '%s':\n%s", path, err)
-	}
-
-	return nil
-}
-
-func (c *Cert) ensureFilePerm(path string) error {
-	if err := os.Chmod(path, 0600); err != nil {
-		return fmt.Errorf("Error changing permissons of file '%s' to 0600:\n%s", path, err)
-	}
-
-	usr, err := user.Lookup(c.Owner())
-	if err != nil {
-		return fmt.Errorf("Error finding user '%s' on system:\n%s", c.Owner(), err)
-	}
-	uid, err := strconv.Atoi(usr.Uid)
-	if err != nil {
-		return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", usr.Uid, err)
-	}
-	grp, err := user.LookupGroup(c.Group())
-	if err != nil {
-		return fmt.Errorf("Error finding group '%s' on system:\n%s", c.Group(), err)
-	}
-	gid, err := strconv.Atoi(grp.Gid)
-	if err != nil {
-		return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", grp.Gid, err)
-	}
-
-	if err := os.Chown(path, uid, gid); err != nil {
-		return fmt.Errorf("Error changing group and owner of file '%s' to usr:'%s' grp:'%s' :\n%s", path, c.owner, c.group, err)
-	}
-
-	c.Log.Debugf("Set permissons on file: %s", path)
 
 	return nil
 }
