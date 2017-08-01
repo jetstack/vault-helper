@@ -3,6 +3,7 @@ package instanceToken
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -27,12 +28,16 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 	}
 	i.SetRole(value)
 
-	value, err = cmd.PersistentFlags().GetString(FlagVaultConfigPath)
+	value, err = cmd.Root().Flags().GetString(FlagVaultConfigPath)
 	if err != nil {
 		return fmt.Errorf("Error parsing %s '%s': %s", FlagVaultConfigPath, value, err)
 	}
 	if value != "" {
-		i.SetVaultConfigPath(value)
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return fmt.Errorf("Error generating absoute path from path '%s':\n%s", value, err)
+		}
+		i.SetVaultConfigPath(abs)
 	}
 
 	return i.TokenRenewRun()

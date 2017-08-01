@@ -222,7 +222,7 @@ func (i *InstanceToken) tokenRenew() error {
 
 	s, err := i.TokenLookup(i.Token())
 	if err != nil {
-		return nil
+		return err
 	}
 
 	dat, ok := s.Data["renewable"]

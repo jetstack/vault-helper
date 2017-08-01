@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +66,18 @@ func (c *Cert) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Error parsing %s [[]string] '%s': %s", FlagSanHosts, vSli, err)
 	}
 	c.SetSanHosts(vSli)
+
+	value, err := cmd.Root().Flags().GetString(instanceToken.FlagVaultConfigPath)
+	if err != nil {
+		return fmt.Errorf("Error parsing %s '%s': %s", instanceToken.FlagVaultConfigPath, value, err)
+	}
+	if value != "" {
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return fmt.Errorf("Error generating absoute path from path '%s':\n%s", value, err)
+		}
+		c.SetVaultConfigPath(abs)
+	}
 
 	return c.RunCert()
 

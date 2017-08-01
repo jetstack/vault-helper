@@ -24,6 +24,7 @@ type Cert struct {
 	owner       string
 	group       string
 	data        *pem.Block
+	configPath  string
 
 	vaultClient *vault.Client
 	Log         *logrus.Entry
@@ -47,7 +48,7 @@ func (c *Cert) RunCert() error {
 func (c *Cert) TokenRenew() error {
 	i := instanceToken.New(c.vaultClient, c.Log)
 	i.SetRole(c.Role())
-	i.SetVaultConfigPath(c.Destination())
+	i.SetVaultConfigPath(c.VaultConfigPath())
 
 	return i.TokenRenewRun()
 }
@@ -190,4 +191,11 @@ func (c *Cert) SetData(data *pem.Block) {
 }
 func (c *Cert) Data() *pem.Block {
 	return c.data
+}
+
+func (c *Cert) SetVaultConfigPath(path string) {
+	c.configPath = path
+}
+func (c *Cert) VaultConfigPath() string {
+	return c.configPath
 }

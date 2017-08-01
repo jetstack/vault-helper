@@ -57,7 +57,7 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
 		role:            "",
 		token:           "",
 		clusterID:       "",
-		vaultConfigPath: "/etc/vault",
+		vaultConfigPath: "",
 	}
 
 	if vaultClient != nil {
