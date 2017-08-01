@@ -27,7 +27,7 @@ func (c *Cert) EnsureKey() error {
 		if err := c.genAndWriteKey(path); err != nil {
 			return err
 		}
-		return c.WritePermissions(path, 0600)
+		return c.WritePermissions(path, os.FileMode(0600))
 	}
 
 	//Path Exists
@@ -55,7 +55,7 @@ func (c *Cert) EnsureKey() error {
 		return c.genAndWriteKey(path)
 	}
 
-	return c.WritePermissions(path, 0600)
+	return c.WritePermissions(path, os.FileMode(0600))
 }
 
 // Ensure destination path is a directory
@@ -77,6 +77,11 @@ func (c *Cert) ensureDestination() error {
 	// Exists but is not a directory
 	if mode := fi.Mode(); !mode.IsDir() {
 		return fmt.Errorf("Destination '%s' is not a directory", c.Destination())
+	}
+
+	if fi.Mode().Perm().String() != "drwxr-xr-x" {
+		c.Log.Debugf("Destination directory has incorrect permissons. Changing to 0775: %s", c.Destination())
+		c.WritePermissions(c.Destination(), os.FileMode(0755))
 	}
 
 	c.Log.Debugf("Destination directory exists")
