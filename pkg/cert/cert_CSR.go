@@ -63,15 +63,6 @@ func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err err
 		return "", "", fmt.Errorf("Error, no secret return from vault")
 	}
 
-	certCAField, ok := sec.Data["issuing_ca"]
-	if !ok {
-		return "", "", fmt.Errorf("Error, certificate field not found")
-	}
-	certCA, ok = certCAField.(string)
-	if !ok {
-		return "", "", fmt.Errorf("Error converting certificiate field to string")
-	}
-
 	certField, ok := sec.Data["certificate"]
 	if !ok {
 		return "", "", fmt.Errorf("Error, certificate field not found")
@@ -79,6 +70,23 @@ func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err err
 	cert, ok = certField.(string)
 	if !ok {
 		return "", "", fmt.Errorf("Error converting certificiate field to string")
+	}
+
+	if certCAField, ok := sec.Data["ca_chain"]; ok {
+		certCA, ok = certCAField.(string)
+		if !ok {
+			return "", "", fmt.Errorf("Error converting ca chain certificiate field to string")
+		}
+	} else {
+		c.Log.Debugf("CA chain field not found - trying issuing CA")
+		certCAField, ok := sec.Data["issuing_ca"]
+		if !ok {
+			return "", "", fmt.Errorf("Error, issuing ca certificate or ca chain certificate field not found")
+		}
+		certCA, ok = certCAField.(string)
+		if !ok {
+			return "", "", fmt.Errorf("Error converting issuing ca certificiate field to string")
+		}
 	}
 
 	return cert, certCA, err
