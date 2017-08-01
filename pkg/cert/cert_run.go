@@ -3,6 +3,7 @@ package cert
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -22,7 +23,12 @@ func (c *Cert) Run(cmd *cobra.Command, args []string) error {
 
 	c.SetRole(args[0])
 	c.SetCommonName(args[1])
-	c.SetDestination(args[2])
+
+	abs, err := filepath.Abs(args[2])
+	if err != nil {
+		return fmt.Errorf("Error generating absoute path from destination '%s':\n%s", args[2], err)
+	}
+	c.SetDestination(abs)
 
 	vInt, err := cmd.PersistentFlags().GetInt(FlagKeyBitSize)
 	if err != nil {

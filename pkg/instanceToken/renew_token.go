@@ -59,6 +59,12 @@ func (i *InstanceToken) TokenRetrieve() (token string, err error) {
 
 func (i *InstanceToken) WriteTokenFile(filePath, token string) error {
 
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if _, err := os.Create(filePath); err != nil {
+			return fmt.Errorf("Error creating token file:\n%s", err)
+		}
+	}
+
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("Error opening file: %s\n %s", filePath, err)
@@ -243,7 +249,7 @@ func (i *InstanceToken) tokenRenew() error {
 func (i *InstanceToken) TokenRenewRun() error {
 
 	token, err := i.TokenRetrieve()
-	if err != nil {
+	if err != nil && os.IsExist(err) {
 		return fmt.Errorf("Error retreiving token from file: %s", err)
 	}
 

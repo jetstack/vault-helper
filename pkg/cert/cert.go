@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 type Cert struct {
@@ -33,10 +34,22 @@ func (c *Cert) RunCert() error {
 		return fmt.Errorf("Error ensuring key:\n%s", err)
 	}
 
+	if err := c.TokenRenew(); err != nil {
+		return fmt.Errorf("Error renewing tokens:\n%s", err)
+	}
+
 	if err := c.RequestCertificate(); err != nil {
 		return fmt.Errorf("Error requesting certificate:\n%s", err)
 	}
 	return nil
+}
+
+func (c *Cert) TokenRenew() error {
+	i := instanceToken.New(c.vaultClient, c.Log)
+	i.SetRole(c.Role())
+	i.SetVaultConfigPath(c.Destination())
+
+	return i.TokenRenewRun()
 }
 
 func (c *Cert) DeleteFile(path string) error {

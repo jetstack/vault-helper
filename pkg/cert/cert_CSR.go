@@ -27,7 +27,7 @@ func (c *Cert) RequestCertificate() error {
 	}
 	sec, err := c.writeCSR(path, data)
 	if err != nil {
-		return fmt.Errorf("Error writing CSR to vault at '%s':\n%s", c.Role(), err)
+		return fmt.Errorf("Error writing CSR to vault at '%s':\n%s", path, err)
 	}
 
 	cert, certCA, err := c.decodeSec(sec)
