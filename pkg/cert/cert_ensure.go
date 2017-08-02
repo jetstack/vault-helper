@@ -69,7 +69,7 @@ func (c *Cert) ensureDestination() error {
 
 	// Path doesn't exist
 	if err != nil && os.IsNotExist(err) {
-		os.MkdirAll(c.Destination(), 0755)
+		os.MkdirAll(c.Destination(), os.FileMode(0755))
 		c.Log.Debugf("Destination directory doesn't exist. Directory created: %s", c.Destination())
 		return nil
 	}
@@ -79,7 +79,7 @@ func (c *Cert) ensureDestination() error {
 		return fmt.Errorf("Destination '%s' is not a directory", c.Destination())
 	}
 
-	if fi.Mode().Perm().String() != "drwxr-xr-x" {
+	if fi.Mode().Perm() != os.FileMode(0755) {
 		c.Log.Debugf("Destination directory has incorrect permissons. Changing to 0775: %s", c.Destination())
 		c.WritePermissions(c.Destination(), os.FileMode(0755))
 	}

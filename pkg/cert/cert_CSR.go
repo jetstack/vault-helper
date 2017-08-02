@@ -15,6 +15,19 @@ import (
 
 func (c *Cert) RequestCertificate() error {
 
+	if err := c.verifyCertificates(); err != nil {
+		c.Log.Debugf("Couldn't verify certificates:\n%s", err)
+		c.Log.Infof("Generating new certificates")
+		return c.createNewCerts()
+	}
+
+	c.Log.Infof("Found certificates at %s", c.Destination())
+	c.Log.Infof("Certificates verified.")
+
+	return nil
+}
+
+func (c *Cert) createNewCerts() error {
 	ipSans := strings.Join(c.IPSans(), ",")
 	hosts := strings.Join(c.SanHosts(), ",")
 
@@ -57,6 +70,46 @@ func (c *Cert) RequestCertificate() error {
 	return nil
 }
 
+func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
+	fi, err := os.Stat(path)
+
+	// Path exists but throws an error
+	if err != nil && os.IsExist(err) {
+		return true, fmt.Errorf("Error trying to read at location '%s'\n%s", path, err)
+	}
+
+	// Path doesn't exist
+	if err != nil && os.IsNotExist(err) {
+		return false, nil
+	}
+
+	// Exists but is a directory
+	if mode := fi.Mode(); mode.IsDir() {
+		return true, fmt.Errorf("Destination '%s' is a directory", path)
+	}
+
+	return true, nil
+}
+
+func (c *Cert) verifyCertificates() error {
+
+	conf := vault.DefaultConfig()
+	conf.Address = c.vaultClient.Address()
+
+	tConf := &vault.TLSConfig{
+		CAPath:     filepath.Join(c.Destination()),
+		CACert:     filepath.Join(c.Destination(), "-ca.pem"),
+		ClientCert: filepath.Join(c.Destination(), ".pem"),
+		ClientKey:  filepath.Join(c.Destination(), "-key.pem"),
+	}
+
+	if err := conf.ConfigureTLS(tConf); err != nil {
+		return fmt.Errorf("Error verifying cert:\n%s", err)
+	}
+
+	return nil
+}
+
 func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err error) {
 
 	if sec == nil {
@@ -67,6 +120,7 @@ func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err err
 	if !ok {
 		return "", "", fmt.Errorf("Error, certificate field not found")
 	}
+
 	cert, ok = certField.(string)
 	if !ok {
 		return "", "", fmt.Errorf("Error converting certificiate field to string")
@@ -147,7 +201,7 @@ func (c *Cert) storeCertificate(path, cert string) error {
 		return fmt.Errorf("Error writting certificate to file '%s':\n%s", path, err)
 	}
 
-	if err := c.WritePermissions(path, 0644); err != nil {
+	if err := c.WritePermissions(path, os.FileMode(0644)); err != nil {
 		return fmt.Errorf("Error setting permissons of certificate file '%s':\n%s", path, err)
 	}
 

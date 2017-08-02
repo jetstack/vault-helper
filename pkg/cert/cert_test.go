@@ -163,6 +163,67 @@ func TestCert_ConfigPath(t *testing.T) {
 	}
 }
 
+// Test if already existing valid certificate and key, they are kept
+func TestCert_Exist_NoChange(t *testing.T) {
+	k := initKubernetes(t, vaultDev)
+
+	dir, err := ioutil.TempDir("", "test-cluster-dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c, i := initCert(t, vaultDev)
+	i.SetVaultConfigPath(dir)
+	c.SetVaultConfigPath(dir)
+	token := k.InitTokens()["master"]
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+		t.Fatalf("Error setting token for test: \n%s", err)
+	}
+
+	if err := c.RunCert(); err != nil {
+		t.Fatalf("Error running  cert:\n%s", err)
+	}
+
+	dotPem := filepath.Join(c.Destination(), ".pem")
+	datDotPem, err := ioutil.ReadFile(dotPem)
+	if err != nil {
+		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
+	}
+	if datDotPem == nil {
+		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
+	}
+
+	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	datCAPem, err := ioutil.ReadFile(caPem)
+	if err != nil {
+		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
+	}
+	if datCAPem == nil {
+		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
+	}
+
+	if err := c.RunCert(); err != nil {
+		t.Fatalf("Error running  cert:\n%s", err)
+	}
+
+	datDotPemAfter, err := ioutil.ReadFile(dotPem)
+	if err != nil {
+		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
+	}
+
+	if string(datDotPem) != string(datDotPemAfter) {
+		t.Fatalf("Certificate has been changed after cert call even though it exists. It shouldn't. %s", dotPem)
+	}
+
+	datCAPemAfter, err := ioutil.ReadFile(caPem)
+	if err != nil {
+		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
+	}
+	if string(datCAPem) != string(datCAPemAfter) {
+		t.Fatalf("Certificate has been changed after cert call even though it exists. It shouldn't. %s", caPem)
+	}
+}
+
 // Init Cert for tesing
 func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceToken.InstanceToken) {
 	logger := logrus.New()
