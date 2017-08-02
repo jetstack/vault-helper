@@ -202,6 +202,15 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
+	keyPem := filepath.Join(c.Destination(), "-key.pem")
+	datKeyPem, err := ioutil.ReadFile(keyPem)
+	if err != nil {
+		t.Fatalf("Error reading from key file path: '%s':\n%s", keyPem, err)
+	}
+	if datKeyPem == nil {
+		t.Fatalf("No key at file '%s'. Expected key", keyPem)
+	}
+
 	if err := c.RunCert(); err != nil {
 		t.Fatalf("Error running  cert:\n%s", err)
 	}
@@ -221,6 +230,14 @@ func TestCert_Exist_NoChange(t *testing.T) {
 	}
 	if string(datCAPem) != string(datCAPemAfter) {
 		t.Fatalf("Certificate has been changed after cert call even though it exists. It shouldn't. %s", caPem)
+	}
+
+	datKeyPemAfter, err := ioutil.ReadFile(keyPem)
+	if err != nil {
+		t.Fatalf("Error reading from certificate file path: '%s':\n%s", keyPem, err)
+	}
+	if string(datKeyPem) != string(datKeyPemAfter) {
+		t.Fatalf("Key has been changed after cert call even though it exists. It shouldn't. %s", keyPem)
 	}
 }
 

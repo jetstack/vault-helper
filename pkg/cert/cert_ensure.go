@@ -31,7 +31,7 @@ func (c *Cert) EnsureKey() error {
 	}
 
 	//Path Exists
-	c.Log.Debugf("Pem file exists")
+	c.Log.Debugf("Pem file exists '-key.pem'")
 	if err := c.loadKeyFromFile(path); err != nil {
 		return fmt.Errorf("Error loading rsa key from file '%s':\n%s", path, err)
 	}
