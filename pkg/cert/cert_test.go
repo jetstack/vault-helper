@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/Sirupsen/logrus"
-	//vault "github.com/hashicorp/vault/api"
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
@@ -175,16 +174,11 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceT
 	c.SetCommonName("k8s")
 
 	if usr, err := user.Current(); err != nil {
-		t.Fatalf("Error getting current user: \n%s", err)
+		t.Fatalf("Error getting info on current user: \n%s", err)
 	} else {
 		c.SetOwner(usr.Username)
-		c.SetGroup("wheel") // Work out how to find this
+		c.SetGroup(usr.Username)
 	}
-	//if grp, err := user.Current(); err != nil {
-	//	t.Fatal("Error getting current user: \n%s", err)
-	//} else {
-	//	c.SetOwner(usr.Username)
-	//}
 
 	// setup temporary directory for tests
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
@@ -223,6 +217,7 @@ func initVaultDev() *vault_dev.VaultDev {
 	return vaultDev
 }
 
+// Init instance token for testing
 func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *instanceToken.InstanceToken {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
