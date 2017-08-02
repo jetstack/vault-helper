@@ -31,7 +31,7 @@ func (c *Cert) createNewCerts() error {
 	ipSans := strings.Join(c.IPSans(), ",")
 	hosts := strings.Join(c.SanHosts(), ",")
 
-	path := filepath.Join(c.Role())
+	path := filepath.Clean(c.Role())
 
 	data := map[string]interface{}{
 		"common_name": c.CommonName(),
@@ -57,8 +57,8 @@ func (c *Cert) createNewCerts() error {
 
 	c.Log.Infof("New certificate received for: %s", c.CommonName())
 
-	certPath := filepath.Join(c.Destination(), ".pem")
-	caPath := filepath.Join(c.Destination(), "-ca.pem")
+	certPath := filepath.Clean(c.Destination() + ".pem")
+	caPath := filepath.Clean(c.Destination() + "-ca.pem")
 
 	if err := c.storeCertificate(certPath, cert); err != nil {
 		return fmt.Errorf("Error storing certificate at path '%s':\n%s", certPath, err)
@@ -97,10 +97,10 @@ func (c *Cert) verifyCertificates() error {
 	conf.Address = c.vaultClient.Address()
 
 	tConf := &vault.TLSConfig{
-		CAPath:     filepath.Join(c.Destination()),
-		CACert:     filepath.Join(c.Destination(), "-ca.pem"),
-		ClientCert: filepath.Join(c.Destination(), ".pem"),
-		ClientKey:  filepath.Join(c.Destination(), "-key.pem"),
+		CAPath:     filepath.Clean(filepath.Dir(c.Destination())),
+		CACert:     filepath.Clean(c.Destination() + "-ca.pem"),
+		ClientCert: filepath.Clean(c.Destination() + ".pem"),
+		ClientKey:  filepath.Clean(c.Destination() + "-key.pem"),
 	}
 
 	if err := conf.ConfigureTLS(tConf); err != nil {

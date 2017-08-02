@@ -50,17 +50,18 @@ func TestCert_File_Perms(t *testing.T) {
 		t.Fatalf("Error runinning cert:\n%s", err)
 	}
 
-	if fi, err := os.Stat(c.Destination()); err != nil {
-		t.Fatalf("Error finding stats of '%s':\n%s", c.Destination(), err)
+	dir := filepath.Dir(c.Destination())
+	if fi, err := os.Stat(dir); err != nil {
+		t.Fatalf("Error finding stats of '%s':\n%s", dir, err)
 	} else if !fi.IsDir() {
-		t.Fatalf("Destination should be directory %s. It is not", c.Destination())
+		t.Fatalf("Destination should be directory %s. It is not", dir)
 	} else if perm := fi.Mode(); perm.String() != "drwxr-xr-x" {
 		t.Fatalf("Destination has incorrect file permissons. Exp=drwxr-xr-x Got=%s", perm)
 	}
 
-	keyPem := filepath.Join(c.Destination(), "-key.pem")
-	dotPem := filepath.Join(c.Destination(), ".pem")
-	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	keyPem := filepath.Clean(c.Destination() + "-key.pem")
+	dotPem := filepath.Clean(c.Destination() + ".pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	checkFilePerm(t, keyPem, os.FileMode(0600))
 	checkFilePerm(t, dotPem, os.FileMode(0644))
 	checkFilePerm(t, caPem, os.FileMode(0644))
@@ -92,7 +93,7 @@ func TestCert_Verify_CA(t *testing.T) {
 		t.Fatalf("Error runinning cert:\n%s", err)
 	}
 
-	dotPem := filepath.Join(c.Destination(), ".pem")
+	dotPem := filepath.Clean(c.Destination() + ".pem")
 	dat, err := ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
@@ -101,7 +102,7 @@ func TestCert_Verify_CA(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	dat, err = ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
@@ -128,23 +129,20 @@ func TestCert_ConfigPath(t *testing.T) {
 		t.Fatalf("Error setting token for test: \n%s", err)
 	}
 
+	dotPem := filepath.Clean(c.Destination() + ".pem")
+	if _, err := os.Stat(dotPem); !os.IsNotExist(err) {
+		t.Fatalf("Expexted error 'File doesn't exist on file '.pem''. Instead:\n%s", err)
+	}
+
 	if err := c.RunCert(); err != nil {
 		t.Fatalf("Error runinning cert:\n%s", err)
 	}
 
-	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	if _, err := os.Stat(caPem); err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
 	}
 
-	if _, err = os.Stat(c.Destination() + "-ca.pem"); !os.IsNotExist(err) {
-		t.Fatalf("Expexted error 'File doesn't exist on file -ca.pem'. Instead:\n%s", err)
-	}
-	if _, err := os.Stat(c.Destination() + ".pem"); !os.IsNotExist(err) {
-		t.Fatalf("Expexted error 'File doesn't exist on file '.pem''. Instead:\n%s", err)
-	}
-
-	dotPem := filepath.Join(c.Destination(), ".pem")
 	dat, err := ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
@@ -153,7 +151,7 @@ func TestCert_ConfigPath(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	caPem = filepath.Join(c.Destination(), "-ca.pem")
+	caPem = filepath.Clean(c.Destination() + "-ca.pem")
 	dat, err = ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
@@ -184,7 +182,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("Error running  cert:\n%s", err)
 	}
 
-	dotPem := filepath.Join(c.Destination(), ".pem")
+	dotPem := filepath.Clean(c.Destination() + ".pem")
 	datDotPem, err := ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
@@ -193,7 +191,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	datCAPem, err := ioutil.ReadFile(caPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
@@ -202,7 +200,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	keyPem := filepath.Join(c.Destination(), "-key.pem")
+	keyPem := filepath.Clean(c.Destination() + "-key.pem")
 	datKeyPem, err := ioutil.ReadFile(keyPem)
 	if err != nil {
 		t.Fatalf("Error reading from key file path: '%s':\n%s", keyPem, err)
@@ -262,7 +260,7 @@ func TestCert_Busy_Vault(t *testing.T) {
 		t.Fatalf("Error running  cert:\n%s", err)
 	}
 
-	dotPem := filepath.Join(c.Destination(), ".pem")
+	dotPem := filepath.Clean(c.Destination() + ".pem")
 	datDotPem, err := ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", dotPem, err)
@@ -271,7 +269,7 @@ func TestCert_Busy_Vault(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	caPem := filepath.Join(c.Destination(), "-ca.pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	datCAPem, err := ioutil.ReadFile(caPem)
 	if err != nil {
 		t.Fatalf("Error reading from certificate file path: '%s':\n%s", caPem, err)
@@ -280,7 +278,7 @@ func TestCert_Busy_Vault(t *testing.T) {
 		t.Fatalf("No certificate at file '%s'. Expected certificate", dotPem)
 	}
 
-	keyPem := filepath.Join(c.Destination(), "-key.pem")
+	keyPem := filepath.Clean(c.Destination() + "-key.pem")
 	datKeyPem, err := ioutil.ReadFile(keyPem)
 	if err != nil {
 		t.Fatalf("Error reading from key file path: '%s':\n%s", keyPem, err)
@@ -347,7 +345,7 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceT
 	}
 	tempDirs = append(tempDirs, dir)
 	c.SetVaultConfigPath(dir)
-	c.SetDestination(dir)
+	c.SetDestination(dir + "/test")
 
 	i = initInstanceToken(t, vaultDev, dir)
 

@@ -17,7 +17,7 @@ func (c *Cert) EnsureKey() error {
 		return fmt.Errorf("Error ensuring destination\n%s", err)
 	}
 
-	path := filepath.Join(c.Destination(), "-key.pem")
+	path := c.Destination() + "-key.pem"
 	_, err := os.Stat(path)
 
 	// Path doesn't exist
@@ -60,28 +60,29 @@ func (c *Cert) EnsureKey() error {
 
 // Ensure destination path is a directory
 func (c *Cert) ensureDestination() error {
-	fi, err := os.Stat(c.Destination())
+	dir := filepath.Dir(c.Destination())
+	fi, err := os.Stat(dir)
 
 	// Path exists but throws an error
 	if err != nil && os.IsExist(err) {
-		return fmt.Errorf("Error trying to read at location '%s'\n%s", c.Destination(), err)
+		return fmt.Errorf("Error trying to read at location '%s'\n%s", dir, err)
 	}
 
 	// Path doesn't exist
 	if err != nil && os.IsNotExist(err) {
-		os.MkdirAll(c.Destination(), os.FileMode(0755))
-		c.Log.Debugf("Destination directory doesn't exist. Directory created: %s", c.Destination())
+		os.MkdirAll(dir, os.FileMode(0755))
+		c.Log.Debugf("Destination directory doesn't exist. Directory created: %s", dir)
 		return nil
 	}
 
 	// Exists but is not a directory
 	if mode := fi.Mode(); !mode.IsDir() {
-		return fmt.Errorf("Destination '%s' is not a directory", c.Destination())
+		return fmt.Errorf("Destination '%s' is not a directory", dir)
 	}
 
 	if fi.Mode().Perm() != os.FileMode(0755) {
-		c.Log.Debugf("Destination directory has incorrect permissons. Changing to 0775: %s", c.Destination())
-		c.WritePermissions(c.Destination(), os.FileMode(0755))
+		c.Log.Debugf("Destination directory has incorrect permissons. Changing to 0775: %s", dir)
+		c.WritePermissions(dir, os.FileMode(0755))
 	}
 
 	c.Log.Debugf("Destination directory exists")
