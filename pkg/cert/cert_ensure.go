@@ -137,7 +137,8 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("Error parsing private key bytes: \n%s", err)
 	}
-	c.SetPemSize(k.D.BitLen())
+
+	c.SetPemSize(k.N.BitLen())
 
 	c.SetData(data)
 	c.SetKeyType(data.Type)
