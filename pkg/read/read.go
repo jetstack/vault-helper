@@ -52,7 +52,7 @@ func (r *Read) RunRead() error {
 func (r *Read) writeToFile(res string) error {
 
 	byt := []byte(res)
-	if err := ioutil.WriteFile(r.FilePath(), byt, 0644); err != nil {
+	if err := ioutil.WriteFile(r.FilePath(), byt, 0600); err != nil {
 		return fmt.Errorf("Error trying to write responce to file '%s':\n%s", r.FilePath(), err)
 	}
 
