@@ -30,6 +30,7 @@ var kubeconfCmd = &cobra.Command{
 
 		u := kubeconfig.New(v, log)
 
+		u.Run(cmd, args)
 	},
 }
 
