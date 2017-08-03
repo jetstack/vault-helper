@@ -109,9 +109,15 @@
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
   revision = "2bf8f2a19ec09c670e931282edfe6567f6be21c9"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "25c4ec802a7d637f88d584ab26798e94ad14c13b"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fd7866504f1e3d3301ce027f85e49b1b31447b1b08557e7bee21e0dd3f3cb868"
+  inputs-digest = "77e1fe9c7515da7e6828f2d58a5409c6f1a48aa516ce2d437914f72922b32803"
   solver-name = "gps-cdcl"
   solver-version = 1

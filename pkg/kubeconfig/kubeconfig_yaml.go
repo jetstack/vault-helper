@@ -5,7 +5,10 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -72,29 +75,100 @@ func (u *Kubeconfig) EncodeCerts() error {
 	return nil
 }
 
-func (u *Kubeconfig) StoreYaml(yml KubeY) error {
+func (u *Kubeconfig) StoreYaml(yml string) error {
+	path := filepath.Clean(u.FilePath())
 
-	marsh, err := yaml.Marshal(yml)
+	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating yaml file at '%s':\n%s", path, err)
+	}
+	defer file.Close()
+
+	if _, err := file.Write([]byte(yml)); err != nil {
+		return fmt.Errorf("Error writting to yaml file '%s':\n%s", path, err)
 	}
 
-	u.Log.Debugf("Created Yaml sucessfully.")
+	u.Log.Infof("Yaml writting to file: %s", path)
 
-	fmt.Println(string(marsh))
-	return nil
+	return u.WritePermissions()
 }
 
-func (u *Kubeconfig) BuildYaml() (yml KubeY, err error) {
+func (u *Kubeconfig) WritePermissions() error {
+	if err := os.Chmod(u.FilePath(), os.FileMode(0600)); err != nil {
+		return fmt.Errorf("Error changing permissons of file '%s' to 0600:\n%s", u.FilePath(), err)
+	}
 
-	clusterID := filepath.Base(u.cert.Role())
+	var uid int
+	var gid int
+
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("Error getting current user info:\n%s", err)
+	}
+
+	if u.Cert().Owner() == "" {
+
+		uid, err = strconv.Atoi(usr.Uid)
+		if err != nil {
+			return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", usr.Uid, err)
+		}
+
+	} else {
+
+		us, err := user.Lookup(u.Cert().Owner())
+		if err != nil {
+			return fmt.Errorf("Error finding owner '%s' on system:\n%s", u.Cert().Owner(), err)
+		}
+
+		uid, err = strconv.Atoi(us.Uid)
+		if err != nil {
+			return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", us.Uid, err)
+		}
+
+	}
+
+	if u.Cert().Group() == "" {
+
+		gid, err = strconv.Atoi(usr.Gid)
+		if err != nil {
+			return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", usr.Gid, err)
+		}
+
+	} else {
+
+		g, err := user.LookupGroup(u.Cert().Group())
+		if err != nil {
+			return fmt.Errorf("Error finding group '%s' on system:\n%s", u.Cert().Group(), err)
+		}
+
+		gid, err = strconv.Atoi(g.Gid)
+		if err != nil {
+			return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", g.Gid, err)
+		}
+
+	}
+
+	if err := os.Chown(u.FilePath(), uid, gid); err != nil {
+		return fmt.Errorf("Error changing group and owner of file '%s' to usr:'%s' grp:'%s' :\n%s", u.FilePath(), u.Cert().Owner(), u.Cert().Group(), err)
+	}
+
+	u.Log.Debugf("Set permissons on file: %s", u.FilePath())
+
+	return nil
+
+}
+
+func (u *Kubeconfig) BuildYaml() (yml string, err error) {
+
+	path := filepath.Clean(u.cert.Role())
+	clusterID := strings.Split(path, "/")[0]
 	apiURL := u.vaultClient.Address()
 
 	cluster := Cluster{clusterID, Clust{"v1", apiURL, u.Cert64()}}
 	context := Context{clusterID, Conx{clusterID, "kube-system", clusterID}}
 	user := User{clusterID, Usr{u.Cert64(), u.CertKey64()}}
 
-	yml = KubeY{
+	ky := KubeY{
 		CurrentContext: clusterID,
 		ApiVersion:     "v1",
 		Kind:           "Config",
@@ -103,7 +177,13 @@ func (u *Kubeconfig) BuildYaml() (yml KubeY, err error) {
 		Users:          []User{user},
 	}
 
-	return yml, err
+	marsh, err := yaml.Marshal(ky)
+	if err != nil {
+		return "", err
+	}
+	u.Log.Debugf("Created Yaml sucessfully.")
+
+	return string(marsh), err
 }
 
 func (u *Kubeconfig) encode64File(path string) (byt string, err error) {
