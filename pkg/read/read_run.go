@@ -8,21 +8,53 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const FlagOutputPath = "dest-path"
+const FlagField = "field"
+const FlagOwner = "owner"
+const FlagGroup = "group"
+
 func (r *Read) Run(cmd *cobra.Command, args []string) error {
 
-	if len(args) < 2 || len(args) > 3 {
-		return errors.New("Incorrect number of arguments given.\n    Usage: vault-helper read [cluster ID] [vault path] [output file]")
+	if len(args) > 1 {
+		return errors.New("Incorrect number of arguments given.\n    Usage: vault-helper read [vault path]")
 	}
 
-	r.SetClusterID(args[0])
-	r.SetVaultPath(args[1])
+	r.SetVaultPath(args[0])
 
-	if len(args) > 2 {
-		abs, err := filepath.Abs(args[2])
+	value, err := cmd.PersistentFlags().GetString(FlagOutputPath)
+	if err != nil {
+		return fmt.Errorf("Error parsing %s '%s': %s", FlagOutputPath, value, err)
+	}
+	if value != "" {
+		abs, err := filepath.Abs(value)
 		if err != nil {
-			return fmt.Errorf("Error generating absoute path from output file path '%s':\n%s", args[2], err)
+			return fmt.Errorf("Error generating absoute path from destination '%s':\n%s", value, err)
 		}
 		r.SetFilePath(abs)
+	}
+
+	value, err = cmd.PersistentFlags().GetString(FlagField)
+	if err != nil {
+		return fmt.Errorf("Error parsing %s '%s': %s", FlagField, value, err)
+	}
+	if value != "" {
+		r.SetFieldName(value)
+	}
+
+	value, err = cmd.PersistentFlags().GetString(FlagOwner)
+	if err != nil {
+		return fmt.Errorf("Error parsing %s '%s': %s", FlagOwner, value, err)
+	}
+	if value != "" {
+		r.SetOwner(value)
+	}
+
+	value, err = cmd.PersistentFlags().GetString(FlagGroup)
+	if err != nil {
+		return fmt.Errorf("Error parsing %s '%s': %s", FlagOwner, value, err)
+	}
+	if value != "" {
+		r.SetGroup(value)
 	}
 
 	return r.RunRead()
