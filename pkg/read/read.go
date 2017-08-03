@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	//"reflect"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
@@ -77,9 +78,13 @@ func (r *Read) getField(sec *vault.Secret) (field string, err error) {
 	if !ok {
 		b, ok := fieldDat.(bool)
 		if !ok {
-			return "", fmt.Errorf("Error converting field data into string")
+			i, ok := fieldDat.(json.Number)
+			if !ok {
+				return "", fmt.Errorf("Error converting field data into string: (%s)", r.FieldName())
+			}
+			return string(i), nil
 		}
-		field = strconv.FormatBool(b)
+		return strconv.FormatBool(b), nil
 	}
 
 	return field, nil
