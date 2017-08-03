@@ -16,8 +16,7 @@ const FlagInitToken_worker = "init-token-worker"
 
 func (v *DevVault) Run(cmd *cobra.Command, args []string) error {
 
-	k := kubernetes.New(v.Vault.Client())
-	v.Kubernetes = k
+	v.Kubernetes = kubernetes.New(v.Vault.Client())
 
-	return k.Run(cmd, args)
+	return v.Kubernetes.Run(cmd, args)
 }
