@@ -39,13 +39,13 @@ func (r *Read) RunRead() error {
 
 	//Output to console
 	if r.filePath == "" {
-		logrus.Infof("No file given. Outputting to console.")
-		logrus.Infof("%s", res)
+		r.Log.Infof("No file given. Outputting to console.")
+		r.Log.Infof("%s", res)
 		return nil
 	}
 
 	//Write to file
-	logrus.Infof("Outputing responce to file: %s", r.filePath)
+	r.Log.Infof("Outputing responce to file: %s", r.filePath)
 	return r.writeToFile(res)
 }
 
