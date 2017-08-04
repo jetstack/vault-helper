@@ -19,13 +19,13 @@ var certCmd = &cobra.Command{
 
 		v, err := vault.NewClient(nil)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		c := cert.New(v, log)
 
 		if err := c.Run(cmd, args); err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 	},

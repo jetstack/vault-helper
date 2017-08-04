@@ -16,26 +16,26 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		i.SetClusterID(args[0])
 	} else {
-		return errors.New("No cluster id was given")
+		return errors.New("no cluster id was given")
 	}
 
 	value, err := cmd.PersistentFlags().GetString(FlagTokenRole)
 	if err != nil {
-		return fmt.Errorf("Error parsing %s '%s': %s", FlagTokenRole, value, err)
+		return fmt.Errorf("error parsing %s '%s': %s", FlagTokenRole, value, err)
 	}
 	if value == "" {
-		return fmt.Errorf("No token role was given. Token role is required for this command:\n --%s", FlagTokenRole)
+		return fmt.Errorf("nno token role was given. token role is required for this command: --%s", FlagTokenRole)
 	}
 	i.SetRole(value)
 
 	value, err = cmd.Root().Flags().GetString(FlagVaultConfigPath)
 	if err != nil {
-		return fmt.Errorf("Error parsing %s '%s': %s", FlagVaultConfigPath, value, err)
+		return fmt.Errorf("error parsing %s '%s': %s", FlagVaultConfigPath, value, err)
 	}
 	if value != "" {
 		abs, err := filepath.Abs(value)
 		if err != nil {
-			return fmt.Errorf("Error generating absoute path from path '%s':\n%s", value, err)
+			return fmt.Errorf("error generating absoute path from path '%s': %s", value, err)
 		}
 		i.SetVaultConfigPath(abs)
 	}

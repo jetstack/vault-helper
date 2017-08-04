@@ -14,7 +14,7 @@ import (
 // Ensure -key.pem exists, and has correct size and key type
 func (c *Cert) EnsureKey() error {
 	if err := c.ensureDestination(); err != nil {
-		return fmt.Errorf("Error ensuring destination\n%s", err)
+		return fmt.Errorf("error ensuring destination: %s", err)
 	}
 
 	path := c.Destination() + "-key.pem"
@@ -22,7 +22,7 @@ func (c *Cert) EnsureKey() error {
 
 	// Path doesn't exist
 	if err != nil && os.IsNotExist(err) {
-		c.Log.Debugf("Pem file doesn't exist")
+		c.Log.Debug("Pem file doesn't exist")
 		c.Log.Infof("Key doesn't exist at path: %s", path)
 		if err := c.genAndWriteKey(path); err != nil {
 			return err
@@ -31,13 +31,13 @@ func (c *Cert) EnsureKey() error {
 	}
 
 	//Path Exists
-	c.Log.Debugf("Pem file exists '-key.pem'")
+	c.Log.Debug("Pem file exists '-key.pem'")
 	if err := c.loadKeyFromFile(path); err != nil {
-		return fmt.Errorf("Error loading rsa key from file '%s':\n%s", path, err)
+		return fmt.Errorf("failed to load rsa key from file '%s': %s", path, err)
 	}
 
 	if c.KeyType() != c.Data().Type {
-		c.Log.Infof("Key doesn't match expected type at path '%s'. exp=%s got=%s", path, c.KeyType(), c.Data().Type)
+		c.Log.Warn("key doesn't match expected type at path '%s'. exp=%s got=%s", path, c.KeyType(), c.Data().Type)
 		// Wrong key type
 		// Delete File, Generate new and write to file
 		if err := c.DeleteFile(path); err != nil {
@@ -46,7 +46,7 @@ func (c *Cert) EnsureKey() error {
 		return c.genAndWriteKey(path)
 	}
 	if c.BitSize() != c.PemSize() {
-		c.Log.Infof("Key doesn't match expected size at path '%s'. exp=%d got=%d", path, c.BitSize(), c.PemSize())
+		c.Log.Infof("key doesn't match expected size at path '%s'. exp=%d got=%d", path, c.BitSize(), c.PemSize())
 		//Wrong bit size
 		// Delete file, generate new and write to file
 		if err := c.DeleteFile(path); err != nil {
@@ -65,7 +65,7 @@ func (c *Cert) ensureDestination() error {
 
 	// Path exists but throws an error
 	if err != nil && os.IsExist(err) {
-		return fmt.Errorf("Error trying to read at location '%s'\n%s", dir, err)
+		return fmt.Errorf("failed to read at location '%s': %s", dir, err)
 	}
 
 	// Path doesn't exist
@@ -77,7 +77,7 @@ func (c *Cert) ensureDestination() error {
 
 	// Exists but is not a directory
 	if mode := fi.Mode(); !mode.IsDir() {
-		return fmt.Errorf("Destination '%s' is not a directory", dir)
+		return fmt.Errorf("destination '%s' is not a directory", dir)
 	}
 
 	if fi.Mode().Perm() != os.FileMode(0755) {
@@ -94,11 +94,11 @@ func (c *Cert) ensureDestination() error {
 func (c *Cert) genAndWriteKey(path string) error {
 	c.Log.Infof("Generating new RSA key")
 	if err := c.generateKey(); err != nil {
-		return fmt.Errorf("Error generating key:\n%s", err)
+		return fmt.Errorf("error generating key: %s", err)
 	}
 
 	if err := c.writeKeyToFile(path); err != nil {
-		return fmt.Errorf("Error saving key:\n%s", err)
+		return fmt.Errorf("error saving key to file '%s': %s", path, err)
 	}
 	c.Log.Infof("Key written to file: %s", path)
 
@@ -110,13 +110,13 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	// Load PEM
 	pemfile, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("Unable open file for reading '%s':\n%s", path, err)
+		return fmt.Errorf("unable to open file for reading '%s': %s", path, err)
 	}
 
 	// need to convert pemfile to []byte for decoding
 	pemfileinfo, err := pemfile.Stat()
 	if err != nil {
-		return fmt.Errorf("Unable to get pem file info '%s':\n%s", path, err)
+		return fmt.Errorf("unable to get pem file info '%s': %s", path, err)
 	}
 
 	size := pemfileinfo.Size()
@@ -126,17 +126,17 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	buffer := bufio.NewReader(pemfile)
 	_, err = buffer.Read(pembytes)
 	if err != nil {
-		return fmt.Errorf("Unable to read pembyte from file:\n%s", err)
+		return fmt.Errorf("unable to read pembyte from file: %s", err)
 	}
 
 	data, rest := pem.Decode([]byte(pembytes))
 	if err != nil {
-		return fmt.Errorf("Error decoding pem file. There was data in rest:\n%s", rest)
+		return fmt.Errorf("failed to decode pem file. There was data left: %s", rest)
 	}
 
 	k, err := x509.ParsePKCS1PrivateKey(data.Bytes)
 	if err != nil {
-		return fmt.Errorf("Error parsing private key bytes: \n%s", err)
+		return fmt.Errorf("failed to parse private key bytes: %s", err)
 	}
 
 	c.SetPemSize(k.N.BitLen())
@@ -146,7 +146,7 @@ func (c *Cert) loadKeyFromFile(path string) error {
 
 	pemfile.Close()
 	if err != nil {
-		return fmt.Errorf("Unable to close pemfile:\n%s", err)
+		return fmt.Errorf("unable to close pemfile: %s", err)
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func (c *Cert) generateKey() error {
 	size := c.BitSize()
 	key, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
-		return fmt.Errorf("Error generating rsa key:\n%s", err)
+		return fmt.Errorf("failed to generate rsa key: %s", err)
 	}
 
 	key_bytes := x509.MarshalPKCS1PrivateKey(key)
@@ -174,15 +174,15 @@ func (c *Cert) generateKey() error {
 func (c *Cert) writeKeyToFile(path string) error {
 	pemfile, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Error creating pem key file for writting:\n%s", err)
+		return fmt.Errorf("failed to create pem key file for writting: %s", err)
 	}
 
 	if err := pem.Encode(pemfile, c.Data()); err != nil {
-		return fmt.Errorf("Error encoding key to pem file at'%s':\n%s", path, err)
+		return fmt.Errorf("failed to encode key to pem file at'%s': %s", path, err)
 	}
 
 	if err := pemfile.Close(); err != nil {
-		return fmt.Errorf("Error closing pem file at '%s':\n%s", path, err)
+		return fmt.Errorf("error closing pem file at '%s':\n%s", path, err)
 	}
 
 	return nil

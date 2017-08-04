@@ -44,7 +44,7 @@ func TestRenew_Token_Exists(t *testing.T) {
 
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("Error setting token for test: \n%s", err)
+		t.Fatalf("error setting token for test: %s", err)
 	}
 
 	ttl, err := getTTL(vaultDev, token, i)
@@ -53,7 +53,7 @@ func TestRenew_Token_Exists(t *testing.T) {
 	}
 
 	if err := i.TokenRenewRun(); err != nil {
-		t.Fatalf("Error renewing token from token file (Exists): \n%s", err)
+		t.Fatalf("error renewing token from token file (Exists): %s", err)
 	}
 
 	newttl, err := getTTL(vaultDev, token, i)
@@ -64,7 +64,7 @@ func TestRenew_Token_Exists(t *testing.T) {
 	i.Log.Debugf("old ttl: %ss    new ttl: %ss", strconv.Itoa(ttl), strconv.Itoa(newttl))
 
 	if ttl > newttl {
-		t.Fatalf("Token was not renewed - old ttl higher than new\nold=%s new=%s", strconv.Itoa(ttl), strconv.Itoa(newttl))
+		t.Fatalf("tokken was not renewed - old ttl higher than new. old=%s new=%s", strconv.Itoa(ttl), strconv.Itoa(newttl))
 	}
 
 	tokenCheckFiles(t, i)
@@ -79,7 +79,7 @@ func TestRenew_Token_NotExists(t *testing.T) {
 	i := initInstanceToken(t, vaultDev)
 
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), k.InitTokens()["master"]); err != nil {
-		t.Fatalf("Error setting token for test: \n%s", err)
+		t.Fatalf("error setting token for test: %s", err)
 	}
 
 	ttl, err := getTTL(vaultDev, i.Token(), i)
@@ -88,7 +88,7 @@ func TestRenew_Token_NotExists(t *testing.T) {
 	}
 
 	if err := i.TokenRenewRun(); err != nil {
-		t.Fatalf("Error renewing token from token file (!Exist): \n%s", err)
+		t.Fatalf("error renewing token from token file (!Exist): %s", err)
 	}
 
 	newttl, err := getTTL(vaultDev, i.Token(), i)
@@ -99,7 +99,7 @@ func TestRenew_Token_NotExists(t *testing.T) {
 	i.Log.Debugf("old ttl: %ss    new ttl: %ss", strconv.Itoa(ttl), strconv.Itoa(newttl))
 
 	if ttl > newttl {
-		t.Fatalf("Token was not renewed - old ttl higher than new\nold=%s new=%s", strconv.Itoa(ttl), strconv.Itoa(newttl))
+		t.Fatalf("token was not renewed - old ttl higher than new. old=%s new=%s", strconv.Itoa(ttl), strconv.Itoa(newttl))
 	}
 
 	tokenCheckFiles(t, i)
@@ -122,15 +122,15 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 	newToken, err := vaultDev.Client().Auth().Token().CreateOrphan(tCreateRequest)
 	if err != nil {
-		t.Fatalf("Unexpexted error creating unrenewable token:\n%s", err)
+		t.Fatalf("unexpexted error creating unrenewable token: %s", err)
 	}
 
 	if err := i.WriteTokenFile(i.TokenFilePath(), newToken.Auth.ClientToken); err != nil {
-		t.Fatalf("Error setting token for test: \n%s", err)
+		t.Fatalf("error setting token for test: %s", err)
 	}
 
 	err = i.TokenRenewRun()
-	i.Log.Debugf("%s", err)
+	i.Log.Debug(err)
 
 	if err == nil {
 		t.Fatalf("Expected an error - token not renewable. Fail")

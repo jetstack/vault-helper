@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,13 +17,13 @@ import (
 func (c *Cert) RequestCertificate() error {
 
 	if err := c.verifyCertificates(); err != nil {
-		c.Log.Debugf("Couldn't verify certificates:\n%s", err)
-		c.Log.Infof("Generating new certificates")
+		c.Log.Debugf("Couldn't verify certificates: %s", err)
+		c.Log.Info("Generating new certificates")
 		return c.createNewCerts()
 	}
 
 	c.Log.Infof("Found certificates at %s", c.Destination())
-	c.Log.Infof("Certificates verified.")
+	c.Log.Info("Certificates verified.")
 
 	return nil
 }
@@ -40,19 +41,19 @@ func (c *Cert) createNewCerts() error {
 	}
 	sec, err := c.writeCSR(path, data)
 	if err != nil {
-		return fmt.Errorf("Error writing CSR to vault at '%s':\n%s", path, err)
+		return fmt.Errorf("error writing CSR to vault at '%s': %s", path, err)
 	}
 
 	cert, certCA, err := c.decodeSec(sec)
 	if err != nil {
-		return fmt.Errorf("Error decoding secret from CSR:\n%s", err)
+		return fmt.Errorf("failed to decode secret from CSR: %s", err)
 	}
 
 	if cert == "" {
-		return fmt.Errorf("No certificate received.")
+		return errors.New("no certificate received")
 	}
 	if certCA == "" {
-		return fmt.Errorf("No ca certificate received.")
+		return errors.New("no ca certificate received")
 	}
 
 	c.Log.Infof("New certificate received for: %s", c.CommonName())
@@ -61,10 +62,10 @@ func (c *Cert) createNewCerts() error {
 	caPath := filepath.Clean(c.Destination() + "-ca.pem")
 
 	if err := c.storeCertificate(certPath, cert); err != nil {
-		return fmt.Errorf("Error storing certificate at path '%s':\n%s", certPath, err)
+		return fmt.Errorf("error storing certificate at path '%s': %s", certPath, err)
 	}
 	if err := c.storeCertificate(caPath, certCA); err != nil {
-		return fmt.Errorf("Error storing ca certificate at path '%s':\n%s", caPath, err)
+		return fmt.Errorf("error storing ca certificate at path '%s': %s", caPath, err)
 	}
 
 	return nil
@@ -75,7 +76,7 @@ func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
 
 	// Path exists but throws an error
 	if err != nil && os.IsExist(err) {
-		return true, fmt.Errorf("Error trying to read at location '%s'\n%s", path, err)
+		return true, fmt.Errorf("failed to read file at location '%s': %s", path, err)
 	}
 
 	// Path doesn't exist
@@ -85,7 +86,7 @@ func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
 
 	// Exists but is a directory
 	if mode := fi.Mode(); mode.IsDir() {
-		return true, fmt.Errorf("Destination '%s' is a directory", path)
+		return true, fmt.Errorf("destination '%s' is a directory", path)
 	}
 
 	return true, nil
@@ -104,7 +105,7 @@ func (c *Cert) verifyCertificates() error {
 	}
 
 	if err := conf.ConfigureTLS(tConf); err != nil {
-		return fmt.Errorf("Error verifying cert:\n%s", err)
+		return fmt.Errorf("error verifying cert: %s", err)
 	}
 
 	return nil
@@ -113,33 +114,33 @@ func (c *Cert) verifyCertificates() error {
 func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err error) {
 
 	if sec == nil {
-		return "", "", fmt.Errorf("Error, no secret return from vault")
+		return "", "", errors.New("no secret returned from vault")
 	}
 
 	certField, ok := sec.Data["certificate"]
 	if !ok {
-		return "", "", fmt.Errorf("Error, certificate field not found")
+		return "", "", errors.New("certificate field not found")
 	}
 
 	cert, ok = certField.(string)
 	if !ok {
-		return "", "", fmt.Errorf("Error converting certificiate field to string")
+		return "", "", errors.New("failed to convert certificiate field to string")
 	}
 
 	if certCAField, ok := sec.Data["ca_chain"]; ok {
 		certCA, ok = certCAField.(string)
 		if !ok {
-			return "", "", fmt.Errorf("Error converting ca chain certificiate field to string")
+			return "", "", errors.New("failed to convert ca chain certificiate field to string")
 		}
 	} else {
 		c.Log.Debugf("CA chain field not found - trying issuing CA")
 		certCAField, ok := sec.Data["issuing_ca"]
 		if !ok {
-			return "", "", fmt.Errorf("Error, issuing ca certificate or ca chain certificate field not found")
+			return "", "", errors.New("issuing ca certificate or ca chain certificate field not found")
 		}
 		certCA, ok = certCAField.(string)
 		if !ok {
-			return "", "", fmt.Errorf("Error converting issuing ca certificiate field to string")
+			return "", "", errors.New("failed to convert issuing ca certificiate field to string")
 		}
 	}
 
@@ -157,12 +158,12 @@ func (c *Cert) createCSR() (csr []byte, err error) {
 
 	key, err := x509.ParsePKCS1PrivateKey(c.Data().Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing private key bytes: \n%s", err)
+		return nil, fmt.Errorf("failed to parse private key bytes: %s", err)
 	}
 
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, key)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating CSR: %s", err)
+		return nil, fmt.Errorf("failed to create CSR: %s", err)
 	}
 
 	csr = pem.EncodeToMemory(&pem.Block{
@@ -176,13 +177,13 @@ func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault
 
 	csr, err := c.createCSR()
 	if err != nil {
-		return nil, fmt.Errorf("Error generating certificate: %v", err)
+		return nil, fmt.Errorf("failed to generate certificate: %s", err)
 	}
 
 	pemBytes := []byte(csr)
 	pemBlock, _ := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		return nil, fmt.Errorf("CSR contains no data: %v", err)
+		return nil, fmt.Errorf("CSR contains no data: %s", err)
 	}
 	data["csr"] = string(csr)
 
@@ -193,16 +194,16 @@ func (c *Cert) storeCertificate(path, cert string) error {
 
 	fi, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Error opening file '%s': \n%s", path, err)
+		return fmt.Errorf("failed to open file '%s': %s", path, err)
 	}
 	defer fi.Close()
 
 	if _, err := fi.Write([]byte(cert)); err != nil {
-		return fmt.Errorf("Error writting certificate to file '%s':\n%s", path, err)
+		return fmt.Errorf("failed to write certificate to file '%s': %s", path, err)
 	}
 
 	if err := c.WritePermissions(path, os.FileMode(0644)); err != nil {
-		return fmt.Errorf("Error setting permissons of certificate file '%s':\n%s", path, err)
+		return fmt.Errorf("failed to set permissons of certificate file '%s': %s", path, err)
 	}
 
 	c.Log.Infof("Certificate written to: %s", path)
