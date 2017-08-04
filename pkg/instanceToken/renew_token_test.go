@@ -133,13 +133,13 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 	i.Log.Debug(err)
 
 	if err == nil {
-		t.Fatalf("Expected an error - token not renewable. Fail")
+		t.Fatalf("expected an error - token not renewable. Fail")
 	}
 
-	if err.Error() == "Token not renewable: "+i.Token() {
+	if err.Error() == "token not renewable: "+i.Token() {
 		i.Log.Debugf("Error returned successfully - token is not renewable")
 	} else {
-		t.Errorf("Unexpected error. Fail.\n%s", err)
+		t.Errorf("unexpected error: %s", err)
 	}
 
 	return
@@ -154,15 +154,15 @@ func TestRenew_Token_NeitherExist(t *testing.T) {
 	err := i.TokenRenewRun()
 
 	if err == nil {
-		t.Fatalf("Expected an error - init file is empty")
+		t.Fatalf("expected an error - init file is empty")
 	}
 
 	i.Log.Debugf("%s", err)
-	str := "Error generating new token: \nInit token was not read from file: " + i.InitTokenFilePath()
+	str := "failed to generate new token: init token was not read from file '" + i.InitTokenFilePath() + "' exiting"
 	if err.Error() == str {
-		i.Log.Debugf("Error returned successfully - no init token in file")
+		i.Log.Debugf("error returned successfully - no init token in file")
 	} else {
-		t.Errorf("Unexpected error. Fail.\n%s", err)
+		t.Errorf("unexpected error: %s", err)
 	}
 
 	return
@@ -177,12 +177,12 @@ func getTTL(v *vault_dev.VaultDev, token string, i *instanceToken.InstanceToken)
 	}
 
 	if s == nil {
-		return -1, fmt.Errorf("Error, no secret from init token lookup: %s", token)
+		return -1, fmt.Errorf("no secret from init token lookup: %s", token)
 	}
 
 	dat, ok := s.Data["ttl"]
 	if !ok {
-		return -1, fmt.Errorf("Error ttl policy data from init token lookup")
+		return -1, fmt.Errorf("ttl policy data from init token lookup")
 	}
 	// This is bad --
 	str := fmt.Sprintf("%s", dat)
@@ -244,7 +244,7 @@ func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 		t.Errorf("%s", err)
 	}
 	if fileToken != i.Token() {
-		t.Fatalf("Token in file should equal the one that has been renewed. Exp=%s Got=%s", i.Token(), fileToken)
+		t.Fatalf("token in file should equal the one that has been renewed. exp=%s got=%s", i.Token(), fileToken)
 	}
 
 	fileToken, err = i.TokenFromFile(i.InitTokenFilePath())
@@ -252,7 +252,7 @@ func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 		t.Errorf("%s", err)
 	}
 	if fileToken != "" {
-		t.Fatalf("Expexted no token in file '%s' but got= '%s'", i.InitTokenFilePath(), fileToken)
+		t.Fatalf("expexted no token in file '%s' but got='%s'", i.InitTokenFilePath(), fileToken)
 	}
 
 	return
@@ -264,7 +264,7 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Fatalf("Error ensuring kubernetes: \n%s", err)
+		t.Fatalf("error ensuring kubernetes:%s", err)
 	}
 
 	return k
