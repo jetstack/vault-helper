@@ -18,13 +18,13 @@ var readCmd = &cobra.Command{
 
 		v, err := vault.NewClient(nil)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		r := read.New(v, log)
 
 		if err := r.Run(cmd, args); err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 
 	},
