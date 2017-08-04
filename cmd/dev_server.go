@@ -15,7 +15,7 @@ var devServerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) < 1 {
-			logrus.Fatalf("No cluster ID was given")
+			logrus.Fatalf("no cluster ID was given")
 		}
 
 		v := dev_server.New()
@@ -36,10 +36,10 @@ func init() {
 	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
 	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
 
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitToken_etcd, "", "Set init-token-etcd   (Default to new token)")
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitToken_worker, "", "Set init-token-worker (Default to new token)")
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitToken_master, "", "Set init-token-master (Default to new token)")
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitToken_all, "", "Set init-token-all    (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
 
 	RootCmd.AddCommand(devServerCmd)
 }

@@ -15,7 +15,7 @@ func New() *DevVault {
 
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
-		logrus.Fatalf("Unable to initialise dev vault:\n%s", err)
+		logrus.Fatalf("unable to initialise dev vault: %s", err)
 	}
 
 	v := &DevVault{
