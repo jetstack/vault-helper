@@ -1,27 +1,45 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"time"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
+	"github.com/Sirupsen/logrus"
+	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
 	"github.com/spf13/cobra"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "vault-helper",
-	Short: "Automates PKI tasks using Hashicorp's Vault as a backend.",
+// initCmd represents the init command
+var devServerCmd = &cobra.Command{
+	Use:   "dev-server [cluster ID]",
+	Short: "Run a vault server in development mode with kubernetes PKI created",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			logrus.Fatalf("no cluster ID was given")
+		}
+
+		v := dev_server.New()
+
+		if err := v.Run(cmd, args); err != nil {
+			logrus.Fatal(err)
+		}
+
+		for n, t := range v.Kubernetes.InitTokens() {
+			logrus.Infof(n + "-init_token := " + t)
+		}
+
+	},
 }
 
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func init() {
+	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
+	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
+	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
 
-	RootCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
+	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
 
-	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
-	}
+	RootCmd.AddCommand(devServerCmd)
 }

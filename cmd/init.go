@@ -1,20 +1,27 @@
 package cmd
 
 import (
-	"github.com/Sirupsen/logrus"
-	//"github.com/hashicorp/vault/api"
+	"fmt"
+	"os"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/spf13/cobra"
 )
 
-// initCmd represents the init command
-var k8sDevServerCmd = &cobra.Command{
-	Use:   "dev-server",
-	Short: "Run a vault server in development mode with kubernetes PKI created",
-	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Fatal("dev-server unimplemented")
-	},
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
+	Use:   "vault-helper",
+	Short: "Automates PKI tasks using Hashicorp's Vault as a backend.",
 }
 
-func init() {
-	RootCmd.AddCommand(k8sDevServerCmd)
+// Execute adds all child commands to the root command sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+
+	RootCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
+
+	if err := RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 }

@@ -75,6 +75,13 @@ func realVaultFromAPI(vaultClient *vault.Client) Vault {
 	return &realVault{c: vaultClient}
 }
 
+type FlagInitTokens struct {
+	Etcd   string
+	Master string
+	Worker string
+	All    string
+}
+
 type Kubernetes struct {
 	clusterID   string // clusterID is required parameter, lowercase only, [a-z0-9-]+
 	vaultClient Vault
@@ -89,12 +96,7 @@ type Kubernetes struct {
 	MaxValidityCA         time.Duration
 	MaxValidityInitTokens time.Duration
 
-	FlagInitTokens struct {
-		etcd   string
-		master string
-		worker string
-		all    string
-	}
+	FlagInitTokens FlagInitTokens
 
 	initTokens []*InitToken
 }
@@ -140,16 +142,11 @@ func New(vaultClient *vault.Client) *Kubernetes {
 		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
 		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
 		MaxValidityInitTokens: time.Hour * 24 * 365 * 5,  // Validity of init tokens
-		FlagInitTokens: struct {
-			etcd   string
-			master string
-			worker string
-			all    string
-		}{
-			etcd:   "",
-			master: "",
-			worker: "",
-			all:    "",
+		FlagInitTokens: FlagInitTokens{
+			Etcd:   "",
+			Master: "",
+			Worker: "",
+			All:    "",
 		},
 	}
 
@@ -260,17 +257,17 @@ func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *Ini
 func (k *Kubernetes) ensureInitTokens() error {
 	var result error
 
-	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", k.FlagInitTokens.etcd, []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", k.FlagInitTokens.Etcd, []string{
 		k.etcdPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("master", k.FlagInitTokens.master, []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("master", k.FlagInitTokens.Master, []string{
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("worker", k.FlagInitTokens.worker, []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("worker", k.FlagInitTokens.Worker, []string{
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("all", k.FlagInitTokens.all, []string{
+	k.initTokens = append(k.initTokens, k.NewInitToken("all", k.FlagInitTokens.All, []string{
 		k.etcdPolicy().Name,
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
@@ -295,4 +292,8 @@ func (k *Kubernetes) InitTokens() map[string]string {
 		}
 	}
 	return output
+}
+
+func (k *Kubernetes) SetInitFlags(flags FlagInitTokens) {
+	k.FlagInitTokens = flags
 }
