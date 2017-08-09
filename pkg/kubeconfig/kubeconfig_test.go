@@ -48,17 +48,17 @@ func TestKubeconf_File_Perms(t *testing.T) {
 
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error runinning cert: %s", err)
+		t.Fatalf("error runinning cert: %v", err)
 	}
 
 	u := initKubeconf(t, vaultDev, c)
 
 	if err := u.RunKube(); err != nil {
-		t.Fatalf("error runinning kubeconfig: %s", err)
+		t.Fatalf("error runinning kubeconfig: %v", err)
 	}
 
 	yaml := filepath.Clean(u.FilePath())
@@ -72,17 +72,17 @@ func TestKubeconf_Cert_Data(t *testing.T) {
 
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error runinning cert: %s", err)
+		t.Fatalf("error runinning cert: %v", err)
 	}
 
 	u := initKubeconf(t, vaultDev, c)
 
 	if err := u.RunKube(); err != nil {
-		t.Fatalf("error runinning kubeconfig: %s", err)
+		t.Fatalf("error runinning kubeconfig: %v", err)
 	}
 
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
@@ -136,12 +136,12 @@ func getFileData(t *testing.T, path string) (data []byte) {
 
 	fi, err := os.Open(path)
 	if err != nil {
-		t.Fatalf("unexpected error reading file '%s': %s", path, err)
+		t.Fatalf("unexpected error reading file '%s': %v", path, err)
 	}
 
 	fileinfo, err := fi.Stat()
 	if err != nil {
-		t.Fatalf("unable to get file info '%s': %s", path, err)
+		t.Fatalf("unable to get file info '%s': %v", path, err)
 	}
 
 	size := fileinfo.Size()
@@ -150,7 +150,7 @@ func getFileData(t *testing.T, path string) (data []byte) {
 	buffer := bufio.NewReader(fi)
 	_, err = buffer.Read(bytes)
 	if err != nil {
-		t.Fatalf("unable to read bytes from file '%s': %s", path, err)
+		t.Fatalf("unable to read bytes from file '%s': %v", path, err)
 	}
 
 	return bytes
@@ -159,7 +159,7 @@ func getFileData(t *testing.T, path string) (data []byte) {
 // Check permissions of a file
 func checkFilePerm(t *testing.T, path string, mode os.FileMode) {
 	if fi, err := os.Stat(path); err != nil {
-		t.Fatalf("error finding stats of '%s': %s", path, err)
+		t.Fatalf("error finding stats of '%s': %v", path, err)
 	} else if fi.IsDir() {
 		t.Fatalf("file should not be directory %s", path)
 	} else if perm := fi.Mode(); perm != mode {
@@ -171,12 +171,12 @@ func checkFilePerm(t *testing.T, path string, mode os.FileMode) {
 func checkOwnerGroup(t *testing.T, path string) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		t.Fatalf("error finding stats of '%s': %s", path, err)
+		t.Fatalf("error finding stats of '%s': %v", path, err)
 	}
 
 	curr, err := user.Current()
 	if err != nil {
-		t.Fatalf("error retreiving current user info: %s", curr)
+		t.Fatalf("error retreiving current user info: %v", curr)
 	}
 
 	uid := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Uid)
@@ -195,7 +195,7 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Fatalf("failed to ensure kubernetes: %s", err)
+		t.Fatalf("failed to ensure kubernetes: %v", err)
 	}
 
 	return k
@@ -206,7 +206,7 @@ func initVaultDev() *vault_dev.VaultDev {
 	vaultDev := vault_dev.New()
 
 	if err := vaultDev.Start(); err != nil {
-		logrus.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
+		logrus.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
 	}
 
 	return vaultDev
@@ -224,7 +224,7 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *cert.Cert, i *inst
 	c.SetBitSize(2048)
 
 	if usr, err := user.Current(); err != nil {
-		t.Fatalf("error getting info on current user: %s", err)
+		t.Fatalf("error getting info on current user: %v", err)
 	} else {
 		c.SetOwner(usr.Username)
 		c.SetGroup(usr.Username)

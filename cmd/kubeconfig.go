@@ -12,11 +12,10 @@ import (
 var kubeconfCmd = &cobra.Command{
 	Use: "kubeconfig [cert role] [common name] [cert path] [kubeconfig path]",
 	// TODO: Make short better
-	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role. Write kubeconfig to file.",
+	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role. Write kubeconfig to yaml file.",
 	Run: func(cmd *cobra.Command, args []string) {
-
 		if len(args) != 4 {
-			logrus.Fatal("Wrong number of arguments given.\n    Usage: vault-helper kubeconfig [cert role] [common name] [cert path] [kubeconfig path]")
+			logrus.Fatal("Wrong number of arguments given.\nUsage: vault-helper kubeconfig [cert role] [common name] [cert path] [kubeconfig path]")
 		}
 
 		logger := logrus.New()

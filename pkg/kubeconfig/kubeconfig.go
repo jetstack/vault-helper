@@ -18,7 +18,6 @@ type Kubeconfig struct {
 }
 
 func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubeconfig {
-
 	u := &Kubeconfig{}
 
 	if vaultClient != nil {
@@ -41,7 +40,6 @@ func (u *Kubeconfig) RunKube() error {
 		return err
 	}
 
-	//u.Log.Infof("%s", yml)
 	return u.StoreYaml(yml)
 }
 
