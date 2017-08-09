@@ -80,12 +80,12 @@ func (u *Kubeconfig) StoreYaml(yml string) error {
 
 	file, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Error creating yaml file at '%s':\n%s", path, err)
+		return fmt.Errorf("error creating yaml file at '%s': %s", path, err)
 	}
 	defer file.Close()
 
 	if _, err := file.Write([]byte(yml)); err != nil {
-		return fmt.Errorf("Error writting to yaml file '%s':\n%s", path, err)
+		return fmt.Errorf("error writting to yaml file '%s': %s", path, err)
 	}
 
 	u.Log.Infof("Yaml writting to file: %s", path)
@@ -95,7 +95,7 @@ func (u *Kubeconfig) StoreYaml(yml string) error {
 
 func (u *Kubeconfig) WritePermissions() error {
 	if err := os.Chmod(u.FilePath(), os.FileMode(0600)); err != nil {
-		return fmt.Errorf("Error changing permissons of file '%s' to 0600:\n%s", u.FilePath(), err)
+		return fmt.Errorf("error changing permissons of file '%s' to 0600:%s", u.FilePath(), err)
 	}
 
 	var uid int
@@ -103,26 +103,26 @@ func (u *Kubeconfig) WritePermissions() error {
 
 	usr, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("Error getting current user info:\n%s", err)
+		return fmt.Errorf("failed to get current user info:%s", err)
 	}
 
 	if u.Cert().Owner() == "" {
 
 		uid, err = strconv.Atoi(usr.Uid)
 		if err != nil {
-			return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", usr.Uid, err)
+			return fmt.Errorf("error converting user uid '%s' (string) to (int): %s", usr.Uid, err)
 		}
 
 	} else {
 
 		us, err := user.Lookup(u.Cert().Owner())
 		if err != nil {
-			return fmt.Errorf("Error finding owner '%s' on system:\n%s", u.Cert().Owner(), err)
+			return fmt.Errorf("error finding owner '%s' on system: %s", u.Cert().Owner(), err)
 		}
 
 		uid, err = strconv.Atoi(us.Uid)
 		if err != nil {
-			return fmt.Errorf("Error converting user uid '%s' (string) to (int):\n%s", us.Uid, err)
+			return fmt.Errorf("error converting user uid '%s' (string) to (int): %s", us.Uid, err)
 		}
 
 	}
@@ -131,25 +131,25 @@ func (u *Kubeconfig) WritePermissions() error {
 
 		gid, err = strconv.Atoi(usr.Gid)
 		if err != nil {
-			return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", usr.Gid, err)
+			return fmt.Errorf("error converting group gid '%s' (string) to (int): %s", usr.Gid, err)
 		}
 
 	} else {
 
 		g, err := user.LookupGroup(u.Cert().Group())
 		if err != nil {
-			return fmt.Errorf("Error finding group '%s' on system:\n%s", u.Cert().Group(), err)
+			return fmt.Errorf("error finding group '%s' on system: %s", u.Cert().Group(), err)
 		}
 
 		gid, err = strconv.Atoi(g.Gid)
 		if err != nil {
-			return fmt.Errorf("Error converting group gid '%s' (string) to (int):\n%s", g.Gid, err)
+			return fmt.Errorf("error converting group gid '%s' (string) to (int): %s", g.Gid, err)
 		}
 
 	}
 
 	if err := os.Chown(u.FilePath(), uid, gid); err != nil {
-		return fmt.Errorf("Error changing group and owner of file '%s' to usr:'%s' grp:'%s' :\n%s", u.FilePath(), u.Cert().Owner(), u.Cert().Group(), err)
+		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %s", u.FilePath(), u.Cert().Owner(), u.Cert().Group(), err)
 	}
 
 	u.Log.Debugf("Set permissons on file: %s", u.FilePath())
@@ -189,20 +189,20 @@ func (u *Kubeconfig) BuildYaml() (yml string, err error) {
 func (u *Kubeconfig) encode64File(path string) (byt string, err error) {
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("Expected file does not exist '%s':\n%s", path, err)
+		return "", fmt.Errorf("expected file does not exist '%s': %s", path, err)
 	} else if err != nil {
-		return "", fmt.Errorf("Unexpected error reading file '%s':\n%s", path, err)
+		return "", fmt.Errorf("unexpected error reading file '%s': %s", path, err)
 	}
 
 	fi, err := os.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("Unexpected error reading file '%s':\n%s", path, err)
+		return "", fmt.Errorf("unexpected error reading file '%s': %s", path, err)
 	}
 
 	// need to convert file to []byte for encoding
 	fileinfo, err := fi.Stat()
 	if err != nil {
-		return "", fmt.Errorf("Unable to get file info '%s':\n%s", path, err)
+		return "", fmt.Errorf("unable to get file info '%s': %s", path, err)
 	}
 
 	size := fileinfo.Size()
@@ -212,7 +212,7 @@ func (u *Kubeconfig) encode64File(path string) (byt string, err error) {
 	buffer := bufio.NewReader(fi)
 	_, err = buffer.Read(bytes)
 	if err != nil {
-		return "", fmt.Errorf("Unable to read bytes from file '%s':\n%s", path, err)
+		return "", fmt.Errorf("unable to read bytes from file '%s': %s", path, err)
 	}
 
 	str := b64.StdEncoding.EncodeToString(bytes)

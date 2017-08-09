@@ -1,7 +1,6 @@
 package kubeconfig
 
 import (
-	//"errors"
 	"fmt"
 	"path/filepath"
 
@@ -13,7 +12,7 @@ func (u *Kubeconfig) Run(cmd *cobra.Command, args []string) error {
 
 	abs, err := filepath.Abs(args[3])
 	if err != nil {
-		return fmt.Errorf("Error generating absoute path from destination '%s':\n%s", args[3], err)
+		return fmt.Errorf("error generating absoute path from destination '%s': %s", args[3], err)
 	}
 	u.SetFilePath(abs)
 
