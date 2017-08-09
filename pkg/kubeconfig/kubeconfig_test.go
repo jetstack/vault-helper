@@ -2,7 +2,6 @@ package kubeconfig
 
 import (
 	"bufio"
-	//b64 "encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/go-yaml/yaml"
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
+	"gopkg.in/yaml.v2"
 )
 
 var vaultDev *vault_dev.VaultDev
