@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/go-yaml/yaml"
 )
 
 type KubeY struct {
@@ -164,7 +164,7 @@ func (u *Kubeconfig) BuildYaml() (yml string, err error) {
 	clusterID := strings.Split(path, "/")[0]
 	apiURL := u.vaultClient.Address()
 
-	cluster := Cluster{clusterID, Clust{apiURL, "v1", u.Cert64()}}
+	cluster := Cluster{clusterID, Clust{apiURL, "v1", u.CertCA64()}}
 	context := Context{clusterID, Conx{clusterID, "kube-system", clusterID}}
 	user := User{clusterID, Usr{u.Cert64(), u.CertKey64()}}
 

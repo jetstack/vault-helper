@@ -1,12 +1,18 @@
 package kubeconfig
 
 import (
+	"bufio"
+	//b64 "encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
+	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/go-yaml/yaml"
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
@@ -55,6 +61,100 @@ func TestKubeconf_File_Perms(t *testing.T) {
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("error runinning kubeconfig: %s", err)
 	}
+
+	yaml := filepath.Clean(u.FilePath())
+	checkFilePerm(t, yaml, os.FileMode(0600))
+	checkOwnerGroup(t, yaml)
+}
+
+func TestKubeconf_Cert_Data(t *testing.T) {
+	k := initKubernetes(t, vaultDev)
+	c, i := initCert(t, vaultDev)
+
+	token := k.InitTokens()["master"]
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+		t.Fatalf("error setting token for test: %s", err)
+	}
+
+	if err := c.RunCert(); err != nil {
+		t.Fatalf("error runinning cert: %s", err)
+	}
+
+	u := initKubeconf(t, vaultDev, c)
+
+	if err := u.RunKube(); err != nil {
+		t.Fatalf("error runinning kubeconfig: %s", err)
+	}
+
+	keyPem := filepath.Clean(c.Destination() + "-key.pem")
+	cerPem := filepath.Clean(c.Destination() + ".pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
+
+	key, err := u.encode64File(keyPem)
+	if err != nil {
+		t.Fatalf("failed to encode data at file '%s': %v", keyPem, err)
+	}
+	ca, _ := u.encode64File(caPem)
+	if err != nil {
+		t.Fatalf("failed to encode data at file '%s': %v", caPem, err)
+	}
+	cer, _ := u.encode64File(cerPem)
+	if err != nil {
+		t.Fatalf("failed to encode data at file '%s': %v", cerPem, err)
+	}
+
+	yml := importYaml(t, u.FilePath())
+
+	ymlKey := yml.Users[0].User.ClientKeyData
+	ymlCer := yml.Users[0].User.ClientCertificateData
+	ymlCA := yml.Clusters[0].Cluster.CertificateAuthorityData
+
+	if key != ymlKey {
+		t.Fatalf("key data and file key data do not match. exp=%v got=%v", key, ymlKey)
+	}
+	if cer != ymlCer {
+		t.Fatalf("Cert data and file Cert data do not match. exp=%v got=%v", ca, ymlCer)
+	}
+	if ca != ymlCA {
+		t.Fatalf("CA data and file CA data do not match. exp=%v got=%v", ca, ymlCA)
+	}
+
+}
+
+func importYaml(t *testing.T, path string) (yml *KubeY) {
+
+	data := getFileData(t, path)
+
+	err := yaml.Unmarshal([]byte(data), &yml)
+	if err != nil {
+		t.Fatalf("failed to unmarshal yaml file data: %v", err)
+	}
+
+	return yml
+}
+
+func getFileData(t *testing.T, path string) (data []byte) {
+
+	fi, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("unexpected error reading file '%s': %s", path, err)
+	}
+
+	fileinfo, err := fi.Stat()
+	if err != nil {
+		t.Fatalf("unable to get file info '%s': %s", path, err)
+	}
+
+	size := fileinfo.Size()
+	bytes := make([]byte, size)
+
+	buffer := bufio.NewReader(fi)
+	_, err = buffer.Read(bytes)
+	if err != nil {
+		t.Fatalf("unable to read bytes from file '%s': %s", path, err)
+	}
+
+	return bytes
 }
 
 // Check permissions of a file
@@ -66,7 +166,28 @@ func checkFilePerm(t *testing.T, path string, mode os.FileMode) {
 	} else if perm := fi.Mode(); perm != mode {
 		t.Fatalf("destination has incorrect file permissons. exp=%s got=%s", mode, perm)
 	}
+}
 
+// Check permissions of a file
+func checkOwnerGroup(t *testing.T, path string) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("error finding stats of '%s': %s", path, err)
+	}
+
+	curr, err := user.Current()
+	if err != nil {
+		t.Fatalf("error retreiving current user info: %s", curr)
+	}
+
+	uid := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Uid)
+	gid := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Gid)
+
+	if uid != curr.Uid {
+		t.Fatalf("file uid '%s' doesn't match user '%s' at %s", uid, curr.Uid, path)
+	} else if gid != curr.Gid {
+		t.Fatalf("file gid '%s' doesn't match user group '%s' at %s", gid, curr.Gid, path)
+	}
 }
 
 // Init kubernetes for testing
