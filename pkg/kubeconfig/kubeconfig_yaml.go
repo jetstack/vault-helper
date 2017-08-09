@@ -14,9 +14,9 @@ import (
 )
 
 type KubeY struct {
-	CurrentContext string
-	ApiVersion     string
-	Kind           string
+	CurrentContext string `yaml:"current-context"`
+	ApiVersion     string `yaml:"apiVersion"`
+	Kind           string `yaml:"kind"`
 
 	Clusters []Cluster
 	Contexts []Context
@@ -24,32 +24,32 @@ type KubeY struct {
 }
 
 type Cluster struct {
-	Name    string
+	Name    string `yaml:"name"`
 	Cluster Clust
 }
 type Clust struct {
-	Server                   string
-	ApiVersion               string
-	CertificateAuthorityData string
+	Server                   string `yaml:"server"`
+	ApiVersion               string `yaml:"api-version"`
+	CertificateAuthorityData string `yaml:"certificate-authority-data"`
 }
 
 type Context struct {
-	Name    string
+	Name    string `yaml:"name"`
 	Context Conx
 }
 type Conx struct {
-	Cluster   string
-	Namespace string
-	User      string
+	Cluster   string `yaml:"cluster"`
+	Namespace string `yaml:"namespace"`
+	User      string `yaml:"user"`
 }
 
 type User struct {
-	Name string
+	Name string `yaml:"name"`
 	User Usr
 }
 type Usr struct {
-	ClientCertificateData string
-	ClientKeyData         string
+	ClientCertificateData string `yaml:"client-certificate-data"`
+	ClientKeyData         string `yaml:"client-key-data"`
 }
 
 func (u *Kubeconfig) EncodeCerts() error {
@@ -164,7 +164,7 @@ func (u *Kubeconfig) BuildYaml() (yml string, err error) {
 	clusterID := strings.Split(path, "/")[0]
 	apiURL := u.vaultClient.Address()
 
-	cluster := Cluster{clusterID, Clust{"v1", apiURL, u.Cert64()}}
+	cluster := Cluster{clusterID, Clust{apiURL, "v1", u.Cert64()}}
 	context := Context{clusterID, Conx{clusterID, "kube-system", clusterID}}
 	user := User{clusterID, Usr{u.Cert64(), u.CertKey64()}}
 
