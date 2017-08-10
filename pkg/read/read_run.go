@@ -23,19 +23,19 @@ func (r *Read) Run(cmd *cobra.Command, args []string) error {
 
 	value, err := cmd.PersistentFlags().GetString(FlagOutputPath)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagOutputPath, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagOutputPath, value, err)
 	}
 	if value != "" {
 		abs, err := filepath.Abs(value)
 		if err != nil {
-			return fmt.Errorf("error generating absoute path from destination '%s': %s", value, err)
+			return fmt.Errorf("error generating absoute path from destination '%s': %v", value, err)
 		}
 		r.SetFilePath(abs)
 	}
 
 	value, err = cmd.PersistentFlags().GetString(FlagField)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagField, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagField, value, err)
 	}
 	if value != "" {
 		r.SetFieldName(value)
@@ -43,7 +43,7 @@ func (r *Read) Run(cmd *cobra.Command, args []string) error {
 
 	value, err = cmd.PersistentFlags().GetString(FlagOwner)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagOwner, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagOwner, value, err)
 	}
 	if value != "" {
 		r.SetOwner(value)
@@ -51,7 +51,7 @@ func (r *Read) Run(cmd *cobra.Command, args []string) error {
 
 	value, err = cmd.PersistentFlags().GetString(FlagGroup)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagGroup, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagGroup, value, err)
 	}
 	if value != "" {
 		r.SetGroup(value)

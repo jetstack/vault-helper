@@ -26,11 +26,10 @@ type Read struct {
 }
 
 func (r *Read) RunRead() error {
-
 	//Read vault
 	sec, err := r.vaultClient.Logical().Read(r.VaultPath())
 	if err != nil {
-		return fmt.Errorf("error reading from vault: %s", err)
+		return fmt.Errorf("error reading from vault: %v", err)
 	}
 
 	if sec == nil {
@@ -81,7 +80,7 @@ func (r *Read) getField(sec *vault.Secret) (field string, err error) {
 		if !ok {
 			i, ok := fieldDat.(json.Number)
 			if !ok {
-				return "", fmt.Errorf("error converting field data into string: (%s)", r.FieldName())
+				return "", fmt.Errorf("error converting field data into string: %s", r.FieldName())
 			}
 			return string(i), nil
 		}
@@ -104,7 +103,7 @@ func (r *Read) writeToFile(res string) error {
 func (r *Read) writePermissons() error {
 
 	if err := os.Chmod(r.FilePath(), os.FileMode(0600)); err != nil {
-		return fmt.Errorf("error changing permissons of file '%s' to 0600: %s", r.FilePath(), err)
+		return fmt.Errorf("error changing permissons of file '%s' to 0600: %v", r.FilePath(), err)
 	}
 
 	var uid int
@@ -112,26 +111,26 @@ func (r *Read) writePermissons() error {
 
 	usr, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("error getting current user info: %s", err)
+		return fmt.Errorf("error getting current user info: %v", err)
 	}
 
 	if r.Owner() == "" {
 
 		uid, err = strconv.Atoi(usr.Uid)
 		if err != nil {
-			return fmt.Errorf("error converting user uid '%s' (string) to (int): %s", usr.Uid, err)
+			return fmt.Errorf("error converting user uid '%s' (string) to (int): %v", usr.Uid, err)
 		}
 
 	} else {
 
 		u, err := user.Lookup(r.Owner())
 		if err != nil {
-			return fmt.Errorf("error finding owner '%s' on system: %s", r.Owner(), err)
+			return fmt.Errorf("error finding owner '%s' on system: %v", r.Owner(), err)
 		}
 
 		uid, err = strconv.Atoi(u.Uid)
 		if err != nil {
-			return fmt.Errorf("wrror converting user uid '%s' (string) to (int): %s", u.Uid, err)
+			return fmt.Errorf("wrror converting user uid '%s' (string) to (int): %v", u.Uid, err)
 		}
 
 	}
@@ -140,44 +139,42 @@ func (r *Read) writePermissons() error {
 
 		gid, err = strconv.Atoi(usr.Gid)
 		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %s", usr.Gid, err)
+			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", usr.Gid, err)
 		}
 
 	} else {
 
 		g, err := user.LookupGroup(r.Group())
 		if err != nil {
-			return fmt.Errorf("error finding group '%s' on system: %s", r.Group(), err)
+			return fmt.Errorf("error finding group '%s' on system: %v", r.Group(), err)
 		}
 
 		gid, err = strconv.Atoi(g.Gid)
 		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %s", g.Gid, err)
+			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", g.Gid, err)
 		}
 
 	}
 
 	if err := os.Chown(r.FilePath(), uid, gid); err != nil {
-		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %s", r.FilePath(), r.Owner(), r.Group(), err)
+		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %v", r.FilePath(), r.Owner(), r.Group(), err)
 	}
 
 	r.Log.Debugf("Set permissons on file: %s", r.FilePath())
 
 	return nil
-
 }
 
 func (r *Read) getPrettyJSON(sec *vault.Secret) (prettyStr string, err error) {
-
 	js, err := json.Marshal(sec)
 	if err != nil {
-		return "", fmt.Errorf("error converting responce from vault into JSON: %s", err)
+		return "", fmt.Errorf("error converting responce from vault into JSON: %v", err)
 	}
 
 	var prettyJSON bytes.Buffer
 	err = json.Indent(&prettyJSON, js, "", "\t")
 	if err != nil {
-		return "", fmt.Errorf("error parsing JSON: %s", err)
+		return "", fmt.Errorf("error parsing JSON: %v", err)
 	}
 
 	return string(prettyJSON.Bytes()), nil
