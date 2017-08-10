@@ -15,9 +15,8 @@ import (
 )
 
 func (c *Cert) RequestCertificate() error {
-
 	if err := c.verifyCertificates(); err != nil {
-		c.Log.Debugf("Couldn't verify certificates: %s", err)
+		c.Log.Debugf("Couldn't verify certificates: %v", err)
 		c.Log.Info("Generating new certificates")
 		return c.createNewCerts()
 	}
@@ -41,12 +40,12 @@ func (c *Cert) createNewCerts() error {
 	}
 	sec, err := c.writeCSR(path, data)
 	if err != nil {
-		return fmt.Errorf("error writing CSR to vault at '%s': %s", path, err)
+		return fmt.Errorf("error writing CSR to vault at '%s': %v", path, err)
 	}
 
 	cert, certCA, err := c.decodeSec(sec)
 	if err != nil {
-		return fmt.Errorf("failed to decode secret from CSR: %s", err)
+		return fmt.Errorf("failed to decode secret from CSR: %v", err)
 	}
 
 	if cert == "" {
@@ -62,10 +61,10 @@ func (c *Cert) createNewCerts() error {
 	caPath := filepath.Clean(c.Destination() + "-ca.pem")
 
 	if err := c.storeCertificate(certPath, cert); err != nil {
-		return fmt.Errorf("error storing certificate at path '%s': %s", certPath, err)
+		return fmt.Errorf("error storing certificate at path '%s': %v", certPath, err)
 	}
 	if err := c.storeCertificate(caPath, certCA); err != nil {
-		return fmt.Errorf("error storing ca certificate at path '%s': %s", caPath, err)
+		return fmt.Errorf("error storing ca certificate at path '%s': %v", caPath, err)
 	}
 
 	return nil
@@ -76,7 +75,7 @@ func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
 
 	// Path exists but throws an error
 	if err != nil && os.IsExist(err) {
-		return true, fmt.Errorf("failed to read file at location '%s': %s", path, err)
+		return true, fmt.Errorf("failed to read file at location '%s': %v", path, err)
 	}
 
 	// Path doesn't exist
@@ -93,7 +92,6 @@ func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
 }
 
 func (c *Cert) verifyCertificates() error {
-
 	conf := vault.DefaultConfig()
 	conf.Address = c.vaultClient.Address()
 
@@ -105,14 +103,13 @@ func (c *Cert) verifyCertificates() error {
 	}
 
 	if err := conf.ConfigureTLS(tConf); err != nil {
-		return fmt.Errorf("error verifying cert: %s", err)
+		return fmt.Errorf("error verifying cert: %v", err)
 	}
 
 	return nil
 }
 
 func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err error) {
-
 	if sec == nil {
 		return "", "", errors.New("no secret returned from vault")
 	}
@@ -158,12 +155,12 @@ func (c *Cert) createCSR() (csr []byte, err error) {
 
 	key, err := x509.ParsePKCS1PrivateKey(c.Data().Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key bytes: %s", err)
+		return nil, fmt.Errorf("failed to parse private key bytes: %v", err)
 	}
 
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create CSR: %s", err)
+		return nil, fmt.Errorf("failed to create CSR: %v", err)
 	}
 
 	csr = pem.EncodeToMemory(&pem.Block{
@@ -177,13 +174,13 @@ func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault
 
 	csr, err := c.createCSR()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate certificate: %s", err)
+		return nil, fmt.Errorf("failed to generate certificate: %v", err)
 	}
 
 	pemBytes := []byte(csr)
 	pemBlock, _ := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		return nil, fmt.Errorf("CSR contains no data: %s", err)
+		return nil, fmt.Errorf("CSR contains no data: %v", err)
 	}
 	data["csr"] = string(csr)
 
@@ -194,12 +191,12 @@ func (c *Cert) storeCertificate(path, cert string) error {
 
 	fi, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("failed to open file '%s': %s", path, err)
+		return fmt.Errorf("failed to open file '%s': %v", path, err)
 	}
 	defer fi.Close()
 
 	if _, err := fi.Write([]byte(cert)); err != nil {
-		return fmt.Errorf("failed to write certificate to file '%s': %s", path, err)
+		return fmt.Errorf("failed to write certificate to file '%s': %v", path, err)
 	}
 
 	if err := c.WritePermissions(path, os.FileMode(0644)); err != nil {

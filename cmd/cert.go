@@ -27,7 +27,6 @@ var certCmd = &cobra.Command{
 		if err := c.Run(cmd, args); err != nil {
 			log.Fatal(err)
 		}
-
 	},
 }
 

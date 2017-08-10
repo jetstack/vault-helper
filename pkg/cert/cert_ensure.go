@@ -14,7 +14,7 @@ import (
 // Ensure -key.pem exists, and has correct size and key type
 func (c *Cert) EnsureKey() error {
 	if err := c.ensureDestination(); err != nil {
-		return fmt.Errorf("error ensuring destination: %s", err)
+		return fmt.Errorf("error ensuring destination: %v", err)
 	}
 
 	path := c.Destination() + "-key.pem"
@@ -33,7 +33,7 @@ func (c *Cert) EnsureKey() error {
 	//Path Exists
 	c.Log.Debug("Pem file exists '-key.pem'")
 	if err := c.loadKeyFromFile(path); err != nil {
-		return fmt.Errorf("failed to load rsa key from file '%s': %s", path, err)
+		return fmt.Errorf("failed to load rsa key from file '%s': %v", path, err)
 	}
 
 	if c.KeyType() != c.Data().Type {
@@ -65,7 +65,7 @@ func (c *Cert) ensureDestination() error {
 
 	// Path exists but throws an error
 	if err != nil && os.IsExist(err) {
-		return fmt.Errorf("failed to read at location '%s': %s", dir, err)
+		return fmt.Errorf("failed to read at location '%s': %v", dir, err)
 	}
 
 	// Path doesn't exist
@@ -94,11 +94,11 @@ func (c *Cert) ensureDestination() error {
 func (c *Cert) genAndWriteKey(path string) error {
 	c.Log.Infof("Generating new RSA key")
 	if err := c.generateKey(); err != nil {
-		return fmt.Errorf("error generating key: %s", err)
+		return fmt.Errorf("error generating key: %v", err)
 	}
 
 	if err := c.writeKeyToFile(path); err != nil {
-		return fmt.Errorf("error saving key to file '%s': %s", path, err)
+		return fmt.Errorf("error saving key to file '%s': %v", path, err)
 	}
 	c.Log.Infof("Key written to file: %s", path)
 
@@ -110,13 +110,13 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	// Load PEM
 	pemfile, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("unable to open file for reading '%s': %s", path, err)
+		return fmt.Errorf("unable to open file for reading '%s': %v", path, err)
 	}
 
 	// need to convert pemfile to []byte for decoding
 	pemfileinfo, err := pemfile.Stat()
 	if err != nil {
-		return fmt.Errorf("unable to get pem file info '%s': %s", path, err)
+		return fmt.Errorf("unable to get pem file info '%s': %v", path, err)
 	}
 
 	size := pemfileinfo.Size()
@@ -126,7 +126,7 @@ func (c *Cert) loadKeyFromFile(path string) error {
 	buffer := bufio.NewReader(pemfile)
 	_, err = buffer.Read(pembytes)
 	if err != nil {
-		return fmt.Errorf("unable to read pembyte from file: %s", err)
+		return fmt.Errorf("unable to read pembyte from file: %v", err)
 	}
 
 	data, rest := pem.Decode([]byte(pembytes))
@@ -136,7 +136,7 @@ func (c *Cert) loadKeyFromFile(path string) error {
 
 	k, err := x509.ParsePKCS1PrivateKey(data.Bytes)
 	if err != nil {
-		return fmt.Errorf("failed to parse private key bytes: %s", err)
+		return fmt.Errorf("failed to parse private key bytes: %v", err)
 	}
 
 	c.SetPemSize(k.N.BitLen())
@@ -146,7 +146,7 @@ func (c *Cert) loadKeyFromFile(path string) error {
 
 	pemfile.Close()
 	if err != nil {
-		return fmt.Errorf("unable to close pemfile: %s", err)
+		return fmt.Errorf("unable to close pemfile: %v", err)
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func (c *Cert) generateKey() error {
 	size := c.BitSize()
 	key, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
-		return fmt.Errorf("failed to generate rsa key: %s", err)
+		return fmt.Errorf("failed to generate rsa key: %v", err)
 	}
 
 	key_bytes := x509.MarshalPKCS1PrivateKey(key)
@@ -174,15 +174,15 @@ func (c *Cert) generateKey() error {
 func (c *Cert) writeKeyToFile(path string) error {
 	pemfile, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("failed to create pem key file for writting: %s", err)
+		return fmt.Errorf("failed to create pem key file for writting: %v", err)
 	}
 
 	if err := pem.Encode(pemfile, c.Data()); err != nil {
-		return fmt.Errorf("failed to encode key to pem file at'%s': %s", path, err)
+		return fmt.Errorf("failed to encode key to pem file at'%s': %v", path, err)
 	}
 
 	if err := pemfile.Close(); err != nil {
-		return fmt.Errorf("error closing pem file at '%s':\n%s", path, err)
+		return fmt.Errorf("error closing pem file at '%s': %v", path, err)
 	}
 
 	return nil
