@@ -69,5 +69,4 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
 	}
 
 	return i
-
 }
