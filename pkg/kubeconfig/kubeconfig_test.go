@@ -40,6 +40,56 @@ func TestMain(m *testing.M) {
 	os.Exit(returnCode)
 }
 
+func TestKubeconf_Busy_Vault(t *testing.T) {
+	k := initKubernetes(t, vaultDev)
+	c, i := initCert(t, vaultDev)
+
+	token := k.InitTokens()["master"]
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+		t.Fatalf("error setting token for test: %v", err)
+	}
+
+	if err := c.RunCert(); err != nil {
+		t.Fatalf("error runinning cert: %v", err)
+	}
+
+	u := initKubeconf(t, vaultDev, c)
+
+	if err := u.RunKube(); err != nil {
+		t.Fatalf("error runinning kubeconfig: %v", err)
+	}
+
+	yml := importYaml(t, u.FilePath())
+
+	ymlKeyBef := yml.Users[0].User.ClientKeyData
+	ymlCerBef := yml.Users[0].User.ClientCertificateData
+	ymlCABef := yml.Clusters[0].Cluster.CertificateAuthorityData
+
+	u.Log.Infof("-- Second run call --")
+	u.vaultClient.SetToken("foo-bar")
+	defer u.vaultClient.SetToken("root-token")
+	if err := u.RunKube(); err != nil {
+		t.Fatalf("Expected 400 error, premisson denied")
+	}
+
+	yml = importYaml(t, u.FilePath())
+
+	ymlKeyAft := yml.Users[0].User.ClientKeyData
+	ymlCerAft := yml.Users[0].User.ClientCertificateData
+	ymlCAAft := yml.Clusters[0].Cluster.CertificateAuthorityData
+
+	if ymlKeyBef != ymlKeyAft {
+		t.Fatalf("Yaml key data before does not match yaml key data after. expected no changed. bef=%v aft=%v", ymlKeyBef, ymlKeyAft)
+	}
+	if ymlCABef != ymlCAAft {
+		t.Fatalf("Yaml CA data before does not match yaml CA data after. expected no changed. bef=%v aft=%v", ymlCABef, ymlCAAft)
+	}
+	if ymlCerBef != ymlCerAft {
+		t.Fatalf("Yaml cert data before does not match yaml cert data after. expected no changed. bef=%v aft=%v", ymlCerBef, ymlCerAft)
+	}
+
+}
+
 // Test permissons of created files
 func TestKubeconf_File_Perms(t *testing.T) {
 
