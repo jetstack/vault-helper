@@ -63,12 +63,12 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 		t.Errorf("unexpected token: act=%s exp=%s", act, exp)
 	}
 
+	return
 }
 
 //test 2
 // Not expceted token set, init token already exists
 func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
-
 	fv := NewFakeVault(t)
 
 	i := &InitToken{
@@ -103,12 +103,12 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 		t.Errorf("unexpected token: act=%s exp=%s", act, exp)
 	}
 
+	return
 }
 
 //test 3
 // Expceted token set, init token already exists and it's matching
 func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
-
 	fv := NewFakeVault(t)
 
 	i := &InitToken{
@@ -143,12 +143,12 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 		t.Errorf("unexpected token: act=%s exp=%s", act, exp)
 	}
 
+	return
 }
 
 // test 4
 // Expceted token set, init token doesn't exist
 func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
-
 	fv := NewFakeVault(t)
 
 	i := &InitToken{
@@ -194,6 +194,8 @@ func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
 	if exp, act := "expected-token", token; exp != act {
 		t.Errorf("unexpected token: act=%s exp=%s", act, exp)
 	}
+
+	return
 }
 
 // General policy and write calls when init token ensuring

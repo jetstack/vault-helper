@@ -29,7 +29,6 @@ func (g *Generic) Path() string {
 }
 
 func (g *Generic) GenerateSecretsMount() error {
-
 	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return err
@@ -46,7 +45,7 @@ func (g *Generic) GenerateSecretsMount() error {
 		)
 
 		if err != nil {
-			return fmt.Errorf("error creating mount: %s", err)
+			return fmt.Errorf("error creating mount: %v", err)
 		}
 
 		logrus.Infof("Mounted secrets: '%s'", g.Path())
@@ -54,11 +53,11 @@ func (g *Generic) GenerateSecretsMount() error {
 
 	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
-		return fmt.Errorf("error checking for secret %s: %s", rsaKeyPath, err)
+		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
 	} else if secret == nil {
 		err = g.writeNewRSAKey(rsaKeyPath, 4096)
 		if err != nil {
-			return fmt.Errorf("error creating rsa key at %s: %s", rsaKeyPath, err)
+			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
 		}
 	}
 
@@ -66,11 +65,10 @@ func (g *Generic) GenerateSecretsMount() error {
 }
 
 func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
-
 	reader := rand.Reader
 	key, err := rsa.GenerateKey(reader, bitSize)
 	if err != nil {
-		return fmt.Errorf("error generating rsa key: %s", err)
+		return fmt.Errorf("error generating rsa key: %v", err)
 	}
 
 	var privateKey = &pem.Block{
@@ -82,10 +80,10 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	writer := bufio.NewWriter(&buf)
 	err = pem.Encode(writer, privateKey)
 	if err != nil {
-		return fmt.Errorf("error encoding rsa key in PEM: %s", err)
+		return fmt.Errorf("error encoding rsa key in PEM: %v", err)
 	}
 	if err := writer.Flush(); err != nil {
-		return fmt.Errorf("error flushing buffer: %s", err)
+		return fmt.Errorf("error flushing buffer: %v", err)
 	}
 
 	writeData := map[string]interface{}{
@@ -93,10 +91,10 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	}
 
 	_, err = g.kubernetes.vaultClient.Logical().Write(secretPath, writeData)
-
 	if err != nil {
-		return fmt.Errorf("error writting key to secrets: %s", err)
+		return fmt.Errorf("error writting key to secrets: %v", err)
 	}
+
 	logrus.Infof("Key written to secrets '%s'", secretPath)
 
 	return nil
@@ -106,7 +104,7 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
 
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(path); err != nil {
-		return "", fmt.Errorf("error checking for secret %s: %s", path, err)
+		return "", fmt.Errorf("error checking for secret %s: %v", path, err)
 	} else if secret != nil {
 		key := "init_token"
 		token, ok := secret.Data[key]
@@ -132,7 +130,7 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 
 	token, err := g.kubernetes.vaultClient.Auth().Token().CreateOrphan(tokenRequest)
 	if err != nil {
-		return "", fmt.Errorf("failed to create init token: %s", err)
+		return "", fmt.Errorf("failed to create init token: %v", err)
 	}
 
 	dataStoreToken := map[string]interface{}{
@@ -140,19 +138,18 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	}
 	_, err = g.kubernetes.vaultClient.Logical().Write(path, dataStoreToken)
 	if err != nil {
-		return "", fmt.Errorf("failed to store init token in '%s': %s", path, err)
+		return "", fmt.Errorf("failed to store init token in '%s': %v", path, err)
 	}
 
 	return token.Auth.ClientToken, nil
 }
 
 func (g *Generic) InitTokenStore(role string) (token string, err error) {
-
 	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
 
 	s, err := g.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return "", fmt.Errorf("Error reading init token: %v", err)
+		return "", fmt.Errorf("failed to read init token: %v", err)
 	}
 	if s == nil {
 		return "", nil
@@ -160,11 +157,11 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 
 	dat, ok := s.Data["init_token"]
 	if !ok {
-		return "", fmt.Errorf("Error finding init token data at '%s': %v", path, err)
+		return "", fmt.Errorf("failed to find init token data at '%s': %v", path, err)
 	}
 	token, ok = dat.(string)
 	if !ok {
-		return "", fmt.Errorf("Error converting token data to string: %v", err)
+		return "", fmt.Errorf("failed to convert token data to string: %v", err)
 	}
 
 	return token, nil
@@ -173,7 +170,7 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 func (g *Generic) revokeToken(token, path, role string) error {
 	err := g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(token)
 	if err != nil {
-		return fmt.Errorf("Error revoking init token at path: %v", path)
+		return fmt.Errorf("failed to revoke init token at path: %s", path)
 	}
 
 	logrus.Infof("Revoked Token '%s': '%s'", role, token)
@@ -182,23 +179,22 @@ func (g *Generic) revokeToken(token, path, role string) error {
 }
 
 func (g *Generic) SetInitTokenStore(role string, token string) error {
-
 	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
 
 	s, err := g.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
-		return fmt.Errorf("Error reading init token path: %v", s)
+		return fmt.Errorf("failed to rea init token path: %v", s)
 	}
 	if s != nil {
 		logrus.Infof("Token found in vault for role: %s", role)
 
 		dat, ok := s.Data["init_token"]
 		if !ok {
-			return fmt.Errorf("Error finding current init token data: %v", s)
+			return fmt.Errorf("failed to find current init token data: %v", s)
 		}
 		oldToken, ok := dat.(string)
 		if !ok {
-			return fmt.Errorf("Error converting init_token data to string: %v", s)
+			return fmt.Errorf("failed to convert init_token data to string: %v", s)
 		}
 
 		g.revokeToken(oldToken, path, role)
@@ -210,7 +206,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	}
 	_, err = g.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return fmt.Errorf("Error writting init token at path: %v", s)
+		return fmt.Errorf("error writting init token at path: %v", s)
 	}
 
 	logrus.Infof("User token written for '%s': '%s'", role, token)

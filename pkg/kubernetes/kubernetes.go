@@ -8,7 +8,6 @@ import (
 	"time"
 	"unicode"
 
-	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -105,7 +104,6 @@ var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
 func isValidClusterID(clusterID string) error {
-
 	if len(clusterID) < 1 {
 		return errors.New("Invalid cluster ID - None given")
 	}
@@ -131,7 +129,6 @@ func isValidClusterID(clusterID string) error {
 	}
 
 	return nil
-
 }
 
 func New(vaultClient *vault.Client) *Kubernetes {
@@ -228,7 +225,6 @@ func (k *Kubernetes) NewGeneric() *Generic {
 }
 
 func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
-
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {
 		return nil, fmt.Errorf("error listing mounts: %s", err)
@@ -273,8 +269,6 @@ func (k *Kubernetes) ensureInitTokens() error {
 		k.workerPolicy().Name,
 	}))
 
-	//strc := "Init_tokens generated for: "
-	//strw := "Init_tokens written for:   "
 	for _, initToken := range k.initTokens {
 		if err := initToken.Ensure(); err != nil {
 			result = multierror.Append(result, err)

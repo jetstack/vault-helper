@@ -175,7 +175,7 @@ func (_m *MockVaultSys) PutPolicy(name string, rules string) error {
 
 // PutPolicy indicates an expected call of PutPolicy
 func (_mr *MockVaultSysMockRecorder) PutPolicy(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "PutPolicy", arg0, arg1)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "PutPolicy", reflect.TypeOf((*MockVaultSys)(nil).PutPolicy), arg0, arg1)
 }
 
 // TuneMount mocks base method
@@ -187,7 +187,7 @@ func (_m *MockVaultSys) TuneMount(path string, config api.MountConfigInput) erro
 
 // TuneMount indicates an expected call of TuneMount
 func (_mr *MockVaultSysMockRecorder) TuneMount(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "TuneMount", arg0, arg1)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "TuneMount", reflect.TypeOf((*MockVaultSys)(nil).TuneMount), arg0, arg1)
 }
 
 // GetPolicy mocks base method
@@ -200,7 +200,7 @@ func (_m *MockVaultSys) GetPolicy(name string) (string, error) {
 
 // GetPolicy indicates an expected call of GetPolicy
 func (_mr *MockVaultSysMockRecorder) GetPolicy(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetPolicy", arg0)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetPolicy", reflect.TypeOf((*MockVaultSys)(nil).GetPolicy), arg0)
 }
 
 // MockVaultAuth is a mock of VaultAuth interface
@@ -235,7 +235,7 @@ func (_m *MockVaultAuth) Token() VaultToken {
 
 // Token indicates an expected call of Token
 func (_mr *MockVaultAuthMockRecorder) Token() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Token")
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Token", reflect.TypeOf((*MockVaultAuth)(nil).Token))
 }
 
 // MockVaultToken is a mock of VaultToken interface
@@ -271,7 +271,7 @@ func (_m *MockVaultToken) CreateOrphan(opts *api.TokenCreateRequest) (*api.Secre
 
 // CreateOrphan indicates an expected call of CreateOrphan
 func (_mr *MockVaultTokenMockRecorder) CreateOrphan(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "CreateOrphan", arg0)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "CreateOrphan", reflect.TypeOf((*MockVaultToken)(nil).CreateOrphan), arg0)
 }
 
 // RevokeOrphan mocks base method
@@ -283,7 +283,7 @@ func (_m *MockVaultToken) RevokeOrphan(token string) error {
 
 // RevokeOrphan indicates an expected call of RevokeOrphan
 func (_mr *MockVaultTokenMockRecorder) RevokeOrphan(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "RevokeOrphan", arg0)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RevokeOrphan", reflect.TypeOf((*MockVaultToken)(nil).RevokeOrphan), arg0)
 }
 
 // Lookup mocks base method
@@ -296,7 +296,7 @@ func (_m *MockVaultToken) Lookup(token string) (*api.Secret, error) {
 
 // Lookup indicates an expected call of Lookup
 func (_mr *MockVaultTokenMockRecorder) Lookup(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Lookup", arg0)
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Lookup", reflect.TypeOf((*MockVaultToken)(nil).Lookup), arg0)
 }
 
 // MockVault is a mock of Vault interface
@@ -331,7 +331,7 @@ func (_m *MockVault) Logical() VaultLogical {
 
 // Logical indicates an expected call of Logical
 func (_mr *MockVaultMockRecorder) Logical() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Logical")
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Logical", reflect.TypeOf((*MockVault)(nil).Logical))
 }
 
 // Sys mocks base method
@@ -343,7 +343,7 @@ func (_m *MockVault) Sys() VaultSys {
 
 // Sys indicates an expected call of Sys
 func (_mr *MockVaultMockRecorder) Sys() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Sys")
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Sys", reflect.TypeOf((*MockVault)(nil).Sys))
 }
 
 // Auth mocks base method
@@ -355,5 +355,5 @@ func (_m *MockVault) Auth() VaultAuth {
 
 // Auth indicates an expected call of Auth
 func (_mr *MockVaultMockRecorder) Auth() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Auth")
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Auth", reflect.TypeOf((*MockVault)(nil).Auth))
 }

@@ -22,20 +22,16 @@ func TestIsValidClusterID(t *testing.T) {
 	if err == nil {
 		t.Error("expected an error")
 	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
-		t.Errorf("error '%s' should contain '%s'", err, msg)
+		t.Errorf("error '%v' should contain '%s'", err, msg)
 	}
 
 	err = isValidClusterID("invalid.cluster")
 	if err == nil {
 		t.Error("expected an error")
 	} else if msg := "Invalid cluster ID"; !strings.Contains(err.Error(), msg) {
-		t.Errorf("error '%s' should contain '%s'", err, msg)
+		t.Errorf("error '%v' should contain '%s'", err, msg)
 	}
-
 }
-
-//go test -coverprofile=coverage.out
-//  go tool cover -html=coverage.out
 
 func TestKubernetes_Ensure(t *testing.T) {
 	vault := NewFakeVault(t)
@@ -46,10 +42,9 @@ func TestKubernetes_Ensure(t *testing.T) {
 
 	err := k.Ensure()
 	if err != nil {
-		t.Error("error ensuring: ", err)
+		t.Fatalf("error ensuring: %v", err)
 		return
 	}
-
 }
 
 func TestKubernetes_NewToken_Role(t *testing.T) {
@@ -64,7 +59,7 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	err := k.kubernetesPKI.WriteRole(adminRole)
 
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Fatalf("unexpected error: %v", err)
 		return
 	}
 
@@ -73,8 +68,6 @@ func TestKubernetes_NewToken_Role(t *testing.T) {
 	err = k.kubernetesPKI.WriteRole(kubeSchedulerRole)
 
 	if err != nil {
-		t.Error("unexpected error", err)
-		return
+		t.Fatalf("unexpected error: %v", err)
 	}
-
 }

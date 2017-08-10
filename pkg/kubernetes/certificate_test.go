@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -30,7 +31,7 @@ type basicConstraints struct {
 func TestOrganisations(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return
 	}
 	defer vault.Stop()
@@ -39,14 +40,14 @@ func TestOrganisations(t *testing.T) {
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Errorf("Error ensuring %s", err)
+		t.Errorf("error ensuring %v", err)
 		return
 	}
 
 	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy"} {
 		path := filepath.Join("test-cluster", "pki", "k8s", "sign", role)
 		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
-			t.Error("Error with organisation match: ", err)
+			t.Error("error matching organisation: ", err)
 			return
 		}
 	}
@@ -54,54 +55,54 @@ func TestOrganisations(t *testing.T) {
 	for _, role := range []string{"server", "client"} {
 		path := filepath.Join("test-cluster", "pki", "etcd-k8s", "sign", role)
 		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
-			t.Error("Error with organisation match: ", err)
+			t.Errorf("error matching organisation: %v", err)
 			return
 		}
 	}
 
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "admin")
 	if err := OrgMatch("admin", path, []string{"system:masters"}, vault.Client()); err != nil {
-		t.Error("Error with organisation match: ", err)
+		t.Errorf("error matching organisation: %v", err)
 		return
 	}
 
 	path = filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
 	if err := OrgMatch("kubelet", path, []string{"system:nodes"}, vault.Client()); err != nil {
-		t.Error("Error with organisation match: ", err)
+		t.Errorf("error matching organisation: %v", err)
 		return
 	}
 
+	return
 }
 
 func OrgMatch(role, path string, match []string, vaultClient *vault.Client) error {
-
 	data := map[string]interface{}{
 		"common_name": role,
 	}
 
 	sec, err := writeCertificate(path, data, vaultClient)
 	if err != nil {
-		return fmt.Errorf("Error reading signiture: %s", err)
+		return fmt.Errorf("failed to read signiture: %v", err)
 	}
 
 	cert_field, ok := sec.Data["certificate"]
 	if !ok {
-		return fmt.Errorf("Error, certificate field not found")
+		return errors.New("certificate field not found")
 	}
 	cert_ca, ok := cert_field.(string)
 	if !ok {
-		return fmt.Errorf("Error, certificate field not string")
+		return errors.New("certificate field not string")
 	}
 
 	roots := x509.NewCertPool()
 	ok = roots.AppendCertsFromPEM([]byte(cert_ca))
 	if !ok {
-		return fmt.Errorf("failed to parse root certificate")
+		return errors.New("failed to parse root certificate")
 	}
 
 	block, _ := pem.Decode([]byte(cert_ca))
 	if block == nil {
-		return fmt.Errorf("failed to parse certificate PEM")
+		return errors.New("failed to parse certificate PEM")
 	}
 
 	cert, err := x509.ParseCertificate(block.Bytes)
@@ -126,7 +127,7 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 			}
 		}
 		if !matched {
-			return fmt.Errorf("Error, unexpected organisation: exp:%s got:%s", cert.Subject.Organization, matchcp)
+			return fmt.Errorf("error, unexpected organisation: exp:%s got:%s", cert.Subject.Organization, matchcp)
 		}
 	}
 
@@ -142,7 +143,7 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 func TestCertificates(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return
 	}
 	defer vault.Stop()
@@ -151,7 +152,7 @@ func TestCertificates(t *testing.T) {
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Errorf("Error ensuring %s", err)
+		t.Errorf("failed to ensure %v", err)
 		return
 	}
 
@@ -168,7 +169,7 @@ func TestCertificates(t *testing.T) {
 func TestApiServerCanAdd(t *testing.T) {
 	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
-		t.Skip("unable to initialise vault dev server for integration tests: ", err)
+		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return
 	}
 	defer vault.Stop()
@@ -177,7 +178,7 @@ func TestApiServerCanAdd(t *testing.T) {
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Errorf("Error ensuring %s", err)
+		t.Errorf("failed to ensure %v", err)
 		return
 	}
 
@@ -191,7 +192,7 @@ func TestApiServerCanAdd(t *testing.T) {
 
 	_, err := writeCertificate(path, data, vault.Client())
 	if err != nil {
-		t.Error("Error writting signiture: ", err)
+		t.Errorf("error writting signiture: %v", err)
 		return
 	}
 
@@ -215,7 +216,7 @@ func writeCertificate(path string, data map[string]interface{}, vault *vault.Cli
 
 	csr, err := createCertificateSigningRequest(pkixName, time.Hour*60, 2048)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating certificate: %v", err)
+		return nil, fmt.Errorf("failed to generate certificate: %v", err)
 	}
 
 	data["csr"] = string(csr)
@@ -223,7 +224,7 @@ func writeCertificate(path string, data map[string]interface{}, vault *vault.Cli
 	pemBytes := []byte(csr)
 	pemBlock, pemBytes := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		return nil, fmt.Errorf("csr contain no data: %v", err)
+		return nil, fmt.Errorf("csr contains no data: %v", err)
 	}
 
 	sec, err := vault.Logical().Write(path, data)
@@ -243,7 +244,7 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	sec, err := writeCertificate(path, data, vault)
 
 	if err != nil {
-		t.Error("Error writting signiture: ", err)
+		t.Errorf("error writting signiture: %v", err)
 		return
 	}
 
@@ -286,7 +287,7 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	opts.DNSName = "etcd-1.tarmak.local"
 	_, err = cert.Verify(opts)
 	if err != nil && (role == "server" || role == "kube-apiserver") {
-		t.Error("failed to verify certificate: " + err.Error())
+		t.Errorf("failed to verify certificate: %v", err.Error())
 		return
 	}
 	if role == "server" || role == "kube-apiserver" {
@@ -296,7 +297,7 @@ func verify_certificate(t *testing.T, name, role string, vault *vault.Client) {
 	opts.DNSName = "localhost"
 	_, err = cert.Verify(opts)
 	if err != nil && (role == "server" || role == "kube-apiserver") {
-		t.Error("failed to verify certificate: " + err.Error())
+		t.Errorf("failed to verify certificate: %v", err.Error())
 		return
 	}
 	if role == "server" || role == "kube-apiserver" {
@@ -309,7 +310,7 @@ func createCertificateSigningRequest(names pkix.Name, expiration time.Duration, 
 	// step: generate a keypair
 	keys, err := rsa.GenerateKey(rand.Reader, size)
 	if err != nil {
-		return nil, fmt.Errorf("unable to genarate private keys, error: %s", err)
+		return nil, fmt.Errorf("unable to genarate private keys, error: %v", err)
 	}
 
 	// step: generate a csr template
@@ -321,7 +322,6 @@ func createCertificateSigningRequest(names pkix.Name, expiration time.Duration, 
 	// step: generate the csr request
 	csrCertificate, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, keys)
 	if err != nil {
-		logrus.Infof("%s", err)
 		return nil, err
 	}
 

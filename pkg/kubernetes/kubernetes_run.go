@@ -17,7 +17,6 @@ const FlagInitToken_master = "init-token-master"
 const FlagInitToken_worker = "init-token-worker"
 
 func (k *Kubernetes) Run(cmd *cobra.Command, args []string) error {
-
 	if value, err := cmd.PersistentFlags().GetDuration(FlagMaxValidityComponents); err != nil {
 		if err != nil {
 			return fmt.Errorf("error parsing %s '%s': %s", FlagMaxValidityComponents, value, err)
@@ -63,8 +62,6 @@ func (k *Kubernetes) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error parsing %s '%s': %s", FlagInitToken_all, value, err)
 	}
 	k.FlagInitTokens.All = value
-
-	// TODO: ensure CA >> COMPONENTS/ADMIN
 
 	if len(args) > 0 {
 		k.clusterID = args[0]
