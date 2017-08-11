@@ -26,7 +26,6 @@ var readCmd = &cobra.Command{
 		if err := r.Run(cmd, args); err != nil {
 			log.Fatal(err)
 		}
-
 	},
 }
 
