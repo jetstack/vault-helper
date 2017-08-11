@@ -46,11 +46,10 @@ func init() {
 	kubeconfCmd.PersistentFlags().StringSlice(cert.FlagSanHosts, []string{}, "Host Sans. [[]string] (default none)")
 	kubeconfCmd.Flag(cert.FlagSanHosts).Shorthand = "s"
 
-	kubeconfCmd.PersistentFlags().String(cert.FlagOwner, "root", "Owner of created file/directories. [string]")
+	kubeconfCmd.PersistentFlags().String(cert.FlagOwner, "0", "Owner of created file/directories. Uid value also accepted. [string]")
 	kubeconfCmd.Flag(cert.FlagOwner).Shorthand = "o"
 
-	kubeconfCmd.PersistentFlags().String(cert.FlagGroup, "root", "Group of created file/directories. [string]")
-
+	kubeconfCmd.PersistentFlags().String(cert.FlagGroup, "0", "Group of created file/directories. Gid value also accepted. [string]")
 	kubeconfCmd.Flag(cert.FlagGroup).Shorthand = "g"
 
 	RootCmd.AddCommand(kubeconfCmd)
