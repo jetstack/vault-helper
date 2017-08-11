@@ -35,8 +35,8 @@ func init() {
 	certCmd.PersistentFlags().String(cert.FlagKeyType, "RSA", "Type of key to generate. [string]")
 	certCmd.PersistentFlags().StringSlice(cert.FlagIpSans, []string{}, "IP sans. [[]string] (default none)")
 	certCmd.PersistentFlags().StringSlice(cert.FlagSanHosts, []string{}, "Host Sans. [[]string] (default none)")
-	certCmd.PersistentFlags().String(cert.FlagOwner, "root", "Owner of created file/directories. [string]")
-	certCmd.PersistentFlags().String(cert.FlagGroup, "root", "Group of created file/directories. [string]")
+	certCmd.PersistentFlags().String(cert.FlagOwner, "root", "Owner of created file/directories. Uid value also accepted. [string]")
+	certCmd.PersistentFlags().String(cert.FlagGroup, "root", "Group of created file/directories. Gid value also accepted. [string]")
 
 	RootCmd.AddCommand(certCmd)
 }
