@@ -113,7 +113,7 @@ func (r *Read) writePermissons() error {
 		r.Log.Debugf("No owner given. Defaulting permissions to current user")
 		curr, err := user.Current()
 		if err != nil {
-			return fmt.Errorf("error retreiving current user info: %v", curr)
+			return fmt.Errorf("error retreiving current user info: %v", err)
 		}
 
 		uid, err = strconv.Atoi(curr.Uid)
