@@ -12,7 +12,6 @@ const FlagTokenRole = "role"
 const FlagVaultConfigPath = "config-path"
 
 func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
-
 	if len(args) > 0 {
 		i.SetClusterID(args[0])
 	} else {
@@ -21,7 +20,7 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 
 	value, err := cmd.PersistentFlags().GetString(FlagTokenRole)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagTokenRole, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagTokenRole, value, err)
 	}
 	if value == "" {
 		return fmt.Errorf("nno token role was given. token role is required for this command: --%s", FlagTokenRole)
@@ -30,16 +29,15 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 
 	value, err = cmd.Root().Flags().GetString(FlagVaultConfigPath)
 	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %s", FlagVaultConfigPath, value, err)
+		return fmt.Errorf("error parsing %s '%s': %v", FlagVaultConfigPath, value, err)
 	}
 	if value != "" {
 		abs, err := filepath.Abs(value)
 		if err != nil {
-			return fmt.Errorf("error generating absoute path from path '%s': %s", value, err)
+			return fmt.Errorf("error generating absoute path from path '%s': %v", value, err)
 		}
 		i.SetVaultConfigPath(abs)
 	}
 
 	return i.TokenRenewRun()
-
 }

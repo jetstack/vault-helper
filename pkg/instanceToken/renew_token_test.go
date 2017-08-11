@@ -38,13 +38,12 @@ func TestMain(m *testing.M) {
 
 // Token exists at token_file - renew
 func TestRenew_Token_Exists(t *testing.T) {
-
 	k := initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	ttl, err := getTTL(vaultDev, token, i)
@@ -53,12 +52,12 @@ func TestRenew_Token_Exists(t *testing.T) {
 	}
 
 	if err := i.TokenRenewRun(); err != nil {
-		t.Fatalf("error renewing token from token file (Exists): %s", err)
+		t.Fatalf("error renewing token from token file (Exists): %v", err)
 	}
 
 	newttl, err := getTTL(vaultDev, token, i)
 	if err != nil {
-		t.Fatalf("%s", err)
+		t.Fatal(err)
 	}
 
 	i.Log.Debugf("old ttl: %ss    new ttl: %ss", strconv.Itoa(ttl), strconv.Itoa(newttl))
@@ -74,12 +73,11 @@ func TestRenew_Token_Exists(t *testing.T) {
 
 // Token doesn't exist at token file - generate a new form init_token file; renew token
 func TestRenew_Token_NotExists(t *testing.T) {
-
 	k := initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), k.InitTokens()["master"]); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	ttl, err := getTTL(vaultDev, i.Token(), i)
@@ -88,12 +86,12 @@ func TestRenew_Token_NotExists(t *testing.T) {
 	}
 
 	if err := i.TokenRenewRun(); err != nil {
-		t.Fatalf("error renewing token from token file (!Exist): %s", err)
+		t.Fatalf("error renewing token from token file (!Exist): %v", err)
 	}
 
 	newttl, err := getTTL(vaultDev, i.Token(), i)
 	if err != nil {
-		t.Fatalf("%s", err)
+		t.Fatal(err)
 	}
 
 	i.Log.Debugf("old ttl: %ss    new ttl: %ss", strconv.Itoa(ttl), strconv.Itoa(newttl))
@@ -109,7 +107,6 @@ func TestRenew_Token_NotExists(t *testing.T) {
 
 // Token exists but can't be renewed - return error
 func TestRenew_Token_Exists_NoRenew(t *testing.T) {
-
 	initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
@@ -122,24 +119,24 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 	newToken, err := vaultDev.Client().Auth().Token().CreateOrphan(tCreateRequest)
 	if err != nil {
-		t.Fatalf("unexpexted error creating unrenewable token: %s", err)
+		t.Fatalf("unexpexted error creating unrenewable token: %v", err)
 	}
 
 	if err := i.WriteTokenFile(i.TokenFilePath(), newToken.Auth.ClientToken); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	err = i.TokenRenewRun()
 	i.Log.Debug(err)
 
 	if err == nil {
-		t.Fatalf("expected an error - token not renewable. Fail")
+		t.Fatal("expected an error - token not renewable")
 	}
 
 	if err.Error() == "token not renewable: "+i.Token() {
 		i.Log.Debugf("Error returned successfully - token is not renewable")
 	} else {
-		t.Errorf("unexpected error: %s", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	return
@@ -147,7 +144,6 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 
 // Token doesn't exist at either file - return error
 func TestRenew_Token_NeitherExist(t *testing.T) {
-
 	initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
@@ -157,12 +153,12 @@ func TestRenew_Token_NeitherExist(t *testing.T) {
 		t.Fatalf("expected an error - init file is empty")
 	}
 
-	i.Log.Debugf("%s", err)
+	i.Log.Debug(err)
 	str := "failed to generate new token: init token was not read from file '" + i.InitTokenFilePath() + "' exiting"
 	if err.Error() == str {
 		i.Log.Debugf("error returned successfully - no init token in file")
 	} else {
-		t.Errorf("unexpected error: %s", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	return
@@ -170,7 +166,6 @@ func TestRenew_Token_NeitherExist(t *testing.T) {
 
 // Get ttl form vaultof given token
 func getTTL(v *vault_dev.VaultDev, token string, i *instanceToken.InstanceToken) (ttl int, err error) {
-
 	s, err := i.TokenLookup(token)
 	if err != nil {
 		return -1, err
@@ -217,7 +212,7 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToke
 	if _, err := os.Stat(i.InitTokenFilePath()); os.IsNotExist(err) {
 		ifile, err := os.Create(i.InitTokenFilePath())
 		if err != nil {
-			t.Fatalf("%s", err)
+			t.Fatal(err)
 		}
 		defer ifile.Close()
 	}
@@ -226,7 +221,7 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToke
 	if os.IsNotExist(err) {
 		tfile, err := os.Create(i.TokenFilePath())
 		if err != nil {
-			t.Fatalf("%s", err)
+			t.Fatal(err)
 		}
 		defer tfile.Close()
 	}
@@ -241,7 +236,7 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToke
 func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 	fileToken, err := i.TokenFromFile(i.TokenFilePath())
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Error(err)
 	}
 	if fileToken != i.Token() {
 		t.Fatalf("token in file should equal the one that has been renewed. exp=%s got=%s", i.Token(), fileToken)
@@ -249,7 +244,7 @@ func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 
 	fileToken, err = i.TokenFromFile(i.InitTokenFilePath())
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Error(err)
 	}
 	if fileToken != "" {
 		t.Fatalf("expexted no token in file '%s' but got='%s'", i.InitTokenFilePath(), fileToken)
@@ -264,7 +259,7 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Fatalf("error ensuring kubernetes:%s", err)
+		t.Fatalf("error ensuring kubernetes: %v", err)
 	}
 
 	return k
@@ -275,7 +270,7 @@ func initVaultDev() *vault_dev.VaultDev {
 	vaultDev := vault_dev.New()
 
 	if err := vaultDev.Start(); err != nil {
-		logrus.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
+		logrus.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
 	}
 
 	return vaultDev
