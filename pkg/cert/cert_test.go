@@ -1,10 +1,12 @@
 package cert
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/Sirupsen/logrus"
@@ -59,12 +61,62 @@ func TestCert_File_Perms(t *testing.T) {
 		t.Fatalf("destination has incorrect file permissons. exp=drwxr-xr-x got=%s", perm)
 	}
 
+	curr, err := user.Current()
+	if err != nil {
+		t.Fatalf("error retreiving current user info: %v", curr)
+	}
+
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
 	dotPem := filepath.Clean(c.Destination() + ".pem")
 	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	checkFilePerm(t, keyPem, os.FileMode(0600))
+	checkOwnerGroup(t, keyPem, curr.Uid, curr.Gid)
 	checkFilePerm(t, dotPem, os.FileMode(0644))
+	checkOwnerGroup(t, dotPem, curr.Uid, curr.Gid)
 	checkFilePerm(t, caPem, os.FileMode(0644))
+	checkOwnerGroup(t, caPem, curr.Uid, curr.Gid)
+}
+
+// Test when passed int instead of string for owner/group
+func TestCert_File_Perms_Int(t *testing.T) {
+	k := initKubernetes(t, vaultDev)
+	c, i := initCert(t, vaultDev)
+
+	curr, err := user.Current()
+	if err != nil {
+		t.Fatalf("error retreiving current user info: %v", curr)
+	}
+
+	c.SetGroup(curr.Uid)
+	c.SetOwner(curr.Gid)
+
+	token := k.InitTokens()["master"]
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+		t.Fatalf("error setting token for test: %v", err)
+	}
+
+	if err := c.RunCert(); err != nil {
+		t.Fatalf("error runinning cert: %v", err)
+	}
+
+	dir := filepath.Dir(c.Destination())
+	if fi, err := os.Stat(dir); err != nil {
+		t.Fatalf("error finding stats of '%s': %v", dir, err)
+	} else if !fi.IsDir() {
+		t.Fatalf("destination should be directory %s", dir)
+	} else if perm := fi.Mode(); perm.String() != "drwxr-xr-x" {
+		t.Fatalf("destination has incorrect file permissons. exp=drwxr-xr-x got=%s", perm)
+	}
+
+	keyPem := filepath.Clean(c.Destination() + "-key.pem")
+	dotPem := filepath.Clean(c.Destination() + ".pem")
+	caPem := filepath.Clean(c.Destination() + "-ca.pem")
+	checkFilePerm(t, keyPem, os.FileMode(0600))
+	checkOwnerGroup(t, keyPem, curr.Uid, curr.Gid)
+	checkFilePerm(t, dotPem, os.FileMode(0644))
+	checkOwnerGroup(t, dotPem, curr.Uid, curr.Gid)
+	checkFilePerm(t, caPem, os.FileMode(0644))
+	checkOwnerGroup(t, caPem, curr.Uid, curr.Gid)
 }
 
 // Check permissions of a file
@@ -75,6 +127,23 @@ func checkFilePerm(t *testing.T, path string, mode os.FileMode) {
 		t.Fatalf("file should not be directory %s", path)
 	} else if perm := fi.Mode(); perm != mode {
 		t.Fatalf("destination has incorrect file permissons. exp=%s got=%s", mode, perm)
+	}
+}
+
+// Check group and owner of a file
+func checkOwnerGroup(t *testing.T, path string, uid, gid string) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("error finding stats of '%s': %v", path, err)
+	}
+
+	uidF := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Uid)
+	gidF := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Gid)
+
+	if uidF != uid {
+		t.Fatalf("file uid '%s' doesn't match given uid '%s' at %s", uidF, uid, path)
+	} else if gidF != gid {
+		t.Fatalf("file gid '%s' doesn't match given group '%s' at %s", gidF, gid, path)
 	}
 }
 

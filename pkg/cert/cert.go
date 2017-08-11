@@ -67,25 +67,43 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 		return fmt.Errorf("failed to change permissons of file '%s' to 0600: %v", path, err)
 	}
 
-	usr, err := user.Lookup(c.Owner())
-	if err != nil {
-		return fmt.Errorf("failed to find user '%s' on system: %v", c.Owner(), err)
+	var uid int
+	var gid int
+
+	if u, err := strconv.Atoi(c.Owner()); err == nil {
+		c.Log.Debugf("User is a number. Using instead of lookup user")
+		uid = u
+
+	} else {
+		usr, err := user.Lookup(c.Owner())
+		if err != nil {
+			return fmt.Errorf("failed to find user '%s' on system: %v", c.Owner(), err)
+		}
+
+		uid, err = strconv.Atoi(usr.Uid)
+		if err != nil {
+			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", usr.Uid, err)
+		}
 	}
-	uid, err := strconv.Atoi(usr.Uid)
-	if err != nil {
-		return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", usr.Uid, err)
-	}
-	grp, err := user.LookupGroup(c.Group())
-	if err != nil {
-		return fmt.Errorf("failed to find group '%s' on system: %v", c.Group(), err)
-	}
-	gid, err := strconv.Atoi(grp.Gid)
-	if err != nil {
-		return fmt.Errorf("failed to convert group gid '%s' (string) to (int): %v", grp.Gid, err)
+
+	if g, err := strconv.Atoi(c.Group()); err == nil {
+		c.Log.Debugf("Group is a number. Using as gid instead of lookup group")
+		gid = g
+
+	} else {
+		grp, err := user.LookupGroup(c.Group())
+		if err != nil {
+			return fmt.Errorf("failed to find group '%s' on system: %v", c.Group(), err)
+		}
+
+		gid, err = strconv.Atoi(grp.Gid)
+		if err != nil {
+			return fmt.Errorf("failed to convert group gid '%s' (string) to (int): %v", grp.Gid, err)
+		}
 	}
 
 	if err := os.Chown(path, uid, gid); err != nil {
-		return fmt.Errorf("failed to change group and owner of file '%s' to usr:'%s' grp:'%s': %v", path, c.owner, c.group, err)
+		return fmt.Errorf("failed to change group and owner of file '%s' to usr:'%s' grp:'%s': %v", path, c.Owner(), c.Group(), err)
 	}
 
 	c.Log.Debugf("Set permissons on file: %s", path)
