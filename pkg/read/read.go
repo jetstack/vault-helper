@@ -109,7 +109,19 @@ func (r *Read) writePermissons() error {
 	var uid int
 	var gid int
 
-	if u, err := strconv.Atoi(r.Owner()); err == nil {
+	if r.Owner() == "" {
+		r.Log.Debugf("No owner given. Defaulting permissions to current user")
+		curr, err := user.Current()
+		if err != nil {
+			return fmt.Errorf("error retreiving current user info: %v", curr)
+		}
+
+		uid, err = strconv.Atoi(curr.Uid)
+		if err != nil {
+			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", curr.Uid, err)
+		}
+
+	} else if u, err := strconv.Atoi(r.Owner()); err == nil {
 		r.Log.Debugf("Owner is a number. Using instead of lookup user")
 		uid = u
 
@@ -125,7 +137,19 @@ func (r *Read) writePermissons() error {
 		}
 	}
 
-	if g, err := strconv.Atoi(r.Group()); err == nil {
+	if r.Group() == "" {
+		r.Log.Debugf("No group given. Defaulting permissions to current user-group")
+		curr, err := user.Current()
+		if err != nil {
+			return fmt.Errorf("error retreiving current user info: %v", curr)
+		}
+
+		gid, err = strconv.Atoi(curr.Gid)
+		if err != nil {
+			return fmt.Errorf("failed to convert user gid '%s' (string) to (int): %v", curr.Gid, err)
+		}
+
+	} else if g, err := strconv.Atoi(r.Group()); err == nil {
 		r.Log.Debugf("Group is a number. Using as gid instead of lookup group")
 		gid = g
 
