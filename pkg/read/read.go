@@ -109,55 +109,40 @@ func (r *Read) writePermissons() error {
 	var uid int
 	var gid int
 
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("error getting current user info: %v", err)
-	}
+	if u, err := strconv.Atoi(r.Owner()); err == nil {
+		r.Log.Debugf("Owner is a number. Using instead of lookup user")
+		uid = u
 
-	if r.Owner() == "" {
+	} else {
+		usr, err := user.Lookup(r.Owner())
+		if err != nil {
+			return fmt.Errorf("failed to find user '%s' on system: %v", r.Owner(), err)
+		}
 
 		uid, err = strconv.Atoi(usr.Uid)
 		if err != nil {
-			return fmt.Errorf("error converting user uid '%s' (string) to (int): %v", usr.Uid, err)
+			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", usr.Uid, err)
 		}
-
-	} else {
-
-		u, err := user.Lookup(r.Owner())
-		if err != nil {
-			return fmt.Errorf("error finding owner '%s' on system: %v", r.Owner(), err)
-		}
-
-		uid, err = strconv.Atoi(u.Uid)
-		if err != nil {
-			return fmt.Errorf("wrror converting user uid '%s' (string) to (int): %v", u.Uid, err)
-		}
-
 	}
 
-	if r.Group() == "" {
-
-		gid, err = strconv.Atoi(usr.Gid)
-		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", usr.Gid, err)
-		}
+	if g, err := strconv.Atoi(r.Group()); err == nil {
+		r.Log.Debugf("Group is a number. Using as gid instead of lookup group")
+		gid = g
 
 	} else {
-
-		g, err := user.LookupGroup(r.Group())
+		grp, err := user.LookupGroup(r.Group())
 		if err != nil {
-			return fmt.Errorf("error finding group '%s' on system: %v", r.Group(), err)
+			return fmt.Errorf("failed to find group '%s' on system: %v", r.Group(), err)
 		}
 
-		gid, err = strconv.Atoi(g.Gid)
+		gid, err = strconv.Atoi(grp.Gid)
 		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", g.Gid, err)
+			return fmt.Errorf("failed to convert group gid '%s' (string) to (int): %v", grp.Gid, err)
 		}
-
 	}
 
 	if err := os.Chown(r.FilePath(), uid, gid); err != nil {
-		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %v", r.FilePath(), r.Owner(), r.Group(), err)
+		return fmt.Errorf("failed to change group and owner of file '%s' to usr:'%s' grp:'%s': %v", r.FilePath(), r.Owner(), r.Group(), err)
 	}
 
 	r.Log.Debugf("Set permissons on file: %s", r.FilePath())
