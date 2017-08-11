@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
-	vault "github.com/hashicorp/vault/api"
-	//"github.com/Sirupsen/logrus"
 	"testing"
 	"time"
+
+	vault "github.com/hashicorp/vault/api"
 )
 
 func TestPKI_Ensure(t *testing.T) {
@@ -35,7 +35,7 @@ func TestPKI_Ensure(t *testing.T) {
 	k.etcdOverlayPKI.MaxLeaseTTL = time.Hour * 0
 	k.kubernetesPKI.DefaultLeaseTTL = time.Hour * 0
 	if err := k.Ensure(); err != nil {
-		t.Error("unexpected error", err)
+		t.Errorf("unexpected error: %v", err)
 		return
 	}
 
@@ -43,11 +43,11 @@ func TestPKI_Ensure(t *testing.T) {
 
 	exists, err := k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
 	if err != nil {
-		t.Error("Error finding policy: ", err)
+		t.Errorf("failed to find policy: %v", err)
 		return
 	}
 	if exists {
-		t.Error("Policy Found - it should not be")
+		t.Error("unexpected policy found")
 		return
 	}
 
@@ -55,17 +55,17 @@ func TestPKI_Ensure(t *testing.T) {
 
 	err = k.WritePolicy(policy)
 	if err != nil {
-		t.Error("Error writting policy: ", err)
+		t.Errorf("failed to write policy: %v", err)
 		return
 	}
 
 	exists, err = k.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
 	if err != nil {
-		t.Error("Error finding policy: ", err)
+		t.Errorf("faileds to find policy: %v", err)
 		return
 	}
 	if !exists {
-		t.Error("Policy not found")
+		t.Error("policy not found")
 		return
 	}
 
@@ -80,14 +80,13 @@ func TestPKI_Ensure(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Error("Error Mounting: ", err)
+		t.Errorf("failed to mount: %v", err)
 		return
 	}
 
 	err = pkiWrongType.Ensure()
 	if err == nil {
-		t.Error("Should have error from wrong type")
+		t.Errorf("expected an error from wrong pki type")
 		return
 	}
-
 }

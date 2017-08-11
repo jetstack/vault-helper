@@ -2,9 +2,10 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 type InitToken struct {
@@ -47,12 +48,12 @@ func (i *InitToken) Ensure() error {
 
 		err := i.secretsGeneric().SetInitTokenStore(i.Role, i.ExpectedToken)
 		if err != nil {
-			return fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
+			return fmt.Errorf("failed to set '%s' init token: %v", i.Role, err)
 		}
 
 		tokenStr, err := i.secretsGeneric().InitTokenStore(i.Role)
 		if err != nil {
-			return fmt.Errorf("Failed to read '%s' init token: '%s'", i.Role, err)
+			return fmt.Errorf("failed to read '%s' init token: %v", i.Role, err)
 		}
 		i.token = &tokenStr
 
@@ -61,19 +62,16 @@ func (i *InitToken) Ensure() error {
 			if err := f(); err != nil {
 				result = multierror.Append(result, err)
 			}
-			//if err := ensureInitToken(); err != nil {
-			//	result = multierror.Append(result, err)
-			//}
 		}
 
 		err := i.secretsGeneric().SetInitTokenStore(i.Role, i.ExpectedToken)
 		if err != nil {
-			return fmt.Errorf("Failed to set '%s' init token: '%s'", i.Role, err)
+			return fmt.Errorf("failed to set '%s' init token: %v", i.Role, err)
 		}
 
 		tokenStr, err := i.secretsGeneric().InitTokenStore(i.Role)
 		if err != nil {
-			return fmt.Errorf("Failed to read '%s' init token: '%s'", i.Role, err)
+			return fmt.Errorf("failed to read '%s' init token: %v", i.Role, err)
 		}
 		i.token = &tokenStr
 

@@ -51,7 +51,6 @@ func (v *fakeVault) Finish() {
 }
 
 func (v *fakeVault) Ensure() {
-
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
 
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", gomock.Any()).Times(1).Return(nil)
@@ -125,11 +124,9 @@ func (v *fakeVault) NewToken() {
 
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/admin", writeData).AnyTimes().Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kube-scheduler", writeData2).AnyTimes().Return(nil, nil)
-
 }
 
 func (v *fakeVault) PKIEnsure() {
-
 	mountInput1 := &vault.MountInput{
 		Description: "Kubernetes test-cluster-inside/etcd-k8s CA",
 		Type:        "pki",

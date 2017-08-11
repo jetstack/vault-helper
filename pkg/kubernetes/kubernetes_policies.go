@@ -35,7 +35,6 @@ func (k *Kubernetes) ensurePolicies() error {
 	logrus.Infof(str)
 
 	return result
-
 }
 
 func (k *Kubernetes) etcdPolicy() *Policy {
@@ -85,7 +84,6 @@ func (k *Kubernetes) masterPolicy() *Policy {
 	}
 
 	// adds the roles from the worker
-	// TODO: Do that in vault in the future
 	p.Policies = append(p.Policies, k.workerPolicyPaths()...)
 
 	return p

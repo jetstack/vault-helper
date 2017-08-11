@@ -98,6 +98,7 @@ func (k *Kubernetes) k8sAPIServerRole() *pkiRole {
 		},
 	}
 }
+
 func (k *Kubernetes) k8sKubeletRole() *pkiRole {
 	return &pkiRole{
 		Name: "kubelet",

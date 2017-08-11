@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -8,6 +9,14 @@ import (
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
 )
+
+type PKI struct {
+	pkiName    string
+	kubernetes *Kubernetes
+
+	MaxLeaseTTL     time.Duration
+	DefaultLeaseTTL time.Duration
+}
 
 func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	return &PKI{
@@ -18,16 +27,7 @@ func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	}
 }
 
-type PKI struct {
-	pkiName    string
-	kubernetes *Kubernetes
-
-	MaxLeaseTTL     time.Duration
-	DefaultLeaseTTL time.Duration
-}
-
 func (p *PKI) TuneMount(mount *vault.MountOutput) error {
-
 	tuneMountRequired := false
 
 	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
@@ -49,11 +49,9 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 	logrus.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
-
 }
 
 func (p *PKI) Ensure() error {
-
 	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
 	if err != nil {
 		return err
@@ -71,7 +69,7 @@ func (p *PKI) Ensure() error {
 		)
 
 		if err != nil {
-			return fmt.Errorf("error creating mount: %s", err)
+			return fmt.Errorf("failed to create mount: %v", err)
 		}
 		mount, err = GetMountByPath(p.kubernetes.vaultClient, p.Path())
 		if err != nil {
@@ -89,8 +87,7 @@ func (p *PKI) Ensure() error {
 	if mount != nil {
 		err = p.TuneMount(mount)
 		if err != nil {
-			logrus.Fatalf("Tuning Error")
-			return err
+			return errors.New("failed to tune mount")
 		}
 	}
 
@@ -98,7 +95,6 @@ func (p *PKI) Ensure() error {
 }
 
 func (p *PKI) ensureCA() error {
-
 	b, err := p.caPathExists()
 	if err != nil {
 		return err
@@ -112,9 +108,9 @@ func (p *PKI) ensureCA() error {
 }
 
 func (p *PKI) generateCA() error {
-
 	path := filepath.Join(p.Path(), "root", "generate", "internal")
 	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
+
 	data := map[string]interface{}{
 		"common_name": description,
 		"ttl":         p.getMaxLeaseTTL(),
@@ -129,7 +125,6 @@ func (p *PKI) generateCA() error {
 }
 
 func (p *PKI) caPathExists() (bool, error) {
-
 	path := filepath.Join(p.Path(), "cert", "ca")
 
 	s, err := p.kubernetes.vaultClient.Logical().Read(path)
@@ -145,11 +140,9 @@ func (p *PKI) caPathExists() (bool, error) {
 	}
 
 	return true, nil
-
 }
 
 func (p *PKI) WriteRole(role *pkiRole) error {
-
 	path := filepath.Join(p.Path(), "roles", role.Name)
 
 	_, err := p.kubernetes.vaultClient.Logical().Write(path, role.Data)
@@ -180,7 +173,6 @@ func (p *PKI) getMaxLeaseTTL() string {
 }
 
 func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
-
 	policy, err := p.kubernetes.vaultClient.Sys().GetPolicy(name)
 	if err != nil {
 		return false, err

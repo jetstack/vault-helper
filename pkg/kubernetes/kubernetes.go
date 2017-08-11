@@ -8,7 +8,6 @@ import (
 	"time"
 	"unicode"
 
-	//"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -57,24 +56,6 @@ type realVaultAuth struct {
 	a *vault.Auth
 }
 
-func (rv *realVault) Auth() VaultAuth {
-	return &realVaultAuth{a: rv.c.Auth()}
-}
-func (rv *realVault) Sys() VaultSys {
-	return rv.c.Sys()
-}
-func (rv *realVault) Logical() VaultLogical {
-	return rv.c.Logical()
-}
-
-func (rva *realVaultAuth) Token() VaultToken {
-	return rva.a.Token()
-}
-
-func realVaultFromAPI(vaultClient *vault.Client) Vault {
-	return &realVault{c: vaultClient}
-}
-
 type FlagInitTokens struct {
 	Etcd   string
 	Master string
@@ -104,8 +85,25 @@ type Kubernetes struct {
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
-func isValidClusterID(clusterID string) error {
+func (rv *realVault) Auth() VaultAuth {
+	return &realVaultAuth{a: rv.c.Auth()}
+}
+func (rv *realVault) Sys() VaultSys {
+	return rv.c.Sys()
+}
+func (rv *realVault) Logical() VaultLogical {
+	return rv.c.Logical()
+}
 
+func (rva *realVaultAuth) Token() VaultToken {
+	return rva.a.Token()
+}
+
+func realVaultFromAPI(vaultClient *vault.Client) Vault {
+	return &realVault{c: vaultClient}
+}
+
+func isValidClusterID(clusterID string) error {
 	if len(clusterID) < 1 {
 		return errors.New("Invalid cluster ID - None given")
 	}
@@ -131,7 +129,6 @@ func isValidClusterID(clusterID string) error {
 	}
 
 	return nil
-
 }
 
 func New(vaultClient *vault.Client) *Kubernetes {
@@ -228,7 +225,6 @@ func (k *Kubernetes) NewGeneric() *Generic {
 }
 
 func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
-
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {
 		return nil, fmt.Errorf("error listing mounts: %s", err)
@@ -273,8 +269,6 @@ func (k *Kubernetes) ensureInitTokens() error {
 		k.workerPolicy().Name,
 	}))
 
-	//strc := "Init_tokens generated for: "
-	//strw := "Init_tokens written for:   "
 	for _, initToken := range k.initTokens {
 		if err := initToken.Ensure(); err != nil {
 			result = multierror.Append(result, err)
