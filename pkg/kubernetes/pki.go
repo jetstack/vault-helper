@@ -10,6 +10,14 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
+type PKI struct {
+	pkiName    string
+	kubernetes *Kubernetes
+
+	MaxLeaseTTL     time.Duration
+	DefaultLeaseTTL time.Duration
+}
+
 func NewPKI(k *Kubernetes, pkiName string) *PKI {
 	return &PKI{
 		pkiName:         pkiName,
@@ -17,14 +25,6 @@ func NewPKI(k *Kubernetes, pkiName string) *PKI {
 		MaxLeaseTTL:     k.MaxValidityCA,
 		DefaultLeaseTTL: k.MaxValidityCA,
 	}
-}
-
-type PKI struct {
-	pkiName    string
-	kubernetes *Kubernetes
-
-	MaxLeaseTTL     time.Duration
-	DefaultLeaseTTL time.Duration
 }
 
 func (p *PKI) TuneMount(mount *vault.MountOutput) error {

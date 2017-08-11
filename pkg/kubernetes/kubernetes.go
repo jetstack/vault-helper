@@ -56,24 +56,6 @@ type realVaultAuth struct {
 	a *vault.Auth
 }
 
-func (rv *realVault) Auth() VaultAuth {
-	return &realVaultAuth{a: rv.c.Auth()}
-}
-func (rv *realVault) Sys() VaultSys {
-	return rv.c.Sys()
-}
-func (rv *realVault) Logical() VaultLogical {
-	return rv.c.Logical()
-}
-
-func (rva *realVaultAuth) Token() VaultToken {
-	return rva.a.Token()
-}
-
-func realVaultFromAPI(vaultClient *vault.Client) Vault {
-	return &realVault{c: vaultClient}
-}
-
 type FlagInitTokens struct {
 	Etcd   string
 	Master string
@@ -102,6 +84,24 @@ type Kubernetes struct {
 
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
+
+func (rv *realVault) Auth() VaultAuth {
+	return &realVaultAuth{a: rv.c.Auth()}
+}
+func (rv *realVault) Sys() VaultSys {
+	return rv.c.Sys()
+}
+func (rv *realVault) Logical() VaultLogical {
+	return rv.c.Logical()
+}
+
+func (rva *realVaultAuth) Token() VaultToken {
+	return rva.a.Token()
+}
+
+func realVaultFromAPI(vaultClient *vault.Client) Vault {
+	return &realVault{c: vaultClient}
+}
 
 func isValidClusterID(clusterID string) error {
 	if len(clusterID) < 1 {
