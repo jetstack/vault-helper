@@ -69,16 +69,16 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 
 	var uid int
 	var gid int
+	var err error
+	var curr *user.User
 
 	if c.Owner() == "" {
 		c.Log.Debugf("No owner given. Defaulting permissions to current user")
-		curr, err := user.Current()
-		if err != nil {
+		if curr, err = user.Current(); err != nil {
 			return fmt.Errorf("error retreiving current user info: %v", err)
 		}
 
-		uid, err = strconv.Atoi(curr.Uid)
-		if err != nil {
+		if uid, err = strconv.Atoi(curr.Uid); err != nil {
 			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", curr.Uid, err)
 		}
 
@@ -92,21 +92,20 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 			return fmt.Errorf("failed to find user '%s' on system: %v", c.Owner(), err)
 		}
 
-		uid, err = strconv.Atoi(usr.Uid)
-		if err != nil {
+		if uid, err = strconv.Atoi(usr.Uid); err != nil {
 			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", usr.Uid, err)
 		}
 	}
 
 	if c.Group() == "" {
 		c.Log.Debugf("No group given. Defaulting permissions to current user-group")
-		curr, err := user.Current()
-		if err != nil {
-			return fmt.Errorf("error retreiving current user info: %v", curr)
+		if curr == nil {
+			if curr, err = user.Current(); err != nil {
+				return fmt.Errorf("error retreiving current user info: %v", err)
+			}
 		}
 
-		gid, err = strconv.Atoi(curr.Gid)
-		if err != nil {
+		if gid, err = strconv.Atoi(curr.Gid); err != nil {
 			return fmt.Errorf("failed to convert user gid '%s' (string) to (int): %v", curr.Gid, err)
 		}
 
@@ -120,8 +119,7 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 			return fmt.Errorf("failed to find group '%s' on system: %v", c.Group(), err)
 		}
 
-		gid, err = strconv.Atoi(grp.Gid)
-		if err != nil {
+		if gid, err = strconv.Atoi(grp.Gid); err != nil {
 			return fmt.Errorf("failed to convert group gid '%s' (string) to (int): %v", grp.Gid, err)
 		}
 	}
