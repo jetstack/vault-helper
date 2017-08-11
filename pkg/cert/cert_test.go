@@ -43,18 +43,18 @@ func TestCert_File_Perms(t *testing.T) {
 
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error runinning cert: %s", err)
+		t.Fatalf("error runinning cert: %v", err)
 	}
 
 	dir := filepath.Dir(c.Destination())
 	if fi, err := os.Stat(dir); err != nil {
-		t.Fatalf("error finding stats of '%s': %s", dir, err)
+		t.Fatalf("error finding stats of '%s': %v", dir, err)
 	} else if !fi.IsDir() {
-		t.Fatalf("destination should be directory %s. It is not", dir)
+		t.Fatalf("destination should be directory %s", dir)
 	} else if perm := fi.Mode(); perm.String() != "drwxr-xr-x" {
 		t.Fatalf("destination has incorrect file permissons. exp=drwxr-xr-x got=%s", perm)
 	}
@@ -70,23 +70,21 @@ func TestCert_File_Perms(t *testing.T) {
 // Check permissions of a file
 func checkFilePerm(t *testing.T, path string, mode os.FileMode) {
 	if fi, err := os.Stat(path); err != nil {
-		t.Fatalf("error finding stats of '%s': %s", path, err)
+		t.Fatalf("error finding stats of '%s': %v", path, err)
 	} else if fi.IsDir() {
 		t.Fatalf("file should not be directory %s", path)
 	} else if perm := fi.Mode(); perm != mode {
 		t.Fatalf("destination has incorrect file permissons. exp=%s got=%s", mode, perm)
 	}
-
 }
 
 // Verify CAs exist
 func TestCert_Verify_CA(t *testing.T) {
-
 	k := initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("failed to set token for test: %s", err)
+		t.Fatalf("failed to set token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
@@ -96,16 +94,16 @@ func TestCert_Verify_CA(t *testing.T) {
 	dotPem := filepath.Clean(c.Destination() + ".pem")
 	dat, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 	if dat == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file: '%s'", dotPem)
 	}
 
 	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	dat, err = ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if dat == nil {
 		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
@@ -126,38 +124,38 @@ func TestCert_ConfigPath(t *testing.T) {
 	c.SetVaultConfigPath(dir)
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	dotPem := filepath.Clean(c.Destination() + ".pem")
 	if _, err := os.Stat(dotPem); !os.IsNotExist(err) {
-		t.Fatalf("expexted error 'File doesn't exist on file '.pem''. got: %s", err)
+		t.Fatalf("expexted error 'File doesn't exist on file '.pem''. got: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error runinning cert: %s", err)
+		t.Fatalf("error runinning cert: %v", err)
 	}
 
 	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	if _, err := os.Stat(caPem); err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 
 	dat, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 	if dat == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 
 	caPem = filepath.Clean(c.Destination() + "-ca.pem")
 	dat, err = ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("failed to read certificate file path '%s': %v", caPem, err)
 	}
 	if dat == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 }
 
@@ -175,68 +173,68 @@ func TestCert_Exist_NoChange(t *testing.T) {
 	c.SetVaultConfigPath(dir)
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("faileds to set token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error running  cert: %s", err)
+		t.Fatalf("error running  cert: %v", err)
 	}
 
 	dotPem := filepath.Clean(c.Destination() + ".pem")
 	datDotPem, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 	if datDotPem == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 
 	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	datCAPem, err := ioutil.ReadFile(caPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if datCAPem == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
 	datKeyPem, err := ioutil.ReadFile(keyPem)
 	if err != nil {
-		t.Fatalf("error reading from key file path: '%s': %s", keyPem, err)
+		t.Fatalf("error reading from key file path: '%s': %v", keyPem, err)
 	}
 	if datKeyPem == nil {
-		t.Fatalf("no key at file '%s'. expected key", keyPem)
+		t.Fatalf("no key at file '%s'", keyPem)
 	}
 
 	c.Log.Infof("-- Second run call --")
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error running  cert: %s", err)
+		t.Fatalf("error running  cert: %v", err)
 	}
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 
 	if string(datDotPem) != string(datDotPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists. it shouldn't. %s", dotPem)
+		t.Fatalf("certificate has been changed after cert call even though it exists: %s", dotPem)
 	}
 
 	datCAPemAfter, err := ioutil.ReadFile(caPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if string(datCAPem) != string(datCAPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists. it shouldn't. %s", caPem)
+		t.Fatalf("certificate has been changed after cert call even though it exists: %s", caPem)
 	}
 
 	datKeyPemAfter, err := ioutil.ReadFile(keyPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", keyPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", keyPem, err)
 	}
 	if string(datKeyPem) != string(datKeyPemAfter) {
-		t.Fatalf("key has been changed after cert call even though it exists. it shouldn't. %s", keyPem)
+		t.Fatalf("key has been changed after cert call even though it exists: %s", keyPem)
 	}
 }
 
@@ -253,38 +251,38 @@ func TestCert_Busy_Vault(t *testing.T) {
 	c.SetVaultConfigPath(dir)
 	token := k.InitTokens()["master"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("error setting token for test: %s", err)
+		t.Fatalf("error setting token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error running  cert: %s", err)
+		t.Fatalf("error running  cert: %v", err)
 	}
 
 	dotPem := filepath.Clean(c.Destination() + ".pem")
 	datDotPem, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 	if datDotPem == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 
 	caPem := filepath.Clean(c.Destination() + "-ca.pem")
 	datCAPem, err := ioutil.ReadFile(caPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if datCAPem == nil {
-		t.Fatalf("no certificate at file '%s'. expected certificate", dotPem)
+		t.Fatalf("no certificate at file '%s'", dotPem)
 	}
 
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
 	datKeyPem, err := ioutil.ReadFile(keyPem)
 	if err != nil {
-		t.Fatalf("error reading from key file path: '%s': %s", keyPem, err)
+		t.Fatalf("error reading from key file path: '%s': %v", keyPem, err)
 	}
 	if datKeyPem == nil {
-		t.Fatalf("no key at file '%s'. expected key", keyPem)
+		t.Fatalf("no key at file '%s'", keyPem)
 	}
 
 	c.Log.Infof("-- Second run call --")
@@ -295,27 +293,27 @@ func TestCert_Busy_Vault(t *testing.T) {
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", dotPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
 
 	if string(datDotPem) != string(datDotPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists. it shouldn't. %s", dotPem)
+		t.Fatalf("certificate has been changed after cert call even though it exists: %s", dotPem)
 	}
 
 	datCAPemAfter, err := ioutil.ReadFile(caPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", caPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if string(datCAPem) != string(datCAPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists. it shouldn't. %s", caPem)
+		t.Fatalf("certificate has been changed after cert call even though it exists %s", caPem)
 	}
 
 	datKeyPemAfter, err := ioutil.ReadFile(keyPem)
 	if err != nil {
-		t.Fatalf("error reading from certificate file path: '%s': %s", keyPem, err)
+		t.Fatalf("error reading from certificate file path: '%s': %v", keyPem, err)
 	}
 	if string(datKeyPem) != string(datKeyPemAfter) {
-		t.Fatalf("key has been changed after cert call even though it exists. it shouldn't. %s", keyPem)
+		t.Fatalf("key has been changed after cert call even though it exists %s", keyPem)
 	}
 
 }
@@ -332,7 +330,7 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceT
 	c.SetBitSize(2048)
 
 	if usr, err := user.Current(); err != nil {
-		t.Fatalf("error getting info on current user: %s", err)
+		t.Fatalf("error getting info on current user: %v", err)
 	} else {
 		c.SetOwner(usr.Username)
 		c.SetGroup(usr.Username)
@@ -358,7 +356,7 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
-		t.Fatalf("error ensuring kubernetes: %s", err)
+		t.Fatalf("error ensuring kubernetes: %v", err)
 	}
 
 	return k
@@ -369,7 +367,7 @@ func initVaultDev() *vault_dev.VaultDev {
 	vaultDev := vault_dev.New()
 
 	if err := vaultDev.Start(); err != nil {
-		logrus.Fatalf("unable to initialise vault dev server for integration tests: %s", err)
+		logrus.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
 	}
 
 	return vaultDev
@@ -390,7 +388,7 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 	if _, err := os.Stat(i.InitTokenFilePath()); os.IsNotExist(err) {
 		ifile, err := os.Create(i.InitTokenFilePath())
 		if err != nil {
-			t.Fatalf("%s", err)
+			t.Fatal(err)
 		}
 		defer ifile.Close()
 	}
@@ -399,7 +397,7 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 	if os.IsNotExist(err) {
 		tfile, err := os.Create(i.TokenFilePath())
 		if err != nil {
-			t.Fatalf("%s", err)
+			t.Fatal(err)
 		}
 		defer tfile.Close()
 	}
