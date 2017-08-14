@@ -10,7 +10,7 @@ import (
 // initCmd represents the init command
 var renewtokenCmd = &cobra.Command{
 	Use:   "renew-token [cluster ID]",
-	Short: "Renew token on vault server",
+	Short: "Renew token on vault server.",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logrus.New()
 		logger.Level = logrus.DebugLevel
@@ -30,7 +30,7 @@ var renewtokenCmd = &cobra.Command{
 }
 
 func init() {
-	renewtokenCmd.PersistentFlags().String(instanceToken.FlagTokenRole, "", "Set role of token to renew (default *no role*)")
+	renewtokenCmd.PersistentFlags().String(instanceToken.FlagTokenRole, "", "Set role of token to renew. (default *no role*)")
 
 	RootCmd.AddCommand(renewtokenCmd)
 }

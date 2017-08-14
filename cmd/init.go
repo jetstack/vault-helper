@@ -19,6 +19,7 @@ var RootCmd = &cobra.Command{
 func Execute() {
 
 	RootCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
+	RootCmd.Flag(instanceToken.FlagVaultConfigPath).Shorthand = "p"
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)

@@ -11,7 +11,7 @@ import (
 var certCmd = &cobra.Command{
 	Use: "cert [cert role] [common name] [destination path]",
 	// TODO: Make short better
-	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role",
+	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role.",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logrus.New()
 		logger.Level = logrus.DebugLevel

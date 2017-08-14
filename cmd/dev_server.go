@@ -11,7 +11,7 @@ import (
 // initCmd represents the init command
 var devServerCmd = &cobra.Command{
 	Use:   "dev-server [cluster ID]",
-	Short: "Run a vault server in development mode with kubernetes PKI created",
+	Short: "Run a vault server in development mode with kubernetes PKI created.",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if len(args) < 1 {
