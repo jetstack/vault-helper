@@ -108,56 +108,63 @@ func (r *Read) writePermissons() error {
 
 	var uid int
 	var gid int
-
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("error getting current user info: %v", err)
-	}
+	var err error
+	var curr *user.User
 
 	if r.Owner() == "" {
-
-		uid, err = strconv.Atoi(usr.Uid)
-		if err != nil {
-			return fmt.Errorf("error converting user uid '%s' (string) to (int): %v", usr.Uid, err)
+		r.Log.Debugf("No owner given. Defaulting permissions to current user")
+		if curr, err = user.Current(); err != nil {
+			return fmt.Errorf("error retreiving current user info: %v", err)
 		}
+
+		if uid, err = strconv.Atoi(curr.Uid); err != nil {
+			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", curr.Uid, err)
+		}
+
+	} else if u, err := strconv.Atoi(r.Owner()); err == nil {
+		r.Log.Debugf("User is a number. Using instead of lookup user")
+		uid = u
 
 	} else {
-
-		u, err := user.Lookup(r.Owner())
+		usr, err := user.Lookup(r.Owner())
 		if err != nil {
-			return fmt.Errorf("error finding owner '%s' on system: %v", r.Owner(), err)
+			return fmt.Errorf("failed to find user '%s' on system: %v", r.Owner(), err)
 		}
 
-		uid, err = strconv.Atoi(u.Uid)
-		if err != nil {
-			return fmt.Errorf("wrror converting user uid '%s' (string) to (int): %v", u.Uid, err)
+		if uid, err = strconv.Atoi(usr.Uid); err != nil {
+			return fmt.Errorf("failed to convert user uid '%s' (string) to (int): %v", usr.Uid, err)
 		}
-
 	}
 
 	if r.Group() == "" {
-
-		gid, err = strconv.Atoi(usr.Gid)
-		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", usr.Gid, err)
+		r.Log.Debugf("No group given. Defaulting permissions to current user-group")
+		if curr == nil {
+			if curr, err = user.Current(); err != nil {
+				return fmt.Errorf("error retreiving current user info: %v", err)
+			}
 		}
+
+		if gid, err = strconv.Atoi(curr.Gid); err != nil {
+			return fmt.Errorf("failed to convert user gid '%s' (string) to (int): %v", curr.Gid, err)
+		}
+
+	} else if g, err := strconv.Atoi(r.Group()); err == nil {
+		r.Log.Debugf("Group is a number. Using as gid instead of lookup group")
+		gid = g
 
 	} else {
-
-		g, err := user.LookupGroup(r.Group())
+		grp, err := user.LookupGroup(r.Group())
 		if err != nil {
-			return fmt.Errorf("error finding group '%s' on system: %v", r.Group(), err)
+			return fmt.Errorf("failed to find group '%s' on system: %v", r.Group(), err)
 		}
 
-		gid, err = strconv.Atoi(g.Gid)
-		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", g.Gid, err)
+		if gid, err = strconv.Atoi(grp.Gid); err != nil {
+			return fmt.Errorf("failed to convert group gid '%s' (string) to (int): %v", grp.Gid, err)
 		}
-
 	}
 
 	if err := os.Chown(r.FilePath(), uid, gid); err != nil {
-		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %v", r.FilePath(), r.Owner(), r.Group(), err)
+		return fmt.Errorf("failed to change group and owner of file '%s' to usr:'%s' grp:'%s': %v", r.FilePath(), r.Owner(), r.Group(), err)
 	}
 
 	r.Log.Debugf("Set permissons on file: %s", r.FilePath())

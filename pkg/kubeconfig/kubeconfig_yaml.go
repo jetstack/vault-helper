@@ -5,9 +5,7 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -93,61 +91,7 @@ func (u *Kubeconfig) StoreYaml(yml string) error {
 }
 
 func (u *Kubeconfig) WritePermissions() error {
-	if err := os.Chmod(u.FilePath(), os.FileMode(0600)); err != nil {
-		return fmt.Errorf("error changing permissons of file '%s' to 0600: %v", u.FilePath(), err)
-	}
-
-	var uid int
-	var gid int
-
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to get current user info: %v", err)
-	}
-
-	if u.Cert().Owner() == "" {
-		uid, err = strconv.Atoi(usr.Uid)
-		if err != nil {
-			return fmt.Errorf("error converting user uid '%s' (string) to (int): %v", usr.Uid, err)
-		}
-
-	} else {
-		us, err := user.Lookup(u.Cert().Owner())
-		if err != nil {
-			return fmt.Errorf("error finding owner '%s' on system: %v", u.Cert().Owner(), err)
-		}
-
-		uid, err = strconv.Atoi(us.Uid)
-		if err != nil {
-			return fmt.Errorf("error converting user uid '%s' (string) to (int): %v", us.Uid, err)
-		}
-	}
-
-	if u.Cert().Group() == "" {
-		gid, err = strconv.Atoi(usr.Gid)
-		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", usr.Gid, err)
-		}
-
-	} else {
-		g, err := user.LookupGroup(u.Cert().Group())
-		if err != nil {
-			return fmt.Errorf("error finding group '%s' on system: %v", u.Cert().Group(), err)
-		}
-
-		gid, err = strconv.Atoi(g.Gid)
-		if err != nil {
-			return fmt.Errorf("error converting group gid '%s' (string) to (int): %v", g.Gid, err)
-		}
-	}
-
-	if err := os.Chown(u.FilePath(), uid, gid); err != nil {
-		return fmt.Errorf("error changing group and owner of file '%s' to usr:'%s' grp:'%s': %v", u.FilePath(), u.Cert().Owner(), u.Cert().Group(), err)
-	}
-
-	u.Log.Debugf("Set permissons on file: %s", u.FilePath())
-
-	return nil
+	return u.Cert().WritePermissions(u.FilePath(), os.FileMode(0600))
 }
 
 func (u *Kubeconfig) BuildYaml() (yml string, err error) {
