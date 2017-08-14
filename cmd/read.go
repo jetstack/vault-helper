@@ -34,9 +34,9 @@ func init() {
 	readCmd.Flag(read.FlagOutputPath).Shorthand = "d"
 	readCmd.PersistentFlags().String(read.FlagField, "", "If included, the raw value of the specified field will be output. If not, output entire responce in JSON (default <all>)")
 	readCmd.Flag(read.FlagField).Shorthand = "f"
-	readCmd.PersistentFlags().String(read.FlagOwner, "", "Set owner of output file. (default <current user>)")
+	readCmd.PersistentFlags().String(read.FlagOwner, "", "Set owner of output file. Uid value also accepted. (default <current user>)")
 	readCmd.Flag(read.FlagOwner).Shorthand = "o"
-	readCmd.PersistentFlags().String(read.FlagGroup, "", "Set group of output file. (default <current user-group>)")
+	readCmd.PersistentFlags().String(read.FlagGroup, "", "Set group of output file. Gid value also accepted. (default <current user-group>)")
 	readCmd.Flag(read.FlagGroup).Shorthand = "g"
 
 	RootCmd.AddCommand(readCmd)

@@ -32,11 +32,22 @@ var certCmd = &cobra.Command{
 
 func init() {
 	certCmd.PersistentFlags().Int(cert.FlagKeyBitSize, 2048, "Bit size used for generating key. [int]")
+	certCmd.Flag(cert.FlagKeyBitSize).Shorthand = "b"
+
 	certCmd.PersistentFlags().String(cert.FlagKeyType, "RSA", "Type of key to generate. [string]")
+	certCmd.Flag(cert.FlagKeyType).Shorthand = "t"
+
 	certCmd.PersistentFlags().StringSlice(cert.FlagIpSans, []string{}, "IP sans. [[]string] (default none)")
+	certCmd.Flag(cert.FlagIpSans).Shorthand = "i"
+
 	certCmd.PersistentFlags().StringSlice(cert.FlagSanHosts, []string{}, "Host Sans. [[]string] (default none)")
-	certCmd.PersistentFlags().String(cert.FlagOwner, "root", "Owner of created file/directories. [string]")
-	certCmd.PersistentFlags().String(cert.FlagGroup, "root", "Group of created file/directories. [string]")
+	certCmd.Flag(cert.FlagSanHosts).Shorthand = "s"
+
+	certCmd.PersistentFlags().String(cert.FlagOwner, "", "Owner of created file/directories. Uid value also accepted. [string] (default <current user>)")
+	certCmd.Flag(cert.FlagOwner).Shorthand = "o"
+
+	certCmd.PersistentFlags().String(cert.FlagGroup, "", "Group of created file/directories. Gid value also accepted. [string] (default <current user-group)")
+	certCmd.Flag(cert.FlagGroup).Shorthand = "g"
 
 	RootCmd.AddCommand(certCmd)
 }

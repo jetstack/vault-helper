@@ -171,7 +171,6 @@ func (c *Cert) createCSR() (csr []byte, err error) {
 }
 
 func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault.Secret, err error) {
-
 	csr, err := c.createCSR()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate certificate: %v", err)
@@ -188,7 +187,6 @@ func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault
 }
 
 func (c *Cert) storeCertificate(path, cert string) error {
-
 	fi, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to open file '%s': %v", path, err)
