@@ -23,7 +23,7 @@ func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error parsing %s '%s': %v", FlagTokenRole, value, err)
 	}
 	if value == "" {
-		return fmt.Errorf("nno token role was given. token role is required for this command: --%s", FlagTokenRole)
+		return fmt.Errorf("no token role was given. token role is required for this command: --%s", FlagTokenRole)
 	}
 	i.SetRole(value)
 
