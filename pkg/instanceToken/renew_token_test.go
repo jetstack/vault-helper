@@ -166,7 +166,7 @@ func TestRenew_Token_NeitherExist(t *testing.T) {
 
 // Get ttl form vaultof given token
 func getTTL(v *vault_dev.VaultDev, token string, i *instanceToken.InstanceToken) (ttl int, err error) {
-	s, err := i.TokenLookup(token)
+	s, err := i.TokenLookup()
 	if err != nil {
 		return -1, err
 	}

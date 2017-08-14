@@ -240,9 +240,9 @@ func TestCert_Exist_NoChange(t *testing.T) {
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := k.InitTokens()["master"]
+	token := k.InitTokens()["etcd"]
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
-		t.Fatalf("faileds to set token for test: %v", err)
+		t.Fatalf("failed to set token for test: %v", err)
 	}
 
 	if err := c.RunCert(); err != nil {
@@ -277,8 +277,17 @@ func TestCert_Exist_NoChange(t *testing.T) {
 	}
 
 	c.Log.Infof("-- Second run call --")
+
 	if err := c.RunCert(); err != nil {
-		t.Fatalf("error running  cert: %v", err)
+		if len(err.Error()) < 36 {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		str := "error renewing tokens: token not renewable: "
+		errStr := err.Error()[:len(err.Error())-36]
+		if errStr != str {
+			t.Fatalf("unexpexted error. exp=%s got=%v", str, err)
+		}
+		c.Log.Infof("expected error: %v", err)
 	}
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
