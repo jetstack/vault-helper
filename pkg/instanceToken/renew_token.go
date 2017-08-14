@@ -229,10 +229,9 @@ func (i *InstanceToken) tokenRenew() error {
 	i.Log.Debugf("Token renewable")
 
 	// Renew against vault
-	//s, err = i.vaultClient.Auth().Token().Renew(i.Token(), 0)
 	s, err = i.vaultClient.Auth().Token().RenewSelf(0)
 	if err != nil {
-		return fmt.Errorf("error renewing token %s: %s - %v", i.Role(), i.Token(), err)
+		return fmt.Errorf("error renewing token %s: %v", i.Role(), err)
 	}
 
 	i.Log.Infof("Renewed token: %s", i.Token())
