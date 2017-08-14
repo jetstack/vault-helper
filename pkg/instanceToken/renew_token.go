@@ -133,7 +133,7 @@ func (i *InstanceToken) initTokenNew() error {
 
 	i.Log.Debugf("init token found '%s' at '%s'", initToken, i.InitTokenFilePath())
 
-	policies, err := i.TokenPolicies(initToken)
+	policies, err := i.TokenPolicies()
 	if err != nil {
 		return fmt.Errorf("failed to find init token policies: %v", err)
 	}
@@ -149,14 +149,14 @@ func (i *InstanceToken) initTokenNew() error {
 	return nil
 }
 
-func (i *InstanceToken) TokenPolicies(token string) (policies []string, err error) {
-	s, err := i.TokenLookup(token)
+func (i *InstanceToken) TokenPolicies() (policies []string, err error) {
+	s, err := i.TokenLookup()
 	if err != nil {
 		return nil, err
 	}
 
 	if s == nil {
-		return nil, fmt.Errorf("no secret from init token lookup: %s", token)
+		return nil, fmt.Errorf("no secret from init token lookup")
 	}
 
 	dat, ok := s.Data["policies"]
@@ -196,14 +196,15 @@ func (i *InstanceToken) createToken(policies []string) (token string, err error)
 	return newToken.Auth.ClientToken, nil
 }
 
-func (i *InstanceToken) TokenLookup(token string) (secret *vault.Secret, err error) {
-	s, err := i.vaultClient.Auth().Token().Lookup(token)
+func (i *InstanceToken) TokenLookup() (secret *vault.Secret, err error) {
+
+	s, err := i.vaultClient.Auth().Token().LookupSelf()
 	if err != nil {
-		return nil, fmt.Errorf("error looking up token '%s': %v", token, err)
+		return nil, fmt.Errorf("error lookup self token: %v", err)
 	}
 
 	if s == nil {
-		return nil, fmt.Errorf("failed to find secret with token from vault '%s'", token)
+		return nil, errors.New("failed to find secret form Lookup self")
 	}
 
 	return s, nil
@@ -212,7 +213,7 @@ func (i *InstanceToken) TokenLookup(token string) (secret *vault.Secret, err err
 func (i *InstanceToken) tokenRenew() error {
 	// Check if renewable
 
-	s, err := i.TokenLookup(i.Token())
+	s, err := i.TokenLookup()
 	if err != nil {
 		return err
 	}
@@ -228,7 +229,8 @@ func (i *InstanceToken) tokenRenew() error {
 	i.Log.Debugf("Token renewable")
 
 	// Renew against vault
-	s, err = i.vaultClient.Auth().Token().Renew(i.Token(), 0)
+	//s, err = i.vaultClient.Auth().Token().Renew(i.Token(), 0)
+	s, err = i.vaultClient.Auth().Token().RenewSelf(0)
 	if err != nil {
 		return fmt.Errorf("error renewing token %s: %s - %v", i.Role(), i.Token(), err)
 	}
