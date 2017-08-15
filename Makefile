@@ -45,7 +45,7 @@ go_vet:
 	go vet $$(go list ./pkg/... ./cmd/...)
 
 go_build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%d_%H:%M:%S)' -o vault-helper-golang_linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%d_%H:%M:%S)' -o vault-helper_linux_amd64
 
 image:
 	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .

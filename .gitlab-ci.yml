@@ -33,7 +33,7 @@ build:golang:
   stage: build
   artifacts:
     paths:
-    - vault-helper-golang_linux_amd64
+    - vault-helper_linux_amd64
     expire_in: 4 weeks
 
 deploy:release:
@@ -51,13 +51,13 @@ deploy:release:
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
   - cd /go/src/github.com/jetstack-experimental/vault-helper
   - goreleaser
-  - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper-golang_linux_amd64
+  - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper_linux_amd64
   - mv /go/src/github.com/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
   only:
   - tags
   artifacts:
     paths:
-    - vault-helper-golang_linux_amd64
+    - vault-helper_linux_amd64
 
 docker:image:
   image: docker:latest
