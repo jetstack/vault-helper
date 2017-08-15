@@ -42,7 +42,7 @@ deploy:release:
   tags:
   - docker
   script:
-  - apk --update add curl unzip make
+  - apk --update add curl unzip make git
   - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
