@@ -22,5 +22,5 @@ EXPOSE 8200
 
 ENTRYPOINT ["/usr/local/bin/vault-helper-golang"]
 
-CMD ["dev-server"]
+CMD []
 
