@@ -20,7 +20,7 @@ ENV VAULT_ADDR=http://127.0.0.1:8200
 
 EXPOSE 8200
 
-ENTRYPOINT ["/usr/local/bin/vault-helper"]
+ENTRYPOINT ["/usr/local/bin/vault-helper-golang"]
 
 CMD ["dev-server"]
 
