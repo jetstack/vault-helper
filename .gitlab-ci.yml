@@ -2,9 +2,12 @@ variables:
   DOCKER_DRIVER: overlay
   VAULT_VERSION: 0.7.3
   VAULT_HASH: 2822164d5dd347debae8b3370f73f9564a037fc18e9adcabca5907201e5aab45
+  GORELEASER_HASH: 8d494e03d6ab6e2e1bcbb795859f3618454078eaeb21906437958b32b332cee4
+
 
 stages:
 - build
+- deploy
 - docker
 
 build:golang:
@@ -63,3 +66,54 @@ docker:image_tagged:
   - master
   services:
   - docker:dind
+
+
+deploy:release:
+  image: golang:1.8
+  stage: deploy
+  tags:
+  - docker
+  script:
+  - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
+  - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
+  - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
+  - cd "${GOPATH}/src/${PKG_PATH}"
+  - goreleaser
+  - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper_linux_amd64
+  only:
+  - tags
+  artifacts:
+    paths:
+    - vault-helper_linux_amd64
+
+docker:master_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
+  only:
+  - master
+
+docker:tags_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_COMMIT_TAG} latest"
+  only:
+  - tags
