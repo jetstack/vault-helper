@@ -1,8 +1,63 @@
 variables:
   DOCKER_DRIVER: overlay
+  VAULT_VERSION: 0.7.3
+  VAULT_HASH: 2822164d5dd347debae8b3370f73f9564a037fc18e9adcabca5907201e5aab45
+  GORELEASER_HASH: 8d494e03d6ab6e2e1bcbb795859f3618454078eaeb21906437958b32b332cee4
+
+
 
 stages:
+- build
+- deploy
 - docker
+
+build:golang:
+  tags:
+  - docker
+  image: golang:1.8-alpine
+  script:
+  - apk --update add curl unzip make
+  - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
+  - mkdir -p /go/src/github.com/jetstack-experimental
+  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
+  - cd /go/src/github.com/jetstack-experimental/vault-helper
+  # Installs vault version as specified
+  - curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip
+  - echo "${VAULT_HASH}  /tmp/vault.zip" | sha256sum  -c
+  - unzip /tmp/vault.zip
+  - rm /tmp/vault.zip
+  - mv vault /usr/local/bin/vault
+  - chmod +x /usr/local/bin/vault
+  - make all
+  - mv /go/src/github.com/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
+  stage: build
+  artifacts:
+    paths:
+    - vault-helper-golang_linux_amd64
+    expire_in: 4 weeks
+
+deploy:release:
+  image: golang:1.8-alpine
+  stage: deploy
+  tags:
+  - docker
+  script:
+  - apk --update add curl unzip make git
+  - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
+  - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
+  - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
+  - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
+  - mkdir -p /go/src/github.com/jetstack-experimental
+  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
+  - cd /go/src/github.com/jetstack-experimental/vault-helper
+  - goreleaser
+  - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper-golang_linux_amd64
+  - mv /go/src/github.com/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
+  only:
+  - tags
+  artifacts:
+    paths:
+    - vault-helper-golang_linux_amd64
 
 docker:image:
   image: docker:latest
@@ -12,7 +67,7 @@ docker:image:
   script:
   - apk --update add make
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
-  - make image test push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
+  - make image save
   only:
   - master
   except:
@@ -28,7 +83,7 @@ docker:image_tagged:
   script:
   - apk --update add make
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
-  - make image test push IMAGE_TAGS="${CI_BUILD_TAG} latest"
+  - make image save
   only:
   - tags
   except:
