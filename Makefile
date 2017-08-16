@@ -21,13 +21,28 @@ help:
 
 verify: generate go_verify
 
-all: verify build
+all: verify build image
 
 build: generate go_build
 
 generate: go_generate
 
 go_verify: go_fmt go_vet go_test
+
+.builder_image:
+	docker pull ${BUILD_IMAGE_NAME}
+
+# Builder image targets
+#######################
+docker_%: .builder_image
+	docker run -it \
+		-v ${GOPATH}/src:/go/src \
+		-v $(shell pwd):/go/src/${GO_PKG} \
+		-w /go/src/${GO_PKG} \
+		-e GOPATH=/go \
+		${BUILD_IMAGE_NAME} \
+		/bin/sh -c "make $*"
+
 
 go_test:
 	go test $$(go list ./pkg/... ./cmd/...)
