@@ -65,7 +65,7 @@ docker:image:
   tags:
   - docker
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make image save
   only:
@@ -81,7 +81,7 @@ docker:image_tagged:
   tags:
   - docker
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make image save
   only:
@@ -101,7 +101,7 @@ docker:master_build_push:
   services:
   - docker:dind
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
   only:
@@ -118,7 +118,7 @@ docker:tags_build_push:
   services:
   - docker:dind
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make docker_push IMAGE_TAGS="${CI_COMMIT_TAG} latest"
   only:
