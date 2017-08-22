@@ -35,6 +35,8 @@ build:golang:
     paths:
     - vault-helper_linux_amd64
     expire_in: 4 weeks
+  services:
+  - docker:dind
 
 deploy:release:
   image: golang:1.8-alpine
@@ -58,6 +60,8 @@ deploy:release:
   artifacts:
     paths:
     - vault-helper_linux_amd64
+  services:
+  - docker:dind
 
 docker:image:
   image: docker:latest
@@ -123,3 +127,5 @@ docker:tags_build_push:
   - make docker_push IMAGE_TAGS="${CI_COMMIT_TAG} latest"
   only:
   - tags
+  services:
+  - docker:dind
