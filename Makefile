@@ -23,41 +23,13 @@ help:
 
 verify: generate go_verify
 
-all: verify build image save
+all: verify build
 
 build: generate go_build
 
 generate: go_generate
 
 go_verify: go_fmt go_vet go_test
-
-.builder_image:
-	docker pull ${BUILD_IMAGE_NAME}
-
-
-# Builder image targets
-#######################
-docker_%: .builder_image
-	docker run -it \
-		-v ${GOPATH}/src:/go/src \
-		-v $(shell pwd):/go/src/${GO_PKG} \
-		-w /go/src/${GO_PKG} \
-		-e GOPATH=/go \
-		${BUILD_IMAGE_NAME} \
-		/bin/sh -c "make $*"
-
-# Docker targets
-################
-docker_build:
-	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
-
-docker_push: docker_build
-	set -e; \
-		for tag in $(IMAGE_TAGS); do \
-		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
-		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
-	done
-
 
 go_test:
 	go test $$(go list ./pkg/... ./cmd/...)
@@ -91,3 +63,31 @@ depend: bin/mockgen
 
 go_generate: depend
 	mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
+
+
+.builder_image:
+	docker pull ${BUILD_IMAGE_NAME}
+
+
+# Builder image targets
+#######################
+docker_%: .builder_image
+	docker run -it \
+		-v ${GOPATH}/src:/go/src \
+		-v $(shell pwd):/go/src/${GO_PKG} \
+		-w /go/src/${GO_PKG} \
+		-e GOPATH=/go \
+		${BUILD_IMAGE_NAME} \
+		/bin/sh -c "make $*"
+
+# Docker targets
+################
+docker_build:
+	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
+
+docker_push: docker_build
+	set -e; \
+		for tag in $(IMAGE_TAGS); do \
+		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
+		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
+		done
