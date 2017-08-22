@@ -15,8 +15,10 @@ build:golang:
   tags:
   - docker
   image: golang:1.8-alpine
+  services:
+  - docker:dind
   script:
-  - apk --update add curl unzip make
+  - apk --update add curl unzip make docker
   - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
   - mkdir -p /go/src/github.com/jetstack-experimental
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
@@ -42,7 +44,7 @@ deploy:release:
   tags:
   - docker
   script:
-  - apk --update add curl unzip make git
+  - apk --update add curl unzip make git docker
   - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
@@ -58,6 +60,8 @@ deploy:release:
   artifacts:
     paths:
     - vault-helper_linux_amd64
+  services:
+  - docker:dind
 
 docker:image:
   image: docker:latest
@@ -65,7 +69,7 @@ docker:image:
   tags:
   - docker
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make image save
   only:
@@ -81,12 +85,47 @@ docker:image_tagged:
   tags:
   - docker
   script:
-  - apk --update add make
+  - apk --update add make docker
   - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make image save
   only:
   - tags
   except:
   - master
+  services:
+  - docker:dind
+
+docker:master_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make docker
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
+  only:
+  - master
+
+
+docker:tags_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make docker
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_COMMIT_TAG} latest"
+  only:
+  - tags
   services:
   - docker:dind
