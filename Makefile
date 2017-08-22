@@ -6,6 +6,8 @@ IMAGE_NAME := vault-helper
 IMAGE_TAGS := canary
 BUILD_TAG := build
 
+BUILD_IMAGE_NAME := golang:1.8
+
 CI_COMMIT_TAG ?= unknown
 CI_COMMIT_SHA ?= unknown
 
@@ -61,3 +63,31 @@ depend: bin/mockgen
 
 go_generate: depend
 	mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
+
+
+.builder_image:
+	docker pull ${BUILD_IMAGE_NAME}
+
+
+# Builder image targets
+#######################
+docker_%: .builder_image
+	docker run -it \
+		-v ${GOPATH}/src:/go/src \
+		-v $(shell pwd):/go/src/${GO_PKG} \
+		-w /go/src/${GO_PKG} \
+		-e GOPATH=/go \
+		${BUILD_IMAGE_NAME} \
+		/bin/sh -c "make $*"
+
+# Docker targets
+################
+docker_build:
+	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
+
+docker_push: docker_build
+	set -e; \
+		for tag in $(IMAGE_TAGS); do \
+		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
+		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
+		done
