@@ -16,7 +16,7 @@ build:golang:
   - docker
   image: golang:1.8-alpine
   script:
-  - apk --update add curl unzip make
+  - apk --update add curl unzip make docker
   - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
   - mkdir -p /go/src/github.com/jetstack-experimental
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
@@ -42,7 +42,7 @@ deploy:release:
   tags:
   - docker
   script:
-  - apk --update add curl unzip make git
+  - apk --update add curl unzip make git docker
   - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
@@ -90,3 +90,36 @@ docker:image_tagged:
   - master
   services:
   - docker:dind
+
+docker:master_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} canary"
+  only:
+  - master
+
+
+docker:tags_build_push:
+  before_script: []
+  after_script: []
+  image: docker:1.12
+  stage: docker
+  tags:
+  - docker
+  services:
+  - docker:dind
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_push IMAGE_TAGS="${CI_COMMIT_TAG} latest"
+  only:
+  - tags
