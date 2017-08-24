@@ -3,9 +3,10 @@ package cmd
 import (
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/spf13/cobra"
+
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubeconfig"
-	"github.com/spf13/cobra"
 )
 
 // initCmd represents the init command

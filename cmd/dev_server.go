@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
 )
 
 // initCmd represents the init command

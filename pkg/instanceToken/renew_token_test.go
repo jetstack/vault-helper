@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"

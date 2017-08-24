@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 // RootCmd represents the base command when called without any subcommands
