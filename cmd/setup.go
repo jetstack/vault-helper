@@ -33,12 +33,14 @@ var setupCmd = &cobra.Command{
 			logger.Level = logrus.DebugLevel
 		}
 
+		log := logrus.NewEntry(logger)
+
 		v, err := vault.NewClient(nil)
 		if err != nil {
 			logger.Fatal(err)
 		}
 
-		k := kubernetes.New(v)
+		k := kubernetes.New(v, log)
 		if err != nil {
 			logger.Fatal(err)
 		}
