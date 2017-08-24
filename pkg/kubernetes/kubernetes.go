@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -66,6 +67,7 @@ type FlagInitTokens struct {
 type Kubernetes struct {
 	clusterID   string // clusterID is required parameter, lowercase only, [a-z0-9-]+
 	vaultClient Vault
+	Log         *logrus.Entry
 
 	etcdKubernetesPKI *PKI
 	etcdOverlayPKI    *PKI
@@ -131,7 +133,7 @@ func isValidClusterID(clusterID string) error {
 	return nil
 }
 
-func New(vaultClient *vault.Client) *Kubernetes {
+func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 
 	k := &Kubernetes{
 		// set default validity periods
@@ -150,12 +152,15 @@ func New(vaultClient *vault.Client) *Kubernetes {
 	if vaultClient != nil {
 		k.vaultClient = realVaultFromAPI(vaultClient)
 	}
+	if logger != nil {
+		k.Log = logger
+	}
 
-	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s")
-	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay")
-	k.kubernetesPKI = NewPKI(k, "k8s")
+	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s", k.Log)
+	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay", k.Log)
+	k.kubernetesPKI = NewPKI(k, "k8s", k.Log)
 
-	k.secretsGeneric = k.NewGeneric()
+	k.secretsGeneric = k.NewGeneric(k.Log)
 
 	return k
 }
@@ -217,10 +222,11 @@ func (k *Kubernetes) Path() string {
 	return k.clusterID
 }
 
-func (k *Kubernetes) NewGeneric() *Generic {
+func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
 	return &Generic{
 		kubernetes: k,
 		initTokens: make(map[string]string),
+		Log:        logger,
 	}
 }
 

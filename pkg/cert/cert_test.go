@@ -431,7 +431,7 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceT
 
 // Init kubernetes for testing
 func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kubernetes {
-	k := kubernetes.New(vaultDev.Client())
+	k := kubernetes.New(vaultDev.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {

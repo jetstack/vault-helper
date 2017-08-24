@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
 )
 
@@ -69,7 +70,7 @@ func TestPKI_Ensure(t *testing.T) {
 		return
 	}
 
-	pkiWrongType := NewPKI(k, "wrong-type-pki")
+	pkiWrongType := NewPKI(k, "wrong-type-pki", logrus.NewEntry(logrus.New()))
 
 	err = k.vaultClient.Sys().Mount(
 		k.Path()+"/pki/"+"wrong-type-pki",

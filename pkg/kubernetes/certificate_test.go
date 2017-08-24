@@ -37,7 +37,7 @@ func TestOrganisations(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k := New(vault.Client())
+	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
@@ -149,7 +149,7 @@ func TestCertificates(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k := New(vault.Client())
+	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {
@@ -175,7 +175,7 @@ func TestApiServerCanAdd(t *testing.T) {
 	}
 	defer vault.Stop()
 
-	k := New(vault.Client())
+	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {

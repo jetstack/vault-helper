@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/golang/mock/gomock"
 	vault "github.com/hashicorp/vault/api"
 )
@@ -40,7 +41,7 @@ func NewFakeVault(t *testing.T) *fakeVault {
 }
 
 func (v *fakeVault) Kubernetes() *Kubernetes {
-	k := New(nil)
+	k := New(nil, logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster-inside")
 	k.vaultClient = v.fakeVault
 	return k

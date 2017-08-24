@@ -16,14 +16,17 @@ type PKI struct {
 
 	MaxLeaseTTL     time.Duration
 	DefaultLeaseTTL time.Duration
+
+	Log *logrus.Entry
 }
 
-func NewPKI(k *Kubernetes, pkiName string) *PKI {
+func NewPKI(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKI {
 	return &PKI{
 		pkiName:         pkiName,
 		kubernetes:      k,
 		MaxLeaseTTL:     k.MaxValidityCA,
 		DefaultLeaseTTL: k.MaxValidityCA,
+		Log:             logger,
 	}
 }
 
@@ -43,10 +46,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 		if err != nil {
 			return fmt.Errorf("error tuning mount config: %v", err.Error())
 		}
-		logrus.Debugf("Tuned Mount: %s", p.pkiName)
+		p.Log.Debugf("Tuned Mount: %s", p.pkiName)
 		return nil
 	}
-	logrus.Debugf("No tune required: %s", p.pkiName)
+	p.Log.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
 }
@@ -59,7 +62,7 @@ func (p *PKI) Ensure() error {
 
 	// Mount doesn't Exist
 	if mount == nil {
-		logrus.Debugf("No mounts found for: %s", p.pkiName)
+		p.Log.Debugf("No mounts found for: %s", p.pkiName)
 		err := p.kubernetes.vaultClient.Sys().Mount(
 			p.Path(),
 			&vault.MountInput{
@@ -75,13 +78,13 @@ func (p *PKI) Ensure() error {
 		if err != nil {
 			return err
 		}
-		logrus.Infof("Mounted '%s'", p.pkiName)
+		p.Log.Infof("Mounted '%s'", p.pkiName)
 
 	} else {
 		if mount.Type != "pki" {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
-		logrus.Debugf("Mount '%s' already existing", p.Path())
+		p.Log.Debugf("Mount '%s' already existing", p.Path())
 	}
 
 	if mount != nil {
@@ -179,11 +182,11 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	}
 
 	if policy == "" {
-		logrus.Debugf("Policy Not Found: %s", name)
+		p.Log.Debugf("Policy Not Found: %s", name)
 		return false, nil
 	}
 
-	logrus.Debugf("Policy Found: %s", name)
+	p.Log.Debugf("Policy Found: %s", name)
 
 	return true, nil
 }

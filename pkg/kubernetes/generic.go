@@ -17,6 +17,8 @@ import (
 type Generic struct {
 	kubernetes *Kubernetes
 	initTokens map[string]string
+
+	Log *logrus.Entry
 }
 
 func (g *Generic) Ensure() error {
@@ -35,7 +37,7 @@ func (g *Generic) GenerateSecretsMount() error {
 	}
 
 	if mount == nil {
-		logrus.Debugf("No secrects mount found for: %s", g.Path())
+		g.Log.Debugf("No secrects mount found for: %s", g.Path())
 		err = g.kubernetes.vaultClient.Sys().Mount(
 			g.Path(),
 			&vault.MountInput{
@@ -48,7 +50,7 @@ func (g *Generic) GenerateSecretsMount() error {
 			return fmt.Errorf("error creating mount: %v", err)
 		}
 
-		logrus.Infof("Mounted secrets: '%s'", g.Path())
+		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
 	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
@@ -95,7 +97,7 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 		return fmt.Errorf("error writting key to secrets: %v", err)
 	}
 
-	logrus.Infof("Key written to secrets '%s'", secretPath)
+	g.Log.Infof("Key written to secrets '%s'", secretPath)
 
 	return nil
 }
@@ -173,7 +175,7 @@ func (g *Generic) revokeToken(token, path, role string) error {
 		return fmt.Errorf("failed to revoke init token at path: %s", path)
 	}
 
-	logrus.Infof("Revoked Token '%s': '%s'", role, token)
+	g.Log.Infof("Revoked Token '%s': '%s'", role, token)
 
 	return nil
 }
@@ -186,7 +188,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 		return fmt.Errorf("failed to rea init token path: %v", s)
 	}
 	if s != nil {
-		logrus.Infof("Token found in vault for role: %s", role)
+		g.Log.Infof("Token found in vault for role: %s", role)
 
 		dat, ok := s.Data["init_token"]
 		if !ok {
@@ -209,7 +211,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 		return fmt.Errorf("error writting init token at path: %v", s)
 	}
 
-	logrus.Infof("User token written for '%s': '%s'", role, token)
+	g.Log.Infof("User token written for '%s': '%s'", role, token)
 
 	return nil
 }
