@@ -15,6 +15,8 @@ const FlagInitTokenAll = "init-token-all"
 const FlagInitTokenMaster = "init-token-master"
 const FlagInitTokenWorker = "init-token-worker"
 
+const FlagWaitSignal = "wait-signal"
+
 func (v *DevVault) Run(cmd *cobra.Command, args []string) error {
 
 	v.Kubernetes = kubernetes.New(v.Vault.Client(), v.Log)

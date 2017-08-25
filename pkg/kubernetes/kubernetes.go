@@ -233,7 +233,7 @@ func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
 func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {
-		return nil, fmt.Errorf("error listing mounts: %s", err)
+		return nil, fmt.Errorf("error listing mounts: %v", err)
 	}
 
 	var mount *vault.MountOutput

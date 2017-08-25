@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -39,6 +42,11 @@ var devServerCmd = &cobra.Command{
 			logrus.Fatalf("no cluster ID was given")
 		}
 
+		wait, err := cmd.PersistentFlags().GetBool(dev_server.FlagWaitSignal)
+		if err != nil {
+			logrus.Fatalf("error finding wait value: %v", err)
+		}
+
 		v := dev_server.New(log)
 
 		if err := v.Run(cmd, args); err != nil {
@@ -49,6 +57,9 @@ var devServerCmd = &cobra.Command{
 			logrus.Infof(n + "-init_token := " + t)
 		}
 
+		if wait {
+			waitSignal(v)
+		}
 	},
 }
 
@@ -62,5 +73,33 @@ func init() {
 	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
 	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
 
+	devServerCmd.PersistentFlags().Bool(dev_server.FlagWaitSignal, false, "Wait for TERM + QUIT signal has been given before termination")
+	devServerCmd.Flag(dev_server.FlagWaitSignal).Shorthand = "w"
+
 	RootCmd.AddCommand(devServerCmd)
+}
+
+func waitSignal(v *dev_server.DevVault) {
+	signal_chan := make(chan os.Signal, 1)
+	signal.Notify(signal_chan,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	exit_chan := make(chan int)
+
+	go func() {
+		for {
+			s := <-signal_chan
+			switch s {
+			case syscall.SIGTERM:
+				exit_chan <- 0
+
+			case syscall.SIGQUIT:
+				exit_chan <- 0
+			}
+		}
+	}()
+
+	<-exit_chan
+	v.Vault.Stop()
 }
