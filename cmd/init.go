@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -20,6 +21,9 @@ func Execute() {
 
 	RootCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
 	RootCmd.Flag(instanceToken.FlagVaultConfigPath).Shorthand = "p"
+
+	RootCmd.PersistentFlags().Int("log-level", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
+	RootCmd.Flag("log-level").Shorthand = "l"
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)

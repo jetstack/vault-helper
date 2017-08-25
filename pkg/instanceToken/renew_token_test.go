@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
@@ -255,7 +256,7 @@ func tokenCheckFiles(t *testing.T, i *instanceToken.InstanceToken) {
 
 // Init kubernetes for testing
 func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kubernetes {
-	k := kubernetes.New(vaultDev.Client())
+	k := kubernetes.New(vaultDev.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test-cluster")
 
 	if err := k.Ensure(); err != nil {

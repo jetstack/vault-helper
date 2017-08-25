@@ -2,6 +2,7 @@ package dev_server
 
 import (
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+
 	"github.com/spf13/cobra"
 )
 
@@ -14,9 +15,11 @@ const FlagInitTokenAll = "init-token-all"
 const FlagInitTokenMaster = "init-token-master"
 const FlagInitTokenWorker = "init-token-worker"
 
+const FlagWaitSignal = "wait-signal"
+
 func (v *DevVault) Run(cmd *cobra.Command, args []string) error {
 
-	v.Kubernetes = kubernetes.New(v.Vault.Client())
+	v.Kubernetes = kubernetes.New(v.Vault.Client(), v.Log)
 
 	return v.Kubernetes.Run(cmd, args)
 }

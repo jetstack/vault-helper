@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -32,7 +31,7 @@ func (k *Kubernetes) ensurePolicies() error {
 			str += "'" + p.Role + "'  "
 		}
 	}
-	logrus.Infof(str)
+	k.Log.Infof(str)
 
 	return result
 }
