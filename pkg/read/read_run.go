@@ -15,8 +15,8 @@ const FlagGroup = "group"
 
 func (r *Read) Run(cmd *cobra.Command, args []string) error {
 
-	if len(args) > 1 {
-		return errors.New("incorrect number of arguments given. usage: vault-helper read [vault path]")
+	if len(args) != 1 {
+		return errors.New("incorrect number of arguments given. Usage: vault-helper read [vault path] [flags]")
 	}
 
 	r.SetVaultPath(args[0])

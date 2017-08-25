@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 const FlagKeyBitSize = "key-bit-size"
