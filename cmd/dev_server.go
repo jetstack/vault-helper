@@ -47,7 +47,16 @@ var devServerCmd = &cobra.Command{
 			logrus.Fatalf("error finding wait value: %v", err)
 		}
 
-		v := dev_server.New(log)
+		port, err := cmd.PersistentFlags().GetInt(dev_server.FlagPortNumber)
+		if err != nil {
+			logrus.Fatalf("error finding port value: %v", err)
+		}
+
+		if port > 65536 {
+			logrus.Fatalf("invalid port %d > 65536", port)
+		}
+
+		v := dev_server.New(log, port)
 
 		if err := v.Run(cmd, args); err != nil {
 			logrus.Fatal(err)
@@ -75,6 +84,9 @@ func init() {
 
 	devServerCmd.PersistentFlags().Bool(dev_server.FlagWaitSignal, true, "Wait for TERM + QUIT signal has been given before termination")
 	devServerCmd.Flag(dev_server.FlagWaitSignal).Shorthand = "w"
+
+	devServerCmd.PersistentFlags().Int(dev_server.FlagPortNumber, 8200, "Set the port number to connect to vault")
+	devServerCmd.Flag(dev_server.FlagPortNumber).Shorthand = "t"
 
 	RootCmd.AddCommand(devServerCmd)
 }

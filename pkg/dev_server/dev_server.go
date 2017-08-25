@@ -13,9 +13,9 @@ type DevVault struct {
 	Log        *logrus.Entry
 }
 
-func New(logger *logrus.Entry) *DevVault {
+func New(logger *logrus.Entry, port int) *DevVault {
 
-	vault := vault_dev.New()
+	vault := vault_dev.New(port)
 	if err := vault.Start(); err != nil {
 		logrus.Fatalf("unable to initialise dev vault: %s", err)
 	}

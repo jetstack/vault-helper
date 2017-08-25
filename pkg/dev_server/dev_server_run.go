@@ -16,6 +16,7 @@ const FlagInitTokenMaster = "init-token-master"
 const FlagInitTokenWorker = "init-token-worker"
 
 const FlagWaitSignal = "wait-signal"
+const FlagPortNumber = "port"
 
 func (v *DevVault) Run(cmd *cobra.Command, args []string) error {
 

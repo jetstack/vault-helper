@@ -10,7 +10,7 @@ import (
 )
 
 func TestGeneric_Ensure(t *testing.T) {
-	vault := vault_dev.New()
+	vault := vault_dev.New(8027)
 	if err := vault.Start(); err != nil {
 		t.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
 	}

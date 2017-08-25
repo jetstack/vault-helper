@@ -2,7 +2,6 @@ package vault_dev
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 	"syscall"
 	"time"
@@ -11,36 +10,25 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-func getUnusedPort() int {
-	l, err := net.ListenTCP("tcp", &net.TCPAddr{
-		IP:   net.ParseIP("127.0.0.1"),
-		Port: 0,
-	})
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
-}
-
 type VaultDev struct {
 	client       *vault.Client
 	server       *exec.Cmd
 	vaultRunning chan struct{}
+	port         int
 }
 
-func New() *VaultDev {
-	return &VaultDev{}
+func New(port int) *VaultDev {
+	return &VaultDev{
+		port: port,
+	}
 }
 
 func (v *VaultDev) Start() error {
-	port := getUnusedPort()
-
 	args := []string{
 		"server",
 		"-dev",
 		"-dev-root-token-id=root-token",
-		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", port),
+		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", v.port),
 	}
 
 	logrus.Infof("starting vault: %#+v", args)
@@ -67,7 +55,7 @@ func (v *VaultDev) Start() error {
 	}()
 
 	v.client, err = vault.NewClient(&vault.Config{
-		Address: fmt.Sprintf("http://127.0.0.1:%d", port),
+		Address: fmt.Sprintf("http://127.0.0.1:%d", v.port),
 	})
 	if err != nil {
 		return err
