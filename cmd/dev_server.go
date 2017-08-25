@@ -73,7 +73,7 @@ func init() {
 	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
 	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
 
-	devServerCmd.PersistentFlags().Bool(dev_server.FlagWaitSignal, false, "Wait for TERM + QUIT signal has been given before termination")
+	devServerCmd.PersistentFlags().Bool(dev_server.FlagWaitSignal, true, "Wait for TERM + QUIT signal has been given before termination")
 	devServerCmd.Flag(dev_server.FlagWaitSignal).Shorthand = "w"
 
 	RootCmd.AddCommand(devServerCmd)
