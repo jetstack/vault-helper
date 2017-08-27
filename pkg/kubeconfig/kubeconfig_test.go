@@ -253,7 +253,7 @@ func initKubernetes(t *testing.T, vaultDev *vault_dev.VaultDev) *kubernetes.Kube
 
 // Start vault_dev for testing
 func initVaultDev() *vault_dev.VaultDev {
-	vaultDev := vault_dev.New(8240)
+	vaultDev := vault_dev.New(8205)
 
 	if err := vaultDev.Start(); err != nil {
 		logrus.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
