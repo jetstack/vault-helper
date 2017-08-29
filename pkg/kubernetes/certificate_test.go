@@ -30,7 +30,7 @@ type basicConstraints struct {
 }
 
 func TestOrganisations(t *testing.T) {
-	vault := vault_dev.New(8200)
+	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return
@@ -142,7 +142,7 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 }
 
 func TestCertificates(t *testing.T) {
-	vault := vault_dev.New(8201)
+	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return
@@ -168,7 +168,7 @@ func TestCertificates(t *testing.T) {
 }
 
 func TestApiServerCanAdd(t *testing.T) {
-	vault := vault_dev.New(8202)
+	vault := vault_dev.New()
 	if err := vault.Start(); err != nil {
 		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
 		return

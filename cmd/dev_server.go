@@ -55,8 +55,15 @@ var devServerCmd = &cobra.Command{
 		if port > 65536 {
 			logrus.Fatalf("invalid port %d > 65536", port)
 		}
+		if port < 1 {
+			logrus.Fatalf("invalid port %d < 1", port)
+		}
 
-		v := dev_server.New(log, port)
+		v := dev_server.New(log)
+		v.Vault.SetPort(port)
+		if err := v.Vault.Start(); err != nil {
+			logrus.Fatalf("unable to initialise dev vault: %s", err)
+		}
 
 		if err := v.Run(cmd, args); err != nil {
 			logrus.Fatal(err)

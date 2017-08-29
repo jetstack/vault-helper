@@ -2,6 +2,7 @@ package vault_dev
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 	"syscall"
 	"time"
@@ -14,21 +15,25 @@ type VaultDev struct {
 	client       *vault.Client
 	server       *exec.Cmd
 	vaultRunning chan struct{}
-	port         int
+	port         *int
 }
 
-func New(port int) *VaultDev {
-	return &VaultDev{
-		port: port,
-	}
+func New() *VaultDev {
+	return &VaultDev{}
 }
 
 func (v *VaultDev) Start() error {
+
+	if v.port == nil {
+		p := getUnusedPort()
+		v.port = &p
+	}
+
 	args := []string{
 		"server",
 		"-dev",
 		"-dev-root-token-id=root-token",
-		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", v.port),
+		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", *v.port),
 	}
 
 	logrus.Infof("starting vault: %#+v", args)
@@ -55,7 +60,7 @@ func (v *VaultDev) Start() error {
 	}()
 
 	v.client, err = vault.NewClient(&vault.Config{
-		Address: fmt.Sprintf("http://127.0.0.1:%d", v.port),
+		Address: fmt.Sprintf("http://127.0.0.1:%d", *v.port),
 	})
 	if err != nil {
 		return err
@@ -96,4 +101,20 @@ func (v *VaultDev) Stop() {
 
 func (v *VaultDev) Client() *vault.Client {
 	return v.client
+}
+
+func (v *VaultDev) SetPort(port int) {
+	v.port = &port
+}
+
+func getUnusedPort() int {
+	l, err := net.ListenTCP("tcp", &net.TCPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 0,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
 }
