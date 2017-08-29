@@ -130,14 +130,8 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 	err = i.TokenRenewRun()
 	i.Log.Debug(err)
 
-	if err == nil {
-		t.Fatal("expected an error - token not renewable")
-	}
-
-	if err.Error() == "token not renewable: "+i.Token() {
-		i.Log.Debugf("Error returned successfully - token is not renewable")
-	} else {
-		t.Errorf("unexpected error: %v", err)
+	if err != nil {
+		t.Fatalf(" unexpected error, token unrenewable should have no errors: %s", err)
 	}
 
 	return
