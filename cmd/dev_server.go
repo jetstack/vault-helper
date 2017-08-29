@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,6 +11,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
 )
 
@@ -17,6 +20,11 @@ var devServerCmd = &cobra.Command{
 	Use:   "dev-server [cluster ID]",
 	Short: "Run a vault server in development mode with kubernetes PKI created.",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		l, err := net.Listen("tcp", ":8081")
+		if err != nil {
+			logrus.Fatalf("cannot listen: %s", err)
+		}
 
 		logger := logrus.New()
 
@@ -55,6 +63,9 @@ var devServerCmd = &cobra.Command{
 		if port > 65536 {
 			logrus.Fatalf("invalid port %d > 65536", port)
 		}
+		if port < 1 {
+			logrus.Fatalf("invalid port %d < 1", port)
+		}
 
 		v := dev_server.New(log, port)
 
@@ -65,6 +76,9 @@ var devServerCmd = &cobra.Command{
 		for n, t := range v.Kubernetes.InitTokens() {
 			logrus.Infof(n + "-init_token := " + t)
 		}
+
+		daemon.SdNotify(false, "READY=1")
+		http.Serve(l, nil)
 
 		if wait {
 			waitSignal(v)
