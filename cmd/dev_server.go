@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,11 +18,6 @@ var devServerCmd = &cobra.Command{
 	Use:   "dev-server [cluster ID]",
 	Short: "Run a vault server in development mode with kubernetes PKI created.",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		l, err := net.Listen("tcp", ":8081")
-		if err != nil {
-			logrus.Fatalf("cannot listen: %s", err)
-		}
 
 		logger := logrus.New()
 
@@ -78,7 +71,6 @@ var devServerCmd = &cobra.Command{
 		}
 
 		daemon.SdNotify(false, "READY=1")
-		http.Serve(l, nil)
 
 		if wait {
 			waitSignal(v)
