@@ -16,9 +16,6 @@ type DevVault struct {
 func New(logger *logrus.Entry) *DevVault {
 
 	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		logrus.Fatalf("unable to initialise dev vault: %s", err)
-	}
 
 	v := &DevVault{
 		Vault: vault,
