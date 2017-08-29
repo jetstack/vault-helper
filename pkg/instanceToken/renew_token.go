@@ -224,7 +224,8 @@ func (i *InstanceToken) tokenRenew() error {
 	}
 
 	if dat == false {
-		return fmt.Errorf("token not renewable: %s", i.Token())
+		i.Log.Infof("Token not renewable: %s", i.Token())
+		return nil
 	}
 	i.Log.Debugf("Token renewable")
 
