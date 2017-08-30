@@ -14,7 +14,6 @@ type DevVault struct {
 }
 
 func New(logger *logrus.Entry) *DevVault {
-
 	vault := vault_dev.New()
 
 	v := &DevVault{
