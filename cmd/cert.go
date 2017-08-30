@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
@@ -14,25 +13,7 @@ var certCmd = &cobra.Command{
 	// TODO: Make short better
 	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role.",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := logrus.New()
-
-		i, err := RootCmd.PersistentFlags().GetInt("log-level")
-		if err != nil {
-			logrus.Fatalf("failed to get log level of flag: %s", err)
-		}
-		if i < 0 || i > 2 {
-			logrus.Fatalf("not a valid log level")
-		}
-		switch i {
-		case 0:
-			logger.Level = logrus.FatalLevel
-		case 1:
-			logger.Level = logrus.InfoLevel
-		case 2:
-			logger.Level = logrus.DebugLevel
-		}
-
-		log := logrus.NewEntry(logger)
+		log := LogLevel(cmd)
 
 		v, err := vault.NewClient(nil)
 		if err != nil {

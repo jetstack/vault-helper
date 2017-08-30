@@ -3,7 +3,6 @@ package cmd
 import (
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
@@ -14,39 +13,20 @@ var devServerCmd = &cobra.Command{
 	Use:   "dev-server [cluster ID]",
 	Short: "Run a vault server in development mode with kubernetes PKI created.",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		logger := logrus.New()
-
-		i, err := RootCmd.PersistentFlags().GetInt("log-level")
-		if err != nil {
-			logrus.Fatalf("failed to get log level of flag: %s", err)
-		}
-		if i < 0 || i > 2 {
-			logrus.Fatalf("not a valid log level")
-		}
-		switch i {
-		case 0:
-			logger.Level = logrus.FatalLevel
-		case 1:
-			logger.Level = logrus.InfoLevel
-		case 2:
-			logger.Level = logrus.DebugLevel
-		}
-
-		log := logrus.NewEntry(logger)
+		log := LogLevel(cmd)
 
 		if len(args) < 1 {
-			logrus.Fatalf("no cluster ID was given")
+			log.Fatalf("no cluster ID was given")
 		}
 
 		v := dev_server.New(log)
 
 		if err := v.Run(cmd, args); err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 
 		for n, t := range v.Kubernetes.InitTokens() {
-			logrus.Infof(n + "-init_token := " + t)
+			log.Infof(n + "-init_token := " + t)
 		}
 
 	},
