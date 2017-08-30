@@ -38,6 +38,9 @@ var devServerCmd = &cobra.Command{
 		if port < 1 {
 			log.Fatalf("invalid port %d < 1", port)
 		}
+		if port < 1 {
+			logrus.Fatalf("invalid port %d < 1", port)
+		}
 
 		v := dev_server.New(log)
 		v.Vault.SetPort(port)
