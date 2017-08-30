@@ -36,6 +36,28 @@ func TestSet(t *testing.T) {
 	}
 }
 
+func TestGetCounterTest(t *testing.T) {
+	t.Log("Testing counter.GetCounterTest")
+
+	cm := &CirconusMetrics{counters: make(map[string]uint64)}
+
+	cm.Set("foo", 10)
+
+	val, err := cm.GetCounterTest("foo")
+	if err != nil {
+		t.Errorf("Expected no error %v", err)
+	}
+	if val != 10 {
+		t.Errorf("Expected 10 got %v", val)
+	}
+
+	_, err = cm.GetCounterTest("bar")
+	if err == nil {
+		t.Error("Expected error")
+	}
+
+}
+
 func TestIncrement(t *testing.T) {
 	t.Log("Testing counter.Increment")
 

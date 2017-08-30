@@ -103,6 +103,19 @@ func TestNew(t *testing.T) {
 		}
 	}
 
+	t.Log("API Token, API App, API Account ID, no API URL")
+	{
+		ac := &Config{
+			TokenKey:       "abc123",
+			TokenApp:       "someapp",
+			TokenAccountID: "0",
+		}
+		_, err := New(ac)
+		if err != nil {
+			t.Errorf("Expected no error, got '%v'", err)
+		}
+	}
+
 	t.Log("API Token, API App, API URL [host]")
 	{
 		ac := &Config{
@@ -205,9 +218,10 @@ func TestApiCall(t *testing.T) {
 	defer server.Close()
 
 	ac := &Config{
-		TokenKey: "foo",
-		TokenApp: "bar",
-		URL:      server.URL,
+		TokenKey:       "foo",
+		TokenApp:       "bar",
+		TokenAccountID: "0",
+		URL:            server.URL,
 	}
 
 	apih, err := NewAPI(ac)
