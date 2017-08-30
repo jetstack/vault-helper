@@ -90,6 +90,32 @@ func TestSetHistogramValue(t *testing.T) {
 	}
 }
 
+func TestGetHistogramTest(t *testing.T) {
+	t.Log("Testing histogram.GetHistogramTest")
+
+	cm := &CirconusMetrics{histograms: make(map[string]*Histogram)}
+
+	cm.SetHistogramValue("foo", 10)
+	expected := "H[1.0e+01]=1"
+
+	val, err := cm.GetHistogramTest("foo")
+	if err != nil {
+		t.Errorf("Expected no error %v", err)
+	}
+	if len(val) == 0 {
+		t.Error("Expected 1 value, got 0 values")
+	}
+	if val[0] != expected {
+		t.Errorf("Expected '%s' got '%v'", expected, val[0])
+	}
+
+	_, err = cm.GetHistogramTest("bar")
+	if err == nil {
+		t.Error("Expected error")
+	}
+
+}
+
 func TestRemoveHistogram(t *testing.T) {
 	t.Log("Testing histogram.RemoveHistogram")
 

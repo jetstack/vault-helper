@@ -24,7 +24,7 @@ var (
 		CheckBundleCID: "/check_bundle/1234",
 		CheckTags:      []string{"cat:tag"},
 		CheckUUID:      "",
-		Histogram:      false,
+		Histogram:      "false",
 		MetricName:     "foo",
 		MetricType:     "numeric",
 		Tags:           []string{"cat1:tag1"},

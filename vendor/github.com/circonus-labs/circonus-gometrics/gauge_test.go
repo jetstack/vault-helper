@@ -207,6 +207,28 @@ func TestSetGauge(t *testing.T) {
 	}
 }
 
+func TestGetGaugeTest(t *testing.T) {
+	t.Log("Testing gauge.GetGaugeTest")
+
+	cm := &CirconusMetrics{gauges: make(map[string]string)}
+
+	cm.SetGauge("foo", 10)
+
+	val, err := cm.GetGaugeTest("foo")
+	if err != nil {
+		t.Errorf("Expected no error %v", err)
+	}
+	if val != "10" {
+		t.Errorf("Expected '10' got '%v'", val)
+	}
+
+	_, err = cm.GetGaugeTest("bar")
+	if err == nil {
+		t.Error("Expected error")
+	}
+
+}
+
 func TestRemoveGauge(t *testing.T) {
 	t.Log("Testing gauge.RemoveGauge")
 
