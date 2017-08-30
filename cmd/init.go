@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
@@ -29,4 +30,26 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+}
+
+func LogLevel(cmd *cobra.Command) *logrus.Entry {
+	logger := logrus.New()
+
+	i, err := RootCmd.PersistentFlags().GetInt("log-level")
+	if err != nil {
+		logrus.Fatalf("failed to get log level of flag: %s", err)
+	}
+	if i < 0 || i > 2 {
+		logrus.Fatalf("not a valid log level")
+	}
+	switch i {
+	case 0:
+		logger.Level = logrus.FatalLevel
+	case 1:
+		logger.Level = logrus.InfoLevel
+	case 2:
+		logger.Level = logrus.DebugLevel
+	}
+
+	return logrus.NewEntry(logger)
 }
