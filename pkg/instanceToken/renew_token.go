@@ -243,7 +243,7 @@ func (i *InstanceToken) tokenRenew() error {
 func (i *InstanceToken) TokenRenewRun() error {
 	token, err := i.TokenRetrieve()
 	if err != nil && os.IsExist(err) {
-		return fmt.Errorf("error retreiving token from file: %v", err)
+		return fmt.Errorf("error retrieving token from file: %v", err)
 	}
 
 	if token != "" {

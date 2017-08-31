@@ -194,7 +194,6 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev) *instanceToke
 
 	i := instanceToken.New(vaultDev.Client(), log)
 	i.SetRole("master")
-	i.SetClusterID("test-cluster")
 
 	// setup temporary directory for tests
 	dir, err := ioutil.TempDir("", "vault-helper-init-token")
