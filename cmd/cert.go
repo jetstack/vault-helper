@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 // initCmd represents the init command
@@ -19,6 +20,8 @@ var certCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		instanceToken.SetVaultToken(v, log, cmd)
 
 		c := cert.New(v, log)
 
