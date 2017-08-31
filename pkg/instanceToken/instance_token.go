@@ -12,7 +12,6 @@ import (
 type InstanceToken struct {
 	token           string
 	role            string
-	clusterID       string
 	vaultConfigPath string
 
 	Log         *logrus.Entry
@@ -53,10 +52,6 @@ func (i *InstanceToken) Token() (token string) {
 	return i.token
 }
 
-func (i *InstanceToken) SetClusterID(clusterID string) {
-	i.clusterID = clusterID
-}
-
 func (i *InstanceToken) SetVaultConfigPath(path string) {
 	i.vaultConfigPath = path
 }
@@ -76,7 +71,6 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *InstanceToken {
 	i := &InstanceToken{
 		role:            "",
 		token:           "",
-		clusterID:       "",
 		vaultConfigPath: "",
 	}
 

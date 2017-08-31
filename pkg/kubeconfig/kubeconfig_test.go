@@ -226,7 +226,7 @@ func checkOwnerGroup(t *testing.T, path string) {
 
 	curr, err := user.Current()
 	if err != nil {
-		t.Fatalf("error retreiving current user info: %v", curr)
+		t.Fatalf("error retrieving current user info: %v", curr)
 	}
 
 	uid := fmt.Sprint(fi.Sys().(*syscall.Stat_t).Uid)
@@ -315,7 +315,6 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 
 	i := instanceToken.New(vaultDev.Client(), log)
 	i.SetRole("")
-	i.SetClusterID("test-cluster")
 
 	i.SetVaultConfigPath(dir)
 

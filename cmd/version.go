@@ -22,7 +22,7 @@ func init() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: fmt.Sprint("Print the version number of ", AppName),
+	Short: fmt.Sprintf("Print the version number of %s.", AppName),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("%s", AppName)
 

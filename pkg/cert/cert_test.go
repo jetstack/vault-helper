@@ -64,7 +64,7 @@ func TestCert_File_Perms(t *testing.T) {
 
 	curr, err := user.Current()
 	if err != nil {
-		t.Fatalf("error retreiving current user info: %v", curr)
+		t.Fatalf("error retrieving current user info: %v", curr)
 	}
 
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
@@ -85,7 +85,7 @@ func TestCert_File_Perms_Int(t *testing.T) {
 
 	curr, err := user.Current()
 	if err != nil {
-		t.Fatalf("error retreiving current user info: %v", curr)
+		t.Fatalf("error retrieving current user info: %v", curr)
 	}
 
 	c.SetGroup(curr.Uid)
@@ -462,7 +462,6 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 
 	i := instanceToken.New(vaultDev.Client(), log)
 	i.SetRole("")
-	i.SetClusterID("test-cluster")
 
 	i.SetVaultConfigPath(dir)
 

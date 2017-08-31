@@ -76,7 +76,7 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 	if c.Owner() == "" {
 		c.Log.Debugf("No owner given. Defaulting permissions to current user")
 		if curr, err = user.Current(); err != nil {
-			return fmt.Errorf("error retreiving current user info: %v", err)
+			return fmt.Errorf("error retrieving current user info: %v", err)
 		}
 
 		if uid, err = strconv.Atoi(curr.Uid); err != nil {
@@ -102,7 +102,7 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 		c.Log.Debugf("No group given. Defaulting permissions to current user-group")
 		if curr == nil {
 			if curr, err = user.Current(); err != nil {
-				return fmt.Errorf("error retreiving current user info: %v", err)
+				return fmt.Errorf("error retrieving current user info: %v", err)
 			}
 		}
 

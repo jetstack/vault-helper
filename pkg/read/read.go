@@ -114,7 +114,7 @@ func (r *Read) writePermissons() error {
 	if r.Owner() == "" {
 		r.Log.Debugf("No owner given. Defaulting permissions to current user")
 		if curr, err = user.Current(); err != nil {
-			return fmt.Errorf("error retreiving current user info: %v", err)
+			return fmt.Errorf("error retrieving current user info: %v", err)
 		}
 
 		if uid, err = strconv.Atoi(curr.Uid); err != nil {
@@ -140,7 +140,7 @@ func (r *Read) writePermissons() error {
 		r.Log.Debugf("No group given. Defaulting permissions to current user-group")
 		if curr == nil {
 			if curr, err = user.Current(); err != nil {
-				return fmt.Errorf("error retreiving current user info: %v", err)
+				return fmt.Errorf("error retrieving current user info: %v", err)
 			}
 		}
 

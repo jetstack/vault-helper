@@ -243,7 +243,7 @@ func (i *InstanceToken) tokenRenew() error {
 func (i *InstanceToken) EnsureToken() (newCreated bool, err error) {
 	token, err := i.TokenRetrieve()
 	if err != nil && os.IsExist(err) {
-		return false, fmt.Errorf("error retreiving token from file: %v", err)
+		return false, fmt.Errorf("error retrieving token from file: %v", err)
 	}
 	if token != "" {
 		// Token exists in file

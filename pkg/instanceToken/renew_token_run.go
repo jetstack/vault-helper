@@ -13,9 +13,7 @@ const FlagVaultConfigPath = "config-path"
 
 func (i *InstanceToken) Run(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
-		i.SetClusterID(args[0])
-	} else {
-		return errors.New("no cluster id was given")
+		return errors.New("invalid arguments")
 	}
 
 	value, err := cmd.PersistentFlags().GetString(FlagTokenRole)

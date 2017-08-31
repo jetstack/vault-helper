@@ -9,7 +9,7 @@ import (
 
 // initCmd represents the init command
 var renewtokenCmd = &cobra.Command{
-	Use:   "renew-token [cluster ID]",
+	Use:   "renew-token",
 	Short: "Renew token on vault server.",
 	Run: func(cmd *cobra.Command, args []string) {
 		log := LogLevel(cmd)
