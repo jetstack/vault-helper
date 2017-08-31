@@ -4,6 +4,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/read"
 )
 
@@ -18,6 +19,8 @@ var readCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		instanceToken.SetVaultToken(v, log, cmd)
 
 		r := read.New(v, log)
 

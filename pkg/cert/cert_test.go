@@ -365,9 +365,11 @@ func TestCert_Busy_Vault(t *testing.T) {
 	}
 
 	c.Log.Infof("-- Second run call --")
-	c.vaultClient.SetToken("foo-bar")
+	if err := c.vaultClient.Sys().Seal(); err != nil {
+		t.Fatalf("error sealing vault")
+	}
 	if err := c.RunCert(); err == nil {
-		t.Fatalf("expected 400 error, premisson denied")
+		t.Fatalf("expected 400 error, permission denied")
 	}
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
@@ -397,7 +399,7 @@ func TestCert_Busy_Vault(t *testing.T) {
 
 }
 
-// Init Cert for tesing
+// Init Cert for testing
 func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *Cert, i *instanceToken.InstanceToken) {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel

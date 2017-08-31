@@ -240,38 +240,50 @@ func (i *InstanceToken) tokenRenew() error {
 	return nil
 }
 
-func (i *InstanceToken) TokenRenewRun() error {
+func (i *InstanceToken) EnsureToken() (newCreated bool, err error) {
 	token, err := i.TokenRetrieve()
 	if err != nil && os.IsExist(err) {
 		return fmt.Errorf("error retrieving token from file: %v", err)
 	}
-
 	if token != "" {
 		// Token exists in file
-		// Renew token
 		logrus.Debugf("Token to renew: %s", token)
 		i.SetToken(token)
-		if err := i.tokenRenew(); err != nil {
-			return err
-		}
-		return nil
+		i.vaultClient.SetToken(i.Token())
+		return false, nil
 	}
 
 	//Token Doesn't exist
 	i.Log.Info("Token doesn't exist, generating new")
 	err = i.initTokenNew()
 	if err != nil {
-		return fmt.Errorf("failed to generate new token: %v", err)
+		return false, fmt.Errorf("failed to generate new token: %v", err)
 	}
 
 	if err := i.WriteTokenFile(i.TokenFilePath(), i.Token()); err != nil {
-		return fmt.Errorf("failed to write token to file: %v", err)
+		return false, fmt.Errorf("failed to write token to file: %v", err)
 	}
 	if err := i.WipeTokenFile(i.InitTokenFilePath()); err != nil {
-		return fmt.Errorf("failed to wipe token from file: %v", err)
+		return false, fmt.Errorf("failed to wipe token from file: %v", err)
 	}
 
 	i.Log.Infof("Token written to file: %s", i.TokenFilePath())
+	i.vaultClient.SetToken(i.Token())
+
+	return true, nil
+}
+
+func (i *InstanceToken) TokenRenewRun() error {
+	newCreated, err := i.EnsureToken()
+	if err != nil {
+		return err
+	}
+
+	if !newCreated {
+		if err := i.tokenRenew(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
