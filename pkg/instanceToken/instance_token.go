@@ -1,10 +1,12 @@
 package instanceToken
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/spf13/cobra"
 )
 
 type InstanceToken struct {
@@ -14,6 +16,24 @@ type InstanceToken struct {
 
 	Log         *logrus.Entry
 	vaultClient *vault.Client
+}
+
+func SetVaultToken(vaultClient *vault.Client, log *logrus.Entry, cmd *cobra.Command) error {
+	i := New(vaultClient, log)
+	value, err := cmd.Root().Flags().GetString(FlagVaultConfigPath)
+	if err != nil {
+		return fmt.Errorf("error parsing %s '%s': %v", FlagVaultConfigPath, value, err)
+	}
+	if value != "" {
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return fmt.Errorf("error generating absoute path from path '%s': %v", value, err)
+		}
+		i.SetVaultConfigPath(abs)
+	}
+
+	_, err = i.EnsureToken()
+	return err
 }
 
 func (i *InstanceToken) SetRole(role string) {

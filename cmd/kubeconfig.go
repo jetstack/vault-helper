@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubeconfig"
 )
 
@@ -24,6 +25,8 @@ var kubeconfCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		instanceToken.SetVaultToken(v, log, cmd)
 
 		u := kubeconfig.New(v, log)
 

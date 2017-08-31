@@ -19,6 +19,8 @@ var renewtokenCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		instanceToken.SetVaultToken(v, log, cmd)
+
 		i := instanceToken.New(v, log)
 
 		if err := i.Run(cmd, args); err != nil {
