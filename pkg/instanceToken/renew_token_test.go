@@ -39,10 +39,10 @@ func TestMain(m *testing.M) {
 
 // Token exists at token_file - renew
 func TestRenew_Token_Exists(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
-	token := k.InitTokens()["master"]
+	token := "init-client-token"
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
@@ -74,10 +74,10 @@ func TestRenew_Token_Exists(t *testing.T) {
 
 // Token doesn't exist at token file - generate a new form init_token file; renew token
 func TestRenew_Token_NotExists(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	i := initInstanceToken(t, vaultDev)
 
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), k.InitTokens()["master"]); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), "init-client-token"); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 

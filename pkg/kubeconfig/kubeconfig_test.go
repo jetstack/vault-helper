@@ -41,10 +41,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestKubeconf_Busy_Vault(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := k.InitTokens()["master"]
+	token := "init-client-token"
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
@@ -93,10 +93,10 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 // Test permissons of created files
 func TestKubeconf_File_Perms(t *testing.T) {
 
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := k.InitTokens()["master"]
+	token := "init-client-token"
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
@@ -117,10 +117,10 @@ func TestKubeconf_File_Perms(t *testing.T) {
 }
 
 func TestKubeconf_Cert_Data(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := k.InitTokens()["master"]
+	token := "init-client-token"
 	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
