@@ -132,6 +132,7 @@ func (i *InstanceToken) initTokenNew() error {
 	}
 
 	i.Log.Debugf("init token found '%s' at '%s'", initToken, i.InitTokenFilePath())
+	i.vaultClient.SetToken(initToken)
 
 	policies, err := i.TokenPolicies()
 	if err != nil {

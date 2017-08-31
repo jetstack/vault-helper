@@ -32,7 +32,7 @@ func (v *VaultDev) Start() error {
 	args := []string{
 		"server",
 		"-dev",
-		"-dev-root-token-id=root-token",
+		"-dev-root-token-id=init-client-token",
 		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", *v.port),
 	}
 
@@ -65,7 +65,7 @@ func (v *VaultDev) Start() error {
 	if err != nil {
 		return err
 	}
-	v.client.SetToken("root-token")
+	v.client.SetToken("init-client-token")
 
 	tries := 30
 	for {

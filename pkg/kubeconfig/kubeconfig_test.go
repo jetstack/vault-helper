@@ -67,7 +67,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 
 	u.Log.Infof("-- Second run call --")
 	u.vaultClient.SetToken("foo-bar")
-	defer u.vaultClient.SetToken("root-token")
+	defer u.vaultClient.SetToken("init-client-token")
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("Expected 400 error, premisson denied")
 	}
