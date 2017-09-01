@@ -44,8 +44,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -67,7 +66,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 
 	u.Log.Infof("-- Second run call --")
 	u.vaultClient.SetToken("foo-bar")
-	defer u.vaultClient.SetToken("init-client-token")
+	defer u.vaultClient.SetToken(vault_dev.InitTokenDev)
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("Expected 400 error, premisson denied")
 	}
@@ -96,8 +95,7 @@ func TestKubeconf_File_Perms(t *testing.T) {
 	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -120,8 +118,7 @@ func TestKubeconf_Cert_Data(t *testing.T) {
 	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 

@@ -44,8 +44,7 @@ func TestCert_File_Perms(t *testing.T) {
 	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -91,8 +90,7 @@ func TestCert_File_Perms_Int(t *testing.T) {
 	c.SetGroup(curr.Uid)
 	c.SetOwner(curr.Gid)
 
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -152,8 +150,7 @@ func checkOwnerGroup(t *testing.T, path string, uid, gid string) {
 func TestCert_Verify_CA(t *testing.T) {
 	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("failed to set token for test: %v", err)
 	}
 
@@ -191,8 +188,7 @@ func TestCert_ConfigPath(t *testing.T) {
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -239,8 +235,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("failed to set token for test: %v", err)
 	}
 
@@ -325,8 +320,7 @@ func TestCert_Busy_Vault(t *testing.T) {
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := "init-client-token"
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
