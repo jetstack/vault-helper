@@ -41,11 +41,10 @@ func TestMain(m *testing.M) {
 // Test permissons of created files
 func TestCert_File_Perms(t *testing.T) {
 
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -80,7 +79,7 @@ func TestCert_File_Perms(t *testing.T) {
 
 // Test when passed int instead of string for owner/group
 func TestCert_File_Perms_Int(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 
 	curr, err := user.Current()
@@ -91,8 +90,7 @@ func TestCert_File_Perms_Int(t *testing.T) {
 	c.SetGroup(curr.Uid)
 	c.SetOwner(curr.Gid)
 
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -150,10 +148,9 @@ func checkOwnerGroup(t *testing.T, path string, uid, gid string) {
 
 // Verify CAs exist
 func TestCert_Verify_CA(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("failed to set token for test: %v", err)
 	}
 
@@ -182,18 +179,16 @@ func TestCert_Verify_CA(t *testing.T) {
 
 // Test config file path
 func TestCert_ConfigPath(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
-
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -231,18 +226,16 @@ func TestCert_ConfigPath(t *testing.T) {
 
 // Test if already existing valid certificate and key, they are kept
 func TestCert_Exist_NoChange(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
-
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := k.InitTokens()["etcd"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("failed to set token for test: %v", err)
 	}
 
@@ -318,18 +311,16 @@ func TestCert_Exist_NoChange(t *testing.T) {
 }
 
 func TestCert_Busy_Vault(t *testing.T) {
-	k := initKubernetes(t, vaultDev)
-
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	initKubernetes(t, vaultDev)
 	c, i := initCert(t, vaultDev)
 	i.SetVaultConfigPath(dir)
 	c.SetVaultConfigPath(dir)
-	token := k.InitTokens()["master"]
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), token); err != nil {
+	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 

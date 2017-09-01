@@ -20,7 +20,9 @@ var readCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		instanceToken.SetVaultToken(v, log, cmd)
+		if err := instanceToken.SetVaultToken(v, log, cmd); err != nil {
+			log.Fatal(err)
+		}
 
 		r := read.New(v, log)
 
