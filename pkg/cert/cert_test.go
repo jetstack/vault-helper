@@ -57,8 +57,8 @@ func TestCert_File_Perms(t *testing.T) {
 		t.Fatalf("error finding stats of '%s': %v", dir, err)
 	} else if !fi.IsDir() {
 		t.Fatalf("destination should be directory %s", dir)
-	} else if perm := fi.Mode(); perm.String() != "drwxr-xr-x" {
-		t.Fatalf("destination has incorrect file permissons. exp=drwxr-xr-x got=%s", perm)
+	} else if perm := fi.Mode().Perm(); perm != os.FileMode(0750).Perm() {
+		t.Fatalf("destination has incorrect file permissons. exp=0750 got=%d", perm)
 	}
 
 	curr, err := user.Current()
@@ -103,8 +103,8 @@ func TestCert_File_Perms_Int(t *testing.T) {
 		t.Fatalf("error finding stats of '%s': %v", dir, err)
 	} else if !fi.IsDir() {
 		t.Fatalf("destination should be directory %s", dir)
-	} else if perm := fi.Mode(); perm.String() != "drwxr-xr-x" {
-		t.Fatalf("destination has incorrect file permissons. exp=drwxr-xr-x got=%s", perm)
+	} else if perm := fi.Mode().Perm(); perm != os.FileMode(0750).Perm() {
+		t.Fatalf("destination has incorrect file permissons. exp=0750 got=%d", perm)
 	}
 
 	keyPem := filepath.Clean(c.Destination() + "-key.pem")
