@@ -13,11 +13,12 @@ Available Commands:
   read        Read arbitrary vault path. If no output file specified, output to console.
   renew-token Renew token on vault server.
   setup       Setup kubernetes on a running vault server.
-  version     Print the version number of vault-helper
+  version     Print the version number of vault-helper.
 
 Flags:
   -p, --config-path string   Set config path to directory with tokens (default "/etc/vault")
   -h, --help                 help for vault-helper
+  -l, --log-level int        Set the log level of output. 0-Fatal 1-Info 2-Debug (default 1)
 
 Use "vault-helper [command] --help" for more information about a command.
 ```
@@ -41,7 +42,7 @@ $ vault-helper setup cluster-name
 
 #### renew-token
 ```
-$ vault-helper renew-token cluster-name --role=admin
+$ vault-helper renew-token --role=admin
 ```
 
 ### cert
