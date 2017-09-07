@@ -12,6 +12,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	vault "github.com/hashicorp/vault/api"
+
+	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 type Read struct {
@@ -21,13 +23,13 @@ type Read struct {
 	owner     string
 	group     string
 
-	vaultClient *vault.Client
-	Log         *logrus.Entry
+	Log           *logrus.Entry
+	instanceToken *instanceToken.InstanceToken
 }
 
 func (r *Read) RunRead() error {
 	//Read vault
-	sec, err := r.vaultClient.Logical().Read(r.VaultPath())
+	sec, err := r.InstanceToken().VaultClient().Logical().Read(r.VaultPath())
 	if err != nil {
 		return fmt.Errorf("error reading from vault: %v", err)
 	}
@@ -187,20 +189,10 @@ func (r *Read) getPrettyJSON(sec *vault.Secret) (prettyStr string, err error) {
 	return string(prettyJSON.Bytes()), nil
 }
 
-func New(v *vault.Client, log *logrus.Entry) *Read {
+func New(log *logrus.Entry, i *instanceToken.InstanceToken) *Read {
 	r := &Read{
-		vaultPath: "",
-		fieldName: "",
-		filePath:  "",
-		owner:     "",
-		group:     "",
-
-		vaultClient: v,
-		Log:         log,
-	}
-
-	if v != nil {
-		r.vaultClient = v
+		instanceToken: i,
+		Log:           log,
 	}
 
 	if log != nil {
@@ -243,4 +235,8 @@ func (r *Read) SetGroup(name string) {
 }
 func (r *Read) Group() (name string) {
 	return r.group
+}
+
+func (r *Read) InstanceToken() *instanceToken.InstanceToken {
+	return r.instanceToken
 }

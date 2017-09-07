@@ -42,9 +42,9 @@ func TestMain(m *testing.M) {
 
 func TestKubeconf_Busy_Vault(t *testing.T) {
 	initKubernetes(t, vaultDev)
-	c, i := initCert(t, vaultDev)
+	c := initCert(t, vaultDev)
 
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
+	if err := c.InstanceToken().WriteTokenFile(c.InstanceToken().InitTokenFilePath(), vault_dev.RootTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -52,7 +52,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 		t.Fatalf("error runinning cert: %v", err)
 	}
 
-	u := initKubeconf(t, vaultDev, c)
+	u := initKubeconf(t, c)
 
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("error runinning kubeconfig: %v", err)
@@ -65,8 +65,8 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 	ymlCABef := yml.Clusters[0].Cluster.CertificateAuthorityData
 
 	u.Log.Infof("-- Second run call --")
-	u.vaultClient.SetToken("foo-bar")
-	defer u.vaultClient.SetToken(vault_dev.InitTokenDev)
+	u.Cert().InstanceToken().VaultClient().SetToken("foo-bar")
+	defer u.Cert().InstanceToken().VaultClient().SetToken(vault_dev.RootTokenDev)
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("Expected 400 error, premisson denied")
 	}
@@ -93,9 +93,9 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 func TestKubeconf_File_Perms(t *testing.T) {
 
 	initKubernetes(t, vaultDev)
-	c, i := initCert(t, vaultDev)
+	c := initCert(t, vaultDev)
 
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
+	if err := c.InstanceToken().WriteTokenFile(c.InstanceToken().InitTokenFilePath(), vault_dev.RootTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -103,7 +103,7 @@ func TestKubeconf_File_Perms(t *testing.T) {
 		t.Fatalf("error runinning cert: %v", err)
 	}
 
-	u := initKubeconf(t, vaultDev, c)
+	u := initKubeconf(t, c)
 
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("error runinning kubeconfig: %v", err)
@@ -116,9 +116,9 @@ func TestKubeconf_File_Perms(t *testing.T) {
 
 func TestKubeconf_Cert_Data(t *testing.T) {
 	initKubernetes(t, vaultDev)
-	c, i := initCert(t, vaultDev)
+	c := initCert(t, vaultDev)
 
-	if err := i.WriteTokenFile(i.InitTokenFilePath(), vault_dev.InitTokenDev); err != nil {
+	if err := c.InstanceToken().WriteTokenFile(c.InstanceToken().InitTokenFilePath(), vault_dev.RootTokenDev); err != nil {
 		t.Fatalf("error setting token for test: %v", err)
 	}
 
@@ -126,7 +126,7 @@ func TestKubeconf_Cert_Data(t *testing.T) {
 		t.Fatalf("error runinning cert: %v", err)
 	}
 
-	u := initKubeconf(t, vaultDev, c)
+	u := initKubeconf(t, c)
 
 	if err := u.RunKube(); err != nil {
 		t.Fatalf("error runinning kubeconfig: %v", err)
@@ -260,15 +260,25 @@ func initVaultDev() *vault_dev.VaultDev {
 }
 
 // Init Cert for tesing
-func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *cert.Cert, i *instanceToken.InstanceToken) {
+func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *cert.Cert) {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 	log := logrus.NewEntry(logger)
 
-	c = cert.New(vaultDev.Client(), log)
+	// setup temporary directory for tests
+	dir, err := ioutil.TempDir("", "test-cluster-dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempDirs = append(tempDirs, dir)
+	i := initInstanceToken(t, vaultDev, dir)
+
+	c = cert.New(log, i)
 	c.SetRole("test-cluster/pki/k8s/sign/kube-apiserver")
 	c.SetCommonName("k8s")
 	c.SetBitSize(2048)
+	c.InstanceToken().SetVaultConfigPath(dir)
+	c.SetDestination(dir + "/test")
 
 	if usr, err := user.Current(); err != nil {
 		t.Fatalf("error getting info on current user: %v", err)
@@ -277,28 +287,16 @@ func initCert(t *testing.T, vaultDev *vault_dev.VaultDev) (c *cert.Cert, i *inst
 		c.SetGroup(usr.Username)
 	}
 
-	// setup temporary directory for tests
-	dir, err := ioutil.TempDir("", "test-cluster-dir")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tempDirs = append(tempDirs, dir)
-	c.SetVaultConfigPath(dir)
-	c.SetDestination(dir + "/test")
-
-	i = initInstanceToken(t, vaultDev, dir)
-
-	return c, i
+	return c
 }
 
 // Init Kubeconfig for tesing
-func initKubeconf(t *testing.T, vaultDev *vault_dev.VaultDev, cert *cert.Cert) (u *Kubeconfig) {
+func initKubeconf(t *testing.T, cert *cert.Cert) (u *Kubeconfig) {
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 	log := logrus.NewEntry(logger)
 
-	u = New(vaultDev.Client(), log)
-	u.SetCert(cert)
+	u = New(log, cert)
 	u.SetFilePath(cert.Destination())
 
 	return u
@@ -311,7 +309,6 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 	log := logrus.NewEntry(logger)
 
 	i := instanceToken.New(vaultDev.Client(), log)
-	i.SetRole("")
 
 	i.SetVaultConfigPath(dir)
 

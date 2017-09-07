@@ -97,7 +97,7 @@ func (u *Kubeconfig) WritePermissions() error {
 func (u *Kubeconfig) BuildYaml() (yml string, err error) {
 	path := filepath.Clean(u.cert.Role())
 	clusterID := strings.Split(path, "/")[0]
-	apiURL := u.vaultClient.Address()
+	apiURL := u.Cert().InstanceToken().VaultClient().Address()
 
 	cluster := Cluster{clusterID, Clust{apiURL, "v1", u.CertCA64()}}
 	context := Context{clusterID, Conx{clusterID, "kube-system", clusterID}}

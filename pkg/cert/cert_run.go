@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 const FlagKeyBitSize = "key-bit-size"
@@ -66,18 +64,6 @@ func (c *Cert) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error parsing %s [[]string] '%s': %v", FlagSanHosts, vSli, err)
 	}
 	c.SetSanHosts(vSli)
-
-	value, err := cmd.Root().Flags().GetString(instanceToken.FlagVaultConfigPath)
-	if err != nil {
-		return fmt.Errorf("error parsing %s '%s': %v", instanceToken.FlagVaultConfigPath, value, err)
-	}
-	if value != "" {
-		abs, err := filepath.Abs(value)
-		if err != nil {
-			return fmt.Errorf("error generating absoute path from path '%s': %v", value, err)
-		}
-		c.SetVaultConfigPath(abs)
-	}
 
 	return c.RunCert()
 }

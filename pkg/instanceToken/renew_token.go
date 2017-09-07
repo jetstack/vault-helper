@@ -17,11 +17,7 @@ func (i *InstanceToken) TokenFromFile(path string) (token string, err error) {
 		return "", err
 	}
 
-	str := string(dat)
-	str = strings.Replace(str, " ", "", -1)
-	str = strings.Replace(str, "\n", "", -1)
-	str = strings.Replace(str, "\t", "", -1)
-	token = strings.Replace(str, "\r", "", -1)
+	token = strings.TrimSpace(string(dat))
 
 	return token, nil
 }
@@ -185,11 +181,10 @@ func (i *InstanceToken) TokenPolicies() (policies []string, err error) {
 
 func (i *InstanceToken) createToken(policies []string) (token string, err error) {
 	tCreateRequest := &vault.TokenCreateRequest{
-		DisplayName: i.Role(),
-		Policies:    policies,
+		DisplayName: i.InitRole(),
 	}
 
-	newToken, err := i.vaultClient.Auth().Token().CreateOrphan(tCreateRequest)
+	newToken, err := i.vaultClient.Auth().Token().CreateWithRole(tCreateRequest, i.InitRole())
 	if err != nil {
 		return "", fmt.Errorf("failed to create init token: %v", err)
 	}
@@ -233,7 +228,7 @@ func (i *InstanceToken) tokenRenew() error {
 	// Renew against vault
 	s, err = i.vaultClient.Auth().Token().RenewSelf(0)
 	if err != nil {
-		return fmt.Errorf("error renewing token %s: %v", i.Role(), err)
+		return fmt.Errorf("error renewing token %s: %v", i.InitRole(), err)
 	}
 
 	i.Log.Infof("Renewed token: %s", i.Token())

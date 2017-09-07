@@ -93,7 +93,7 @@ func (c *Cert) checkExistingCerts(path string) (exist bool, err error) {
 
 func (c *Cert) verifyCertificates() error {
 	conf := vault.DefaultConfig()
-	conf.Address = c.vaultClient.Address()
+	conf.Address = c.InstanceToken().VaultClient().Address()
 
 	tConf := &vault.TLSConfig{
 		CAPath:     filepath.Clean(filepath.Dir(c.Destination())),
@@ -183,7 +183,7 @@ func (c *Cert) writeCSR(path string, data map[string]interface{}) (secret *vault
 	}
 	data["csr"] = string(csr)
 
-	return c.vaultClient.Logical().Write(path, data)
+	return c.InstanceToken().VaultClient().Logical().Write(path, data)
 }
 
 func (c *Cert) storeCertificate(path, cert string) error {

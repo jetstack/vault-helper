@@ -6,7 +6,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
 
@@ -22,7 +21,14 @@ var setupCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		instanceToken.SetVaultToken(v, log, cmd)
+		i, err := newInstanceToken(cmd)
+		if err != nil {
+			i.Log.Fatal(err)
+		}
+
+		if err := i.Run(cmd, args); err != nil {
+			i.Log.Fatal(err)
+		}
 
 		k := kubernetes.New(v, log)
 		if err != nil {

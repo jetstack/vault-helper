@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/read"
 )
 
@@ -15,16 +13,16 @@ var readCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log := LogLevel(cmd)
 
-		v, err := vault.NewClient(nil)
+		i, err := newInstanceToken(cmd)
 		if err != nil {
-			log.Fatal(err)
+			i.Log.Fatal(err)
 		}
 
-		if err := instanceToken.SetVaultToken(v, log, cmd); err != nil {
-			log.Fatal(err)
+		if err := i.Run(cmd, args); err != nil {
+			i.Log.Fatal(err)
 		}
 
-		r := read.New(v, log)
+		r := read.New(log, i)
 
 		if err := r.Run(cmd, args); err != nil {
 			log.Fatal(err)
@@ -33,6 +31,8 @@ var readCmd = &cobra.Command{
 }
 
 func init() {
+	instanceTokenFlags(readCmd)
+
 	readCmd.PersistentFlags().String(read.FlagOutputPath, "", "Set destination file path of read responce. Output to console if no filepath given (default <console>)")
 	readCmd.Flag(read.FlagOutputPath).Shorthand = "d"
 	readCmd.PersistentFlags().String(read.FlagField, "", "If included, the raw value of the specified field will be output. If not, output entire responce in JSON (default <all>)")

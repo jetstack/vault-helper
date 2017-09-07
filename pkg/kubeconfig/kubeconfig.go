@@ -2,7 +2,6 @@ package kubeconfig
 
 import (
 	"github.com/Sirupsen/logrus"
-	vault "github.com/hashicorp/vault/api"
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
 )
 
@@ -12,17 +11,15 @@ type Kubeconfig struct {
 	certCA64  string
 	cert64    string
 
-	cert        *cert.Cert
-	Log         *logrus.Entry
-	vaultClient *vault.Client
+	cert *cert.Cert
+	Log  *logrus.Entry
 }
 
-func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubeconfig {
-	u := &Kubeconfig{}
-
-	if vaultClient != nil {
-		u.vaultClient = vaultClient
+func New(logger *logrus.Entry, c *cert.Cert) *Kubeconfig {
+	u := &Kubeconfig{
+		cert: c,
 	}
+
 	if logger != nil {
 		u.Log = logger
 	}
