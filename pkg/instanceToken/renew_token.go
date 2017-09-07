@@ -185,11 +185,12 @@ func (i *InstanceToken) TokenPolicies() (policies []string, err error) {
 
 func (i *InstanceToken) createToken(policies []string) (token string, err error) {
 	tCreateRequest := &vault.TokenCreateRequest{
-		DisplayName: i.Role(),
-		Policies:    policies,
+		DisplayName: i.InitRole(),
+		//Policies:    policies,
 	}
 
-	newToken, err := i.vaultClient.Auth().Token().CreateOrphan(tCreateRequest)
+	newToken, err := i.vaultClient.Auth().Token().CreateWithRole(tCreateRequest, i.InitRole())
+	//newToken, err := i.vaultClient.Auth().Token().CreateOrphan(tCreateRequest)
 	if err != nil {
 		return "", fmt.Errorf("failed to create init token: %v", err)
 	}
@@ -233,7 +234,7 @@ func (i *InstanceToken) tokenRenew() error {
 	// Renew against vault
 	s, err = i.vaultClient.Auth().Token().RenewSelf(0)
 	if err != nil {
-		return fmt.Errorf("error renewing token %s: %v", i.Role(), err)
+		return fmt.Errorf("error renewing token %s: %v", i.InitRole(), err)
 	}
 
 	i.Log.Infof("Renewed token: %s", i.Token())

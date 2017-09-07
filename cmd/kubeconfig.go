@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	vault "github.com/hashicorp/vault/api"
+	"path/filepath"
+
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 	"github.com/jetstack-experimental/vault-helper/pkg/kubeconfig"
 )
 
@@ -21,18 +21,31 @@ var kubeconfCmd = &cobra.Command{
 			log.Fatal("Wrong number of arguments given.\nUsage: vault-helper kubeconfig [cert role] [common name] [cert path] [kubeconfig path]")
 		}
 
-		v, err := vault.NewClient(nil)
+		abs, err := filepath.Abs(args[3])
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("error generating absoute path from destination '%s': %v", args[3], err)
+		}
+		args = args[:3]
+
+		i, err := newInstanceToken(cmd)
+		if err != nil {
+			i.Log.Fatal(err)
 		}
 
-		if err := instanceToken.SetVaultToken(v, log, cmd); err != nil {
-			log.Fatal(err)
+		if err := i.Run(cmd, args); err != nil {
+			i.Log.Fatal(err)
+		}
+		c := cert.New(i.Log, i)
+		if err := c.Run(cmd, args); err != nil {
+			c.Log.Fatal(err)
 		}
 
-		u := kubeconfig.New(v, log)
+		u := kubeconfig.New(log, c)
+		u.SetFilePath(abs)
 
-		u.Run(cmd, args)
+		if err := u.RunKube(); err != nil {
+			u.Log.Fatal(err)
+		}
 	},
 }
 
@@ -54,6 +67,8 @@ func init() {
 
 	kubeconfCmd.PersistentFlags().String(cert.FlagGroup, "", "Group of created file/directories. Gid value also accepted. [string] (default <current user-group>)")
 	kubeconfCmd.Flag(cert.FlagGroup).Shorthand = "g"
+
+	instanceTokenFlags(kubeconfCmd)
 
 	RootCmd.AddCommand(kubeconfCmd)
 }

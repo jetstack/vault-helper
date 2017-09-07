@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
 // initCmd represents the init command
@@ -16,16 +14,16 @@ var certCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log := LogLevel(cmd)
 
-		v, err := vault.NewClient(nil)
+		i, err := newInstanceToken(cmd)
 		if err != nil {
-			log.Fatal(err)
+			i.Log.Fatal(err)
 		}
 
-		if err := instanceToken.SetVaultToken(v, log, cmd); err != nil {
-			log.Fatal(err)
+		if err := i.Run(cmd, args); err != nil {
+			i.Log.Fatal(err)
 		}
 
-		c := cert.New(v, log)
+		c := cert.New(log, i)
 
 		if err := c.Run(cmd, args); err != nil {
 			log.Fatal(err)
@@ -51,6 +49,8 @@ func init() {
 
 	certCmd.PersistentFlags().String(cert.FlagGroup, "", "Group of created file/directories. Gid value also accepted. [string] (default <current user-group)")
 	certCmd.Flag(cert.FlagGroup).Shorthand = "g"
+
+	instanceTokenFlags(certCmd)
 
 	RootCmd.AddCommand(certCmd)
 }

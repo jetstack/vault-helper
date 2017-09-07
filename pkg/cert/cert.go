@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
-	vault "github.com/hashicorp/vault/api"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
@@ -25,10 +24,9 @@ type Cert struct {
 	owner       string
 	group       string
 	data        *pem.Block
-	configPath  string
 
-	vaultClient *vault.Client
-	Log         *logrus.Entry
+	Log           *logrus.Entry
+	instanceToken *instanceToken.InstanceToken
 }
 
 func (c *Cert) RunCert() error {
@@ -36,9 +34,9 @@ func (c *Cert) RunCert() error {
 		return fmt.Errorf("error ensuring key: %v", err)
 	}
 
-	if err := c.TokenRenew(); err != nil {
-		return fmt.Errorf("error renewing tokens: %v", err)
-	}
+	//if err := c.TokenRenew(); err != nil {
+	//	return fmt.Errorf("error renewing tokens: %v", err)
+	//}
 
 	if err := c.RequestCertificate(); err != nil {
 		return fmt.Errorf("error requesting certificate: %v", err)
@@ -47,13 +45,11 @@ func (c *Cert) RunCert() error {
 	return nil
 }
 
-func (c *Cert) TokenRenew() error {
-	i := instanceToken.New(c.vaultClient, c.Log)
-	i.SetRole(c.Role())
-	i.SetVaultConfigPath(c.VaultConfigPath())
-
-	return i.TokenRenewRun()
-}
+//func (c *Cert) TokenRenew() error {
+//	i := instanceToken.New(c.vaultClient, c.Log)
+//
+//	return i.TokenRenewRun()
+//}
 
 func (c *Cert) DeleteFile(path string) error {
 	if err := os.Remove(path); err != nil {
@@ -134,22 +130,13 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 	return nil
 }
 
-func New(vaultClient *vault.Client, logger *logrus.Entry) *Cert {
+func New(logger *logrus.Entry, i *instanceToken.InstanceToken) *Cert {
 	c := &Cert{
-		role:        "",
-		commonName:  "",
-		destination: "",
-		bitSize:     2048,
-		keyType:     "RSA",
-		ipSans:      []string{},
-		sanHosts:    []string{},
-		owner:       "",
-		group:       "",
+		bitSize:       2048,
+		keyType:       "RSA",
+		instanceToken: i,
 	}
 
-	if vaultClient != nil {
-		c.vaultClient = vaultClient
-	}
 	if logger != nil {
 		c.Log = logger
 	}
@@ -234,9 +221,9 @@ func (c *Cert) Data() *pem.Block {
 	return c.data
 }
 
-func (c *Cert) SetVaultConfigPath(path string) {
-	c.configPath = path
+func (c *Cert) SetInstanceToken(i *instanceToken.InstanceToken) {
+	c.instanceToken = i
 }
-func (c *Cert) VaultConfigPath() string {
-	return c.configPath
+func (c *Cert) InstanceToken() *instanceToken.InstanceToken {
+	return c.instanceToken
 }

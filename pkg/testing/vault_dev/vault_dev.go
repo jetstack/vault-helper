@@ -11,7 +11,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-const InitTokenDev = "init-client-token"
+const RootTokenDev = "root-token-dev"
 
 type VaultDev struct {
 	client       *vault.Client
@@ -34,7 +34,7 @@ func (v *VaultDev) Start() error {
 	args := []string{
 		"server",
 		"-dev",
-		fmt.Sprintf("-dev-root-token-id=%s", InitTokenDev),
+		fmt.Sprintf("-dev-root-token-id=%s", RootTokenDev),
 		fmt.Sprintf("-dev-listen-address=127.0.0.1:%d", *v.port),
 	}
 
@@ -67,7 +67,7 @@ func (v *VaultDev) Start() error {
 	if err != nil {
 		return err
 	}
-	v.client.SetToken(InitTokenDev)
+	v.client.SetToken(RootTokenDev)
 
 	tries := 30
 	for {

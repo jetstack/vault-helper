@@ -3,8 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/hashicorp/go-multierror"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
@@ -20,9 +23,6 @@ var RootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 
-	RootCmd.PersistentFlags().String(instanceToken.FlagVaultConfigPath, "/etc/vault", "Set config path to directory with tokens")
-	RootCmd.Flag(instanceToken.FlagVaultConfigPath).Shorthand = "p"
-
 	RootCmd.PersistentFlags().Int("log-level", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
 	RootCmd.Flag("log-level").Shorthand = "l"
 
@@ -30,6 +30,47 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+}
+
+func instanceTokenFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringP(instanceToken.FlagConfigPath, "p", "/etc/vault", "Set config path to directory with tokens")
+	cmd.PersistentFlags().StringP(instanceToken.FlagInitRole, "r", "", "Set role of token to renew. (default *no role*)")
+}
+
+func newInstanceToken(cmd *cobra.Command) (iToken *instanceToken.InstanceToken, result error) {
+	log := LogLevel(cmd)
+
+	v, err := vault.NewClient(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	i := instanceToken.New(v, log)
+
+	initRole, err := cmd.Flags().GetString(instanceToken.FlagInitRole)
+	if err != nil {
+		result = multierror.Append(result, fmt.Errorf("error parsing %s '%s': %v", instanceToken.FlagInitRole, initRole, err))
+	}
+	if initRole == "" {
+		//TODO:
+		//Read env variable
+		result = multierror.Append(result, fmt.Errorf("no token role was given. token role is required for this command: --%s", instanceToken.FlagInitRole))
+	}
+	i.SetInitRole(initRole)
+
+	vaultConfigPath, err := cmd.Flags().GetString(instanceToken.FlagConfigPath)
+	if err != nil {
+		result = multierror.Append(result, fmt.Errorf("error parsing %s '%s': %v", instanceToken.FlagConfigPath, vaultConfigPath, err))
+	}
+	if vaultConfigPath != "" {
+		abs, err := filepath.Abs(vaultConfigPath)
+		if err != nil {
+			result = multierror.Append(result, fmt.Errorf("error generating absoute path from path '%s': %v", vaultConfigPath, err))
+		}
+		i.SetVaultConfigPath(abs)
+	}
+
+	return i, result
 }
 
 func LogLevel(cmd *cobra.Command) *logrus.Entry {
