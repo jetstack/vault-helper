@@ -16,24 +16,6 @@ type InstanceToken struct {
 	vaultClient *vault.Client
 }
 
-//func SetVaultToken(vaultClient *vault.Client, log *logrus.Entry, cmd *cobra.Command) error {
-//	i := New(vaultClient, log)
-//	value, err := cmd.Root().Flags().GetString(FlagConfigPath)
-//	if err != nil {
-//		return fmt.Errorf("error parsing %s '%s': %v", FlagConfigPath, value, err)
-//	}
-//	if value != "" {
-//		abs, err := filepath.Abs(value)
-//		if err != nil {
-//			return fmt.Errorf("error generating absoute path from path '%s': %v", value, err)
-//		}
-//		i.SetVaultConfigPath(abs)
-//	}
-//
-//	_, err = i.EnsureToken()
-//	return err
-//}
-
 func (i *InstanceToken) SetInitRole(initRole string) {
 	i.initRole = initRole
 }

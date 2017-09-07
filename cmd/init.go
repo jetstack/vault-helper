@@ -52,9 +52,11 @@ func newInstanceToken(cmd *cobra.Command) (iToken *instanceToken.InstanceToken, 
 		result = multierror.Append(result, fmt.Errorf("error parsing %s '%s': %v", instanceToken.FlagInitRole, initRole, err))
 	}
 	if initRole == "" {
-		//TODO:
 		//Read env variable
-		result = multierror.Append(result, fmt.Errorf("no token role was given. token role is required for this command: --%s", instanceToken.FlagInitRole))
+		initRole = os.Getenv("VAULT_INIT_ROLE")
+		if initRole == "" {
+			result = multierror.Append(result, fmt.Errorf("no token role was given. token role is required for this command: --%s", instanceToken.FlagInitRole))
+		}
 	}
 	i.SetInitRole(initRole)
 

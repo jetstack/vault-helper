@@ -17,11 +17,7 @@ func (i *InstanceToken) TokenFromFile(path string) (token string, err error) {
 		return "", err
 	}
 
-	str := string(dat)
-	str = strings.Replace(str, " ", "", -1)
-	str = strings.Replace(str, "\n", "", -1)
-	str = strings.Replace(str, "\t", "", -1)
-	token = strings.Replace(str, "\r", "", -1)
+	token = strings.TrimSpace(string(dat))
 
 	return token, nil
 }
@@ -186,11 +182,9 @@ func (i *InstanceToken) TokenPolicies() (policies []string, err error) {
 func (i *InstanceToken) createToken(policies []string) (token string, err error) {
 	tCreateRequest := &vault.TokenCreateRequest{
 		DisplayName: i.InitRole(),
-		//Policies:    policies,
 	}
 
 	newToken, err := i.vaultClient.Auth().Token().CreateWithRole(tCreateRequest, i.InitRole())
-	//newToken, err := i.vaultClient.Auth().Token().CreateOrphan(tCreateRequest)
 	if err != nil {
 		return "", fmt.Errorf("failed to create init token: %v", err)
 	}
