@@ -12,6 +12,13 @@ import (
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
+const FlagKeyBitSize = "key-bit-size"
+const FlagKeyType = "key-type"
+const FlagIpSans = "ip-sans"
+const FlagSanHosts = "san-hosts"
+const FlagOwner = "owner"
+const FlagGroup = "group"
+
 type Cert struct {
 	role        string
 	commonName  string

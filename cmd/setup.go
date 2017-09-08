@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
@@ -26,7 +27,7 @@ var setupCmd = &cobra.Command{
 			i.Log.Fatal(err)
 		}
 
-		if err := i.Run(cmd, args); err != nil {
+		if err := i.TokenRenewRun(); err != nil {
 			i.Log.Fatal(err)
 		}
 
@@ -35,7 +36,17 @@ var setupCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		if err := k.Run(cmd, args); err != nil {
+		if len(args) > 0 {
+			k.SetClusterID(args[0])
+		} else {
+			log.Fatal("no cluster id was given")
+		}
+
+		if err := setFlagsKubernetes(k, cmd); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := k.Ensure(); err != nil {
 			log.Fatal(err)
 		}
 
@@ -51,10 +62,60 @@ func init() {
 	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
 	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
 
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_etcd, "", "Set init-token-etcd   (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_worker, "", "Set init-token-worker (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_master, "", "Set init-token-master (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitToken_all, "", "Set init-token-all    (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
+	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
 
 	RootCmd.AddCommand(setupCmd)
+}
+
+func setFlagsKubernetes(k *kubernetes.Kubernetes, cmd *cobra.Command) error {
+	if value, err := cmd.PersistentFlags().GetDuration(kubernetes.FlagMaxValidityComponents); err != nil {
+		if err != nil {
+			return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagMaxValidityComponents, value, err)
+		}
+		k.MaxValidityComponents = value
+	}
+
+	if value, err := cmd.PersistentFlags().GetDuration(kubernetes.FlagMaxValidityAdmin); err != nil {
+		if err != nil {
+			return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagMaxValidityAdmin, value, err)
+		}
+		k.MaxValidityAdmin = value
+	}
+
+	if value, err := cmd.PersistentFlags().GetDuration(kubernetes.FlagMaxValidityCA); err != nil {
+		if err != nil {
+			return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagMaxValidityCA, value, err)
+		}
+		k.MaxValidityCA = value
+	}
+
+	// Init token flags
+	value, err := cmd.PersistentFlags().GetString(kubernetes.FlagInitTokenEtcd)
+	if err != nil {
+		return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagInitTokenEtcd, value, err)
+	}
+	k.FlagInitTokens.Etcd = value
+
+	value, err = cmd.PersistentFlags().GetString(kubernetes.FlagInitTokenMaster)
+	if err != nil {
+		return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagInitTokenMaster, value, err)
+	}
+	k.FlagInitTokens.Master = value
+
+	value, err = cmd.PersistentFlags().GetString(kubernetes.FlagInitTokenWorker)
+	if err != nil {
+		return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagInitTokenWorker, value, err)
+	}
+	k.FlagInitTokens.Worker = value
+
+	value, err = cmd.PersistentFlags().GetString(kubernetes.FlagInitTokenAll)
+	if err != nil {
+		return fmt.Errorf("error parsing %s '%s': %s", kubernetes.FlagInitTokenAll, value, err)
+	}
+	k.FlagInitTokens.All = value
+
+	return nil
 }

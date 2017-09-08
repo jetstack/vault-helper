@@ -16,6 +16,11 @@ import (
 	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
 )
 
+const FlagOutputPath = "dest-path"
+const FlagField = "field"
+const FlagOwner = "owner"
+const FlagGroup = "group"
+
 type Read struct {
 	vaultPath string
 	fieldName string

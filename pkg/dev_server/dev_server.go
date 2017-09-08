@@ -7,6 +7,9 @@ import (
 	"github.com/jetstack-experimental/vault-helper/pkg/testing/vault_dev"
 )
 
+const FlagWaitSignal = "wait-signal"
+const FlagPortNumber = "port"
+
 type DevVault struct {
 	Vault      *vault_dev.VaultDev
 	Kubernetes *kubernetes.Kubernetes

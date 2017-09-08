@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack-experimental/vault-helper/pkg/cert"
@@ -19,13 +22,28 @@ var certCmd = &cobra.Command{
 			i.Log.Fatal(err)
 		}
 
-		if err := i.Run(cmd, args); err != nil {
+		if err := i.TokenRenewRun(); err != nil {
 			i.Log.Fatal(err)
 		}
 
 		c := cert.New(log, i)
+		if len(args) != 3 {
+			i.Log.Fatal("wrong number of arguments given. Usage: vault-helper cert [cert role] [common name] [destination path]")
+		}
+		abs, err := filepath.Abs(args[2])
+		if err != nil {
+			i.Log.Fatalf("failed to generate absoute path from destination '%s': %v", args[2], err)
+		}
+		c.SetDestination(abs)
 
-		if err := c.Run(cmd, args); err != nil {
+		c.SetRole(args[0])
+		c.SetCommonName(args[1])
+
+		if err := setFlagsCert(c, cmd); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := c.RunCert(); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -53,4 +71,44 @@ func init() {
 	instanceTokenFlags(certCmd)
 
 	RootCmd.AddCommand(certCmd)
+}
+
+func setFlagsCert(c *cert.Cert, cmd *cobra.Command) error {
+	vInt, err := cmd.PersistentFlags().GetInt(cert.FlagKeyBitSize)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [int] '%d': %v", cert.FlagKeyBitSize, vInt, err)
+	}
+	c.SetBitSize(vInt)
+
+	vStr, err := cmd.PersistentFlags().GetString(cert.FlagKeyType)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [string] '%s': %v", cert.FlagKeyType, vStr, err)
+	}
+	c.SetKeyType(vStr)
+
+	vStr, err = cmd.PersistentFlags().GetString(cert.FlagOwner)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [string] '%s': %v", cert.FlagOwner, vStr, err)
+	}
+	c.SetOwner(vStr)
+
+	vStr, err = cmd.PersistentFlags().GetString(cert.FlagGroup)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [string] '%s': %v", cert.FlagGroup, vStr, err)
+	}
+	c.SetGroup(vStr)
+
+	vSli, err := cmd.PersistentFlags().GetStringSlice(cert.FlagIpSans)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [[]string] '%s': %v", cert.FlagIpSans, vSli, err)
+	}
+	c.SetIPSans(vSli)
+
+	vSli, err = cmd.PersistentFlags().GetStringSlice(cert.FlagSanHosts)
+	if err != nil {
+		return fmt.Errorf("error parsing %s [[]string] '%s': %v", cert.FlagSanHosts, vSli, err)
+	}
+	c.SetSanHosts(vSli)
+
+	return nil
 }

@@ -107,6 +107,11 @@ func createFile(path string) error {
 		defer file.Close()
 	}
 
+	//Set permissions
+	if err := os.Chmod(path, os.FileMode(0600)); err != nil {
+		return fmt.Errorf("error changing permissons of file '%s' to 0600: %v", path, err)
+	}
+
 	return nil
 }
 

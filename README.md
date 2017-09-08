@@ -16,18 +16,13 @@ Available Commands:
   version     Print the version number of vault-helper.
 
 Flags:
-  -p, --config-path string   Set config path to directory with tokens (default "/etc/vault")
-  -h, --help                 help for vault-helper
-  -l, --log-level int        Set the log level of output. 0-Fatal 1-Info 2-Debug (default 1)
+  -h, --help            help for vault-helper
+  -l, --log-level int   Set the log level of output. 0-Fatal 1-Info 2-Debug (default 1)
 
 Use "vault-helper [command] --help" for more information about a command.
 ```
 
-## Vault helper requires the following environment variables set
-Export root token to environment variable:
-```
-$ export VAULT_TOKEN=########-####-####-####-############
-```
+## Vault helper requires the following environment variable set
 Export vault address:
 ```
 $ export VAULT_ADDR=http://127.0.0.1:8200
@@ -42,7 +37,7 @@ $ vault-helper setup cluster-name
 
 #### renew-token
 ```
-$ vault-helper renew-token --role=admin
+$ vault-helper renew-token --init_role=cluster-name-master
 ```
 
 ### cert
