@@ -13,6 +13,15 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
+const FlagMaxValidityAdmin = "max-validity-admin"
+const FlagMaxValidityCA = "max-validity-ca"
+const FlagMaxValidityComponents = "max-validity-components"
+
+const FlagInitTokenEtcd = "init-token-etcd"
+const FlagInitTokenAll = "init-token-all"
+const FlagInitTokenMaster = "init-token-master"
+const FlagInitTokenWorker = "init-token-worker"
+
 type Backend interface {
 	Ensure() error
 	Path() string

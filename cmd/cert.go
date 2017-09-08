@@ -39,7 +39,7 @@ var certCmd = &cobra.Command{
 		c.SetRole(args[0])
 		c.SetCommonName(args[1])
 
-		if err := setFlags(c, cmd); err != nil {
+		if err := setFlagsCert(c, cmd); err != nil {
 			log.Fatal(err)
 		}
 
@@ -73,7 +73,7 @@ func init() {
 	RootCmd.AddCommand(certCmd)
 }
 
-func setFlags(c *cert.Cert, cmd *cobra.Command) error {
+func setFlagsCert(c *cert.Cert, cmd *cobra.Command) error {
 	vInt, err := cmd.PersistentFlags().GetInt(cert.FlagKeyBitSize)
 	if err != nil {
 		return fmt.Errorf("error parsing %s [int] '%d': %v", cert.FlagKeyBitSize, vInt, err)

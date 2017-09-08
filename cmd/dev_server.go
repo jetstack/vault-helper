@@ -10,6 +10,7 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
+	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
 )
 
 // initCmd represents the init command
@@ -45,7 +46,14 @@ var devServerCmd = &cobra.Command{
 			log.Fatalf("unable to initialise dev vault: %s", err)
 		}
 
-		if err := v.Run(cmd, args); err != nil {
+		v.Kubernetes = kubernetes.New(v.Vault.Client(), v.Log)
+		v.Kubernetes.SetClusterID(args[0])
+
+		if err := setFlagsKubernetes(v.Kubernetes, cmd); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := v.Kubernetes.Ensure(); err != nil {
 			log.Fatal(err)
 		}
 
@@ -62,26 +70,26 @@ var devServerCmd = &cobra.Command{
 }
 
 func init() {
-	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
-	devServerCmd.Flag(dev_server.FlagMaxValidityCA).Shorthand = "c"
+	devServerCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
+	devServerCmd.Flag(kubernetes.FlagMaxValidityCA).Shorthand = "c"
 
-	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
-	devServerCmd.Flag(dev_server.FlagMaxValidityAdmin).Shorthand = "d"
+	devServerCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
+	devServerCmd.Flag(kubernetes.FlagMaxValidityAdmin).Shorthand = "d"
 
-	devServerCmd.PersistentFlags().Duration(dev_server.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
-	devServerCmd.Flag(dev_server.FlagMaxValidityComponents).Shorthand = "s"
+	devServerCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
+	devServerCmd.Flag(kubernetes.FlagMaxValidityComponents).Shorthand = "s"
 
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
-	devServerCmd.Flag(dev_server.FlagInitTokenEtcd).Shorthand = "e"
+	devServerCmd.PersistentFlags().String(kubernetes.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
+	devServerCmd.Flag(kubernetes.FlagInitTokenEtcd).Shorthand = "e"
 
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
-	devServerCmd.Flag(dev_server.FlagInitTokenWorker).Shorthand = "o"
+	devServerCmd.PersistentFlags().String(kubernetes.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
+	devServerCmd.Flag(kubernetes.FlagInitTokenWorker).Shorthand = "o"
 
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
-	devServerCmd.Flag(dev_server.FlagInitTokenMaster).Shorthand = "m"
+	devServerCmd.PersistentFlags().String(kubernetes.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
+	devServerCmd.Flag(kubernetes.FlagInitTokenMaster).Shorthand = "m"
 
-	devServerCmd.PersistentFlags().String(dev_server.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
-	devServerCmd.Flag(dev_server.FlagInitTokenAll).Shorthand = "a"
+	devServerCmd.PersistentFlags().String(kubernetes.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
+	devServerCmd.Flag(kubernetes.FlagInitTokenAll).Shorthand = "a"
 
 	devServerCmd.PersistentFlags().Bool(dev_server.FlagWaitSignal, true, "Wait for TERM + QUIT signal has been given before termination")
 	devServerCmd.Flag(dev_server.FlagWaitSignal).Shorthand = "w"
