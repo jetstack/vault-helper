@@ -7,6 +7,9 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
+const FlagInitRole = "init-role"
+const FlagConfigPath = "config-path"
+
 type InstanceToken struct {
 	token           string
 	initRole        string

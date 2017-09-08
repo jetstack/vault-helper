@@ -18,7 +18,7 @@ var readCmd = &cobra.Command{
 			i.Log.Fatal(err)
 		}
 
-		if err := i.Run(cmd, args); err != nil {
+		if err := i.TokenRenewRun(); err != nil {
 			i.Log.Fatal(err)
 		}
 
