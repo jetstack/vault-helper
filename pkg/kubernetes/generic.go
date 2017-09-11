@@ -211,7 +211,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 		return fmt.Errorf("error writting init token at path: %v", s)
 	}
 
-	g.Log.Infof("User token written for '%s': '%s'", role, token)
+	g.Log.Infof("Init token written for '%s' at '%s'", role, path)
 
 	return nil
 }
