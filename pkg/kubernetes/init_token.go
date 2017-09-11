@@ -19,81 +19,23 @@ type InitToken struct {
 func (i *InitToken) Ensure() error {
 	var result error
 
-	ensureInitToken := func() error {
-		_, err := i.InitToken()
-		return err
+	// always ensure token role and init token policy is set (this is idempotent)
+	if err := i.writeTokenRole(); err != nil {
+		result = multierror.Append(result, fmt.Errorf("not able to write token role: %s", err))
+	}
+	if err := i.writeInitTokenPolicy(); err != nil {
+		result = multierror.Append(result, fmt.Errorf("not able to write init token policy: %s", err))
+	}
+	if result != nil {
+		return result
 	}
 
-	writeTokenRole_Police := []func() error{
-		i.writeTokenRole,
-		i.writeInitTokenPolicy,
-	}
-
-	token, err := i.secretsGeneric().InitTokenStore(i.Role)
+	// make sure init token exists
+	initToken, err := i.InitToken()
 	if err != nil {
-		return err
+		return fmt.Errorf("not able to ensure init token: %s", err)
 	}
-
-	// If token != user flag and the user token flag != ""
-	if token != i.ExpectedToken && i.ExpectedToken != "" && token != "" {
-		// Write the init token role and policy using the user token flag
-		for _, f := range writeTokenRole_Police {
-			if err := f(); err != nil {
-				result = multierror.Append(result, err)
-			}
-			if err := ensureInitToken(); err != nil {
-				result = multierror.Append(result, err)
-			}
-		}
-
-		err := i.secretsGeneric().SetInitTokenStore(i.Role, i.ExpectedToken)
-		if err != nil {
-			return fmt.Errorf("failed to set '%s' init token: %v", i.Role, err)
-		}
-
-		tokenStr, err := i.secretsGeneric().InitTokenStore(i.Role)
-		if err != nil {
-			return fmt.Errorf("failed to read '%s' init token: %v", i.Role, err)
-		}
-		i.token = &tokenStr
-
-	} else if token != i.ExpectedToken && i.ExpectedToken != "" && token == "" {
-		for _, f := range writeTokenRole_Police {
-			if err := f(); err != nil {
-				result = multierror.Append(result, err)
-			}
-		}
-
-		err := i.secretsGeneric().SetInitTokenStore(i.Role, i.ExpectedToken)
-		if err != nil {
-			return fmt.Errorf("failed to set '%s' init token: %v", i.Role, err)
-		}
-
-		tokenStr, err := i.secretsGeneric().InitTokenStore(i.Role)
-		if err != nil {
-			return fmt.Errorf("failed to read '%s' init token: %v", i.Role, err)
-		}
-		i.token = &tokenStr
-
-		// Token == user flag and the flag != "" - just need to ensure the init token
-	} else if token == i.ExpectedToken && i.ExpectedToken != "" {
-		if err := ensureInitToken(); err != nil {
-			result = multierror.Append(result, err)
-		}
-
-		// Write the init token role and policy using the user token flag
-		// No flag. Generate an init token and write to vault
-	} else {
-		for _, f := range writeTokenRole_Police {
-			if err := f(); err != nil {
-				result = multierror.Append(result, err)
-			}
-			if err := ensureInitToken(); err != nil {
-				result = multierror.Append(result, err)
-			}
-		}
-
-	}
+	i.token = &initToken
 
 	return result
 }
@@ -160,7 +102,7 @@ func (i *InitToken) InitToken() (string, error) {
 	}
 
 	// get init token from generic
-	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())})
+	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
 	if err != nil {
 		return "", err
 	}

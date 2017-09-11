@@ -7,11 +7,32 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-//test 1
-// This tests a not yet existing init token
-func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
+type tokenCreateRequestMatcher struct {
+	ID   string
+	name string
+}
 
+func (tcrm *tokenCreateRequestMatcher) String() string {
+	return "matcher"
+}
+
+func (tcrm *tokenCreateRequestMatcher) Matches(x interface{}) bool {
+	tcr, ok := x.(*vault.TokenCreateRequest)
+	if !ok {
+		return false
+	}
+
+	if tcrm.ID != tcr.ID {
+		return false
+	}
+
+	return true
+}
+
+// tests a not yet existing init token, with random generated token
+func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -20,7 +41,7 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 		ExpectedToken: "",
 	}
 
-	// expect a read and vault says secret is not existing
+	// expects a read and vault says secret is not existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
 	fv.fakeLogical.EXPECT().Read(genericPath).Return(
 		nil,
@@ -28,22 +49,15 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	)
 
 	// expect a create new orphan
-	fv.fakeToken.EXPECT().CreateOrphan(gomock.Any()).Return(&vault.Secret{
+	fv.fakeToken.EXPECT().CreateOrphan(&tokenCreateRequestMatcher{}).Return(&vault.Secret{
 		Auth: &vault.SecretAuth{
-			ClientToken: "my-new-token",
+			ClientToken: "my-new-random-token",
 		},
 	}, nil)
 
 	// expect a write of the new token
-	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "my-new-token"}).Return(
+	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "my-new-random-token"}).Return(
 		nil,
-		nil,
-	)
-
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
-		&vault.Secret{
-			Data: map[string]interface{}{"init_token": "my-new-token"},
-		},
 		nil,
 	)
 
@@ -59,17 +73,17 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
-	if exp, act := "my-new-token", token; exp != act {
+	if exp, act := "my-new-random-token", token; exp != act {
 		t.Errorf("unexpected token: act=%s exp=%s", act, exp)
 	}
 
 	return
 }
 
-//test 2
-// Not expceted token set, init token already exists
+// expected token not set, init token already exists
 func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -80,7 +94,7 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 
 	// expect a read and vault says secret is existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
+	fv.fakeLogical.EXPECT().Read(genericPath).Return(
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "existing-token"},
 		},
@@ -106,10 +120,10 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	return
 }
 
-//test 3
-// Expceted token set, init token already exists and it's matching
+// excpected token set, init token already exists and it's matching
 func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -120,7 +134,7 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 
 	// expect a read and vault says secret is existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
+	fv.fakeLogical.EXPECT().Read(genericPath).Return(
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "expected-token"},
 		},
@@ -146,10 +160,10 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	return
 }
 
-// test 4
-// Expceted token set, init token doesn't exist
-func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
+// expected token set, init token doesn't exist
+func TestInitToken_Ensure_ExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -158,25 +172,32 @@ func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
 		ExpectedToken: "expected-token",
 	}
 
-	// expect a read and vault says secret is not existing
-	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
-		nil,
-		nil,
-	)
-
-	// expect a write of the new token from user flag
-	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "expected-token"}).Return(
-		nil,
-		nil,
-	)
-
-	// expect to read out token from user
-	fv.fakeLogical.EXPECT().Read(genericPath).Times(2).Return(
-		&vault.Secret{
-			Data: map[string]interface{}{"init_token": "expected-token"},
+	// expect a new token creation
+	fv.fakeToken.EXPECT().CreateOrphan(&tokenCreateRequestMatcher{ID: "expected-token"}).Return(&vault.Secret{
+		Auth: &vault.SecretAuth{
+			ClientToken: "expected-token",
 		},
-		nil,
+	}, nil)
+
+	// expect a read and vault says secret is not existing, then after it is written to return token
+	genericPath := "test-cluster-inside/secrets/init_token_etcd"
+	gomock.InOrder(
+		fv.fakeLogical.EXPECT().Read(genericPath).Return(
+			nil,
+			nil,
+		).MinTimes(1),
+		// expect a write of the new token from user flag
+		fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "expected-token"}).Return(
+			nil,
+			nil,
+		),
+		// allow read out of token from user
+		fv.fakeLogical.EXPECT().Read(genericPath).AnyTimes().Return(
+			&vault.Secret{
+				Data: map[string]interface{}{"init_token": "expected-token"},
+			},
+			nil,
+		),
 	)
 
 	InitTokenEnsure_EXPECTs(fv)
