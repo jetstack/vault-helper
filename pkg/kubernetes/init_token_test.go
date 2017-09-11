@@ -7,11 +7,10 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-//test 1
-// This tests a not yet existing init token
+// tests a not yet existing init token, with random generated token
 func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
-
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -20,7 +19,7 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 		ExpectedToken: "",
 	}
 
-	// expect a read and vault says secret is not existing
+	// expects a read and vault says secret is not existing
 	genericPath := "test-cluster-inside/secrets/init_token_etcd"
 	fv.fakeLogical.EXPECT().Read(genericPath).Return(
 		nil,
@@ -66,10 +65,10 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	return
 }
 
-//test 2
-// Not expceted token set, init token already exists
+// expected token not set, init token already exists
 func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -106,10 +105,10 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	return
 }
 
-//test 3
-// Expceted token set, init token already exists and it's matching
+// expected token set, init token already exists and it's matching
 func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",
@@ -146,10 +145,10 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	return
 }
 
-// test 4
-// Expceted token set, init token doesn't exist
-func TestInitToken_Ensure_ExpectedToken_NoExisting(t *testing.T) {
+// expected token set, init token doesn't exist
+func TestInitToken_Ensure_ExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
+	defer fv.Finish()
 
 	i := &InitToken{
 		Role:          "etcd",

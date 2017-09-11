@@ -34,6 +34,7 @@ func (i *InitToken) Ensure() error {
 		return err
 	}
 
+	// TODO: This needs refactoring, unreadable and way to complicated
 	// If token != user flag and the user token flag != ""
 	if token != i.ExpectedToken && i.ExpectedToken != "" && token != "" {
 		// Write the init token role and policy using the user token flag
