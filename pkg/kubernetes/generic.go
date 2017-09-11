@@ -102,8 +102,8 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	return nil
 }
 
-func (g *Generic) InitToken(name, role string, policies []string) (string, error) {
-	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+func (g *Generic) InitToken(name, role string, policies []string, expectedToken string) (string, error) {
+	path := g.initTokenPath(role)
 
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(path); err != nil {
 		return "", fmt.Errorf("error checking for secret %s: %v", path, err)
@@ -124,6 +124,7 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 
 	// we have to create a new token
 	tokenRequest := &vault.TokenCreateRequest{
+		ID:          expectedToken,
 		DisplayName: name,
 		TTL:         fmt.Sprintf("%ds", int(g.kubernetes.MaxValidityInitTokens.Seconds())),
 		Period:      fmt.Sprintf("%ds", int(g.kubernetes.MaxValidityInitTokens.Seconds())),
@@ -135,10 +136,7 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 		return "", fmt.Errorf("failed to create init token: %v", err)
 	}
 
-	dataStoreToken := map[string]interface{}{
-		"init_token": token.Auth.ClientToken,
-	}
-	_, err = g.kubernetes.vaultClient.Logical().Write(path, dataStoreToken)
+	err = g.SetInitTokenStore(role, token.Auth.ClientToken)
 	if err != nil {
 		return "", fmt.Errorf("failed to store init token in '%s': %v", path, err)
 	}
@@ -146,8 +144,12 @@ func (g *Generic) InitToken(name, role string, policies []string) (string, error
 	return token.Auth.ClientToken, nil
 }
 
+func (g *Generic) initTokenPath(role string) string {
+	return filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+}
+
 func (g *Generic) InitTokenStore(role string) (token string, err error) {
-	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
+	path := g.initTokenPath(role)
 
 	s, err := g.kubernetes.vaultClient.Logical().Read(path)
 	if err != nil {
@@ -181,34 +183,14 @@ func (g *Generic) revokeToken(token, path, role string) error {
 }
 
 func (g *Generic) SetInitTokenStore(role string, token string) error {
-	path := filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
-
-	s, err := g.kubernetes.vaultClient.Logical().Read(path)
-	if err != nil {
-		return fmt.Errorf("failed to rea init token path: %v", s)
-	}
-	if s != nil {
-		g.Log.Infof("Token found in vault for role: %s", role)
-
-		dat, ok := s.Data["init_token"]
-		if !ok {
-			return fmt.Errorf("failed to find current init token data: %v", s)
-		}
-		oldToken, ok := dat.(string)
-		if !ok {
-			return fmt.Errorf("failed to convert init_token data to string: %v", s)
-		}
-
-		g.revokeToken(oldToken, path, role)
-
-	}
+	path := g.initTokenPath(role)
 
 	data := map[string]interface{}{
 		"init_token": token,
 	}
-	_, err = g.kubernetes.vaultClient.Logical().Write(path, data)
+	_, err := g.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return fmt.Errorf("error writting init token at path: %v", s)
+		return fmt.Errorf("error writting init token at path:  %v", path)
 	}
 
 	g.Log.Infof("Init token written for '%s' at '%s'", role, path)
