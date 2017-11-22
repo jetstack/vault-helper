@@ -57,6 +57,7 @@ func (v *fakeVault) Ensure() {
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", gomock.Any()).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", gomock.Any()).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", gomock.Any()).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s-api-proxy", gomock.Any()).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/secrets", gomock.Any()).Times(1).Return(nil)
 
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/etcd-k8s/cert/ca").Times(1).Return(nil, nil)
@@ -67,6 +68,9 @@ func (v *fakeVault) Ensure() {
 
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/k8s/cert/ca").Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/root/generate/internal", gomock.Any()).Times(1).Return(nil, nil)
+
+	v.fakeLogical.EXPECT().Read("test-cluster-inside/pki/k8s-api-proxy/cert/ca").Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s-api-proxy/root/generate/internal", gomock.Any()).Times(1).Return(nil, nil)
 
 	v.fakeLogical.EXPECT().Read("test-cluster-inside/secrets/service-accounts").Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/secrets/service-accounts", gomock.Any()).Times(1).Return(nil, nil)
@@ -82,8 +86,9 @@ func (v *fakeVault) Ensure() {
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kube-scheduler", gomock.Any()).Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kube-controller-manager", gomock.Any()).Times(1).Return(nil, nil)
 	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kube-proxy", gomock.Any()).Times(1).Return(nil, nil)
-	last := v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kubelet", gomock.Any()).Times(1).Return(nil, nil)
+	v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s/roles/kubelet", gomock.Any()).Times(1).Return(nil, nil)
 
+	last := v.fakeLogical.EXPECT().Write("test-cluster-inside/pki/k8s-api-proxy/roles/kube-apiserver", gomock.Any()).Times(1).Return(nil, nil)
 	v.fakeSys.EXPECT().PutPolicy(gomock.Any(), gomock.Any()).AnyTimes().Return(nil).After(last)
 
 	v.fakeLogical.EXPECT().Read(gomock.Any()).AnyTimes().Return(nil, nil).After(last)
@@ -142,11 +147,17 @@ func (v *fakeVault) PKIEnsure() {
 		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s" + " CA",
 		Type:        "pki",
 	}
+
+	mountInput4 := &vault.MountInput{
+		Description: "Kubernetes " + "test-cluster-inside" + "/" + "k8s-api-proxy" + " CA",
+		Type:        "pki",
+	}
 	v.fakeSys.EXPECT().ListMounts().AnyTimes().Return(nil, nil)
 
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-k8s", mountInput1).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s-api-proxy", mountInput4).Times(1).Return(nil)
 
 	v.fakeLogical.EXPECT().Read(gomock.Any()).AnyTimes().Return(nil, nil)
 

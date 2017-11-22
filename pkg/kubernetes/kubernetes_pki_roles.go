@@ -99,6 +99,22 @@ func (k *Kubernetes) k8sAPIServerRole() *pkiRole {
 	}
 }
 
+func (k *Kubernetes) k8sAPIServerProxyRole() *pkiRole {
+	return &pkiRole{
+		Name: "kube-apiserver",
+		Data: map[string]interface{}{
+			"use_csr_common_name": false,
+			"use_csr_sans":        false,
+			"enforce_hostnames":   false,
+			"server_flag":         false,
+			"client_flag":         true,
+			"allowed_domains":     strings.Join([]string{"kube-apiserver-proxy"}, ","),
+			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+		},
+	}
+}
+
 func (k *Kubernetes) k8sKubeletRole() *pkiRole {
 	return &pkiRole{
 		Name: "kubelet",
@@ -150,6 +166,23 @@ func (k *Kubernetes) ensurePKIRolesK8S(p *PKI) error {
 		k.k8sComponentRole("kube-controller-manager"),
 		k.k8sComponentRole("kube-proxy"),
 		k.k8sKubeletRole(),
+	}
+
+	for _, role := range roles {
+		if err := p.WriteRole(role); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
+// this makes sure all kubernetes API Proxy PKI roles are setup correctly
+func (k *Kubernetes) ensurePKIRolesK8SAPIProxy(p *PKI) error {
+	var result error
+
+	roles := []*pkiRole{
+		k.k8sAPIServerProxyRole(),
 	}
 
 	for _, role := range roles {
