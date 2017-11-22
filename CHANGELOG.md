@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2017-11-22
+### Added
+- Add additonal CA for Kubernetes API server's proxy clients. This enables
+  running API aggregation on a kubernetes cluster
+
+### Changed
+- Move the repository from jetstack-experimental to jetstack
+- Updated to Golang 1.9.2
+
 ## [0.8.0] - 2017-08-15
 ### Added
 - vault-helper binary
