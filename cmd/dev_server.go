@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/coreos/go-systemd/daemon"
-	"github.com/jetstack-experimental/vault-helper/pkg/dev_server"
-	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+	"github.com/jetstack/vault-helper/pkg/dev_server"
+	"github.com/jetstack/vault-helper/pkg/kubernetes"
 )
 
 // initCmd represents the init command

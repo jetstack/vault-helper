@@ -1,6 +1,6 @@
 package main
 
-import "github.com/jetstack-experimental/vault-helper/cmd"
+import "github.com/jetstack/vault-helper/cmd"
 
 var (
 	version string = "dev"

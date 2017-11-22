@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/read"
+	"github.com/jetstack/vault-helper/pkg/read"
 )
 
 // initCmd represents the init command

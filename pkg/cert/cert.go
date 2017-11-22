@@ -9,7 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/instanceToken"
+	"github.com/jetstack/vault-helper/pkg/instanceToken"
 )
 
 const FlagKeyBitSize = "key-bit-size"

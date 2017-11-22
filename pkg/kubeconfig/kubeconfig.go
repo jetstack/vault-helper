@@ -2,7 +2,7 @@ package kubeconfig
 
 import (
 	"github.com/Sirupsen/logrus"
-	"github.com/jetstack-experimental/vault-helper/pkg/cert"
+	"github.com/jetstack/vault-helper/pkg/cert"
 )
 
 type Kubeconfig struct {

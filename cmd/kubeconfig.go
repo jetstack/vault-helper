@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/cert"
-	"github.com/jetstack-experimental/vault-helper/pkg/kubeconfig"
+	"github.com/jetstack/vault-helper/pkg/cert"
+	"github.com/jetstack/vault-helper/pkg/kubeconfig"
 )
 
 // initCmd represents the init command

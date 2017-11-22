@@ -1,7 +1,7 @@
 BINDIR ?= $(PWD)/bin
 PATH   := $(BINDIR):$(PATH)
 
-REGISTRY := jetstackexperimental
+REGISTRY := quay.io/jetstack
 IMAGE_NAME := vault-helper
 IMAGE_TAGS := canary
 BUILD_TAG := build

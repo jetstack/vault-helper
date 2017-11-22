@@ -7,7 +7,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack-experimental/vault-helper/pkg/kubernetes"
+	"github.com/jetstack/vault-helper/pkg/kubernetes"
 )
 
 // initCmd represents the init command

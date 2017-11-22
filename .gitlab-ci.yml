@@ -19,10 +19,10 @@ build:golang:
   - docker:dind
   script:
   - apk --update add curl unzip make docker
-  - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
-  - mkdir -p /go/src/github.com/jetstack-experimental
-  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
-  - cd /go/src/github.com/jetstack-experimental/vault-helper
+  - rm -rf /go/src/github.com/jetstack/vault-helper
+  - mkdir -p /go/src/github.com/jetstack
+  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
+  - cd /go/src/github.com/jetstack/vault-helper
   # Installs vault version as specified
   - curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip
   - echo "${VAULT_HASH}  /tmp/vault.zip" | sha256sum  -c
@@ -31,7 +31,7 @@ build:golang:
   - mv vault /usr/local/bin/vault
   - chmod +x /usr/local/bin/vault
   - make all
-  - mv /go/src/github.com/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
+  - mv /go/src/github.com/jetstack/vault-helper ${CI_PROJECT_DIR}
   stage: build
   artifacts:
     paths:
@@ -48,13 +48,13 @@ deploy:release:
   - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
-  - rm -rf /go/src/github.com/jetstack-experimental/vault-helper
-  - mkdir -p /go/src/github.com/jetstack-experimental
-  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack-experimental
-  - cd /go/src/github.com/jetstack-experimental/vault-helper
+  - rm -rf /go/src/github.com/jetstack/vault-helper
+  - mkdir -p /go/src/github.com/jetstack
+  - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
+  - cd /go/src/github.com/jetstack/vault-helper
   - goreleaser
   - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper_linux_amd64
-  - mv /go/src/github.com/jetstack-experimental/vault-helper ${CI_PROJECT_DIR}
+  - mv /go/src/github.com/jetstack/vault-helper ${CI_PROJECT_DIR}
   only:
   - tags
   artifacts:
