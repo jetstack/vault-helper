@@ -78,10 +78,23 @@ type Kubernetes struct {
 	vaultClient Vault
 	Log         *logrus.Entry
 
+	// PKI for kubernetes' state storage in Etcd
 	etcdKubernetesPKI *PKI
-	etcdOverlayPKI    *PKI
-	kubernetesPKI     *PKI
-	secretsGeneric    *Generic
+
+	// PKI for the overlay network's state storage in Etcd
+	etcdOverlayPKI *PKI
+
+	// This is the core kubernetes PKI, which is used to authenticate all
+	// kubernetes components.
+	kubernetesPKI *PKI
+
+	// This is a separate kubernetes PKI, it is used to authenticate request
+	// headers proxied through the API server. This is utilized for API server
+	// aggregation.
+	kubernetesAPIProxy *PKI
+
+	// A generic backend for static secrets
+	secretsGeneric *Generic
 
 	MaxValidityAdmin      time.Duration
 	MaxValidityComponents time.Duration
@@ -168,6 +181,7 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s", k.Log)
 	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay", k.Log)
 	k.kubernetesPKI = NewPKI(k, "k8s", k.Log)
+	k.kubernetesAPIProxy = NewPKI(k, "k8s-api-proxy", k.Log)
 
 	k.secretsGeneric = k.NewGeneric(k.Log)
 
@@ -183,6 +197,7 @@ func (k *Kubernetes) backends() []Backend {
 		k.etcdKubernetesPKI,
 		k.etcdOverlayPKI,
 		k.kubernetesPKI,
+		k.kubernetesAPIProxy,
 		k.secretsGeneric,
 	}
 }
@@ -211,6 +226,9 @@ func (k *Kubernetes) Ensure() error {
 		result = multierror.Append(result, err)
 	}
 	if err := k.ensurePKIRolesK8S(k.kubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.ensurePKIRolesK8SAPIProxy(k.kubernetesAPIProxy); err != nil {
 		result = multierror.Append(result, err)
 	}
 

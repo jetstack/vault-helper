@@ -82,6 +82,15 @@ func (k *Kubernetes) masterPolicy() *Policy {
 		)
 	}
 
+	// allow to get a api proxy certificate
+	p.Policies = append(
+		p.Policies,
+		&policyPath{
+			path:         filepath.Join(k.kubernetesAPIProxy.Path(), "sign", "kube-apiserver"),
+			capabilities: []string{"create", "read", "update"},
+		},
+	)
+
 	// adds the roles from the worker
 	p.Policies = append(p.Policies, k.workerPolicyPaths()...)
 
