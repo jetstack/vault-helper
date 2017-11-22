@@ -6,7 +6,7 @@ IMAGE_NAME := vault-helper
 IMAGE_TAGS := canary
 BUILD_TAG := build
 
-BUILD_IMAGE_NAME := golang:1.8
+BUILD_IMAGE_NAME := golang:1.9.2
 
 CI_COMMIT_TAG ?= unknown
 CI_COMMIT_SHA ?= unknown
