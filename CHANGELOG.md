@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2017-11-23
+### Added
+- Sign binaries using GPG key
+
 ## [0.9.0] - 2017-11-22
 ### Added
 - Add additonal CA for Kubernetes API server's proxy clients. This enables
