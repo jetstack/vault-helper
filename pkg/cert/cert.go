@@ -40,6 +40,7 @@ type Cert struct {
 
 func (c *Cert) RunCert() error {
 	if err := c.EnsureKey(); err != nil {
+		return fmt.Errorf("error ensuring key: %v", err)
 	}
 
 	//if err := c.TokenRenew(); err != nil {
