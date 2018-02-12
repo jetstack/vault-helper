@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/jetstack/vault-helper/pkg/instanceToken"
 )

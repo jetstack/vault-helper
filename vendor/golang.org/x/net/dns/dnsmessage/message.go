@@ -13,7 +13,7 @@ import (
 	"errors"
 )
 
-// Packet formats
+// Message formats
 
 // A Type is a type of DNS request and response.
 type Type uint16
@@ -80,6 +80,7 @@ var (
 	errReserved           = errors.New("segment prefix is reserved")
 	errTooManyPtr         = errors.New("too many pointers (>10)")
 	errInvalidPtr         = errors.New("invalid pointer")
+	errNilResouceBody     = errors.New("nil resource body")
 	errResourceLen        = errors.New("insufficient data for resource body length")
 	errSegTooLong         = errors.New("segment length too long")
 	errZeroSegLen         = errors.New("zero length segment")
@@ -281,7 +282,7 @@ type ResourceBody interface {
 
 func (r *Resource) pack(msg []byte, compression map[string]int) ([]byte, error) {
 	if r.Body == nil {
-		return msg, &nestedError{"Resource", errors.New("nil resource body")}
+		return msg, errNilResouceBody
 	}
 	oldMsg := msg
 	r.Header.Type = r.Body.realType()
@@ -788,6 +789,12 @@ func (m *Message) Unpack(msg []byte) error {
 
 // Pack packs a full Message.
 func (m *Message) Pack() ([]byte, error) {
+	return m.AppendPack(make([]byte, 0, packStartingCap))
+}
+
+// AppendPack is like Pack but appends the full Message to b and returns the
+// extended buffer.
+func (m *Message) AppendPack(b []byte) ([]byte, error) {
 	// Validate the lengths. It is very unlikely that anyone will try to
 	// pack more than 65535 of any particular type, but it is possible and
 	// we should fail gracefully.
@@ -812,17 +819,15 @@ func (m *Message) Pack() ([]byte, error) {
 	h.authorities = uint16(len(m.Authorities))
 	h.additionals = uint16(len(m.Additionals))
 
-	msg := make([]byte, 0, packStartingCap)
-
-	msg = h.pack(msg)
+	msg := h.pack(b)
 
 	// RFC 1035 allows (but does not require) compression for packing. RFC
 	// 1035 requires unpacking implementations to support compression, so
 	// unconditionally enabling it is fine.
 	//
 	// DNS lookups are typically done over UDP, and RFC 1035 states that UDP
-	// DNS packets can be a maximum of 512 bytes long. Without compression,
-	// many DNS response packets are over this limit, so enabling
+	// DNS messages can be a maximum of 512 bytes long. Without compression,
+	// many DNS response messages are over this limit, so enabling
 	// compression will help ensure compliance.
 	compression := map[string]int{}
 
@@ -1202,7 +1207,7 @@ func (b *Builder) AAAAResource(h ResourceHeader, r AAAAResource) error {
 	return nil
 }
 
-// Finish ends message building and generates a binary packet.
+// Finish ends message building and generates a binary message.
 func (b *Builder) Finish() ([]byte, error) {
 	if b.section < sectionHeader {
 		return nil, ErrNotStarted

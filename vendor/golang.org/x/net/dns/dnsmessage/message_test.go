@@ -277,6 +277,69 @@ func TestSkipAll(t *testing.T) {
 	}
 }
 
+func TestSkipEach(t *testing.T) {
+	msg := smallTestMsg()
+
+	buf, err := msg.Pack()
+	if err != nil {
+		t.Fatal("Packing test message:", err)
+	}
+	var p Parser
+	if _, err := p.Start(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+		f    func() error
+	}{
+		{"SkipQuestion", p.SkipQuestion},
+		{"SkipAnswer", p.SkipAnswer},
+		{"SkipAuthority", p.SkipAuthority},
+		{"SkipAdditional", p.SkipAdditional},
+	}
+	for _, test := range tests {
+		if err := test.f(); err != nil {
+			t.Errorf("First call: got %s() = %v, want = %v", test.name, err, nil)
+		}
+		if err := test.f(); err != ErrSectionDone {
+			t.Errorf("Second call: got %s() = %v, want = %v", test.name, err, ErrSectionDone)
+		}
+	}
+}
+
+func TestSkipAfterRead(t *testing.T) {
+	msg := smallTestMsg()
+
+	buf, err := msg.Pack()
+	if err != nil {
+		t.Fatal("Packing test message:", err)
+	}
+	var p Parser
+	if _, err := p.Start(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+		skip func() error
+		read func() error
+	}{
+		{"Question", p.SkipQuestion, func() error { _, err := p.Question(); return err }},
+		{"Answer", p.SkipAnswer, func() error { _, err := p.Answer(); return err }},
+		{"Authority", p.SkipAuthority, func() error { _, err := p.Authority(); return err }},
+		{"Additional", p.SkipAdditional, func() error { _, err := p.Additional(); return err }},
+	}
+	for _, test := range tests {
+		if err := test.read(); err != nil {
+			t.Errorf("Got %s() = _, %v, want = _, %v", test.name, err, nil)
+		}
+		if err := test.skip(); err != ErrSectionDone {
+			t.Errorf("Got Skip%s() = %v, want = %v", test.name, err, ErrSectionDone)
+		}
+	}
+}
+
 func TestSkipNotStarted(t *testing.T) {
 	var p Parser
 
@@ -535,40 +598,57 @@ func TestBuilder(t *testing.T) {
 }
 
 func TestResourcePack(t *testing.T) {
-	for _, m := range []Message{
+	for _, tt := range []struct {
+		m   Message
+		err error
+	}{
 		{
-			Questions: []Question{
-				{
-					Name:  mustNewName("."),
-					Type:  TypeAAAA,
-					Class: ClassINET,
+			Message{
+				Questions: []Question{
+					{
+						Name:  mustNewName("."),
+						Type:  TypeAAAA,
+						Class: ClassINET,
+					},
 				},
+				Answers: []Resource{{ResourceHeader{}, nil}},
 			},
-			Answers: []Resource{{ResourceHeader{}, nil}},
+			&nestedError{"packing Answer", errNilResouceBody},
 		},
 		{
-			Questions: []Question{
-				{
-					Name:  mustNewName("."),
-					Type:  TypeAAAA,
-					Class: ClassINET,
+			Message{
+				Questions: []Question{
+					{
+						Name:  mustNewName("."),
+						Type:  TypeAAAA,
+						Class: ClassINET,
+					},
+				},
+				Authorities: []Resource{{ResourceHeader{}, (*NSResource)(nil)}},
+			},
+			&nestedError{"packing Authority",
+				&nestedError{"ResourceHeader",
+					&nestedError{"Name", errNonCanonicalName},
 				},
 			},
-			Authorities: []Resource{{ResourceHeader{}, (*NSResource)(nil)}},
 		},
 		{
-			Questions: []Question{
-				{
-					Name:  mustNewName("."),
-					Type:  TypeA,
-					Class: ClassINET,
+			Message{
+				Questions: []Question{
+					{
+						Name:  mustNewName("."),
+						Type:  TypeA,
+						Class: ClassINET,
+					},
 				},
+				Additionals: []Resource{{ResourceHeader{}, nil}},
 			},
-			Additionals: []Resource{{ResourceHeader{}, nil}},
+			&nestedError{"packing Additional", errNilResouceBody},
 		},
 	} {
-		if _, err := m.Pack(); err == nil {
-			t.Errorf("should fail: %v", m)
+		_, err := tt.m.Pack()
+		if !reflect.DeepEqual(err, tt.err) {
+			t.Errorf("got %v for %v; want %v", err, tt.m, tt.err)
 		}
 	}
 }
@@ -724,6 +804,75 @@ func BenchmarkBuilding(b *testing.B) {
 
 		if _, err := bld.Finish(); err != nil {
 			b.Fatal("bld.Finish():", err)
+		}
+	}
+}
+
+func smallTestMsg() Message {
+	name := mustNewName("example.com.")
+	return Message{
+		Header: Header{Response: true, Authoritative: true},
+		Questions: []Question{
+			{
+				Name:  name,
+				Type:  TypeA,
+				Class: ClassINET,
+			},
+		},
+		Answers: []Resource{
+			{
+				ResourceHeader{
+					Name:  name,
+					Type:  TypeA,
+					Class: ClassINET,
+				},
+				&AResource{[4]byte{127, 0, 0, 1}},
+			},
+		},
+		Authorities: []Resource{
+			{
+				ResourceHeader{
+					Name:  name,
+					Type:  TypeA,
+					Class: ClassINET,
+				},
+				&AResource{[4]byte{127, 0, 0, 1}},
+			},
+		},
+		Additionals: []Resource{
+			{
+				ResourceHeader{
+					Name:  name,
+					Type:  TypeA,
+					Class: ClassINET,
+				},
+				&AResource{[4]byte{127, 0, 0, 1}},
+			},
+		},
+	}
+}
+
+func BenchmarkPack(b *testing.B) {
+	msg := largeTestMsg()
+
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		if _, err := msg.Pack(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkAppendPack(b *testing.B) {
+	msg := largeTestMsg()
+	buf := make([]byte, 0, packStartingCap)
+
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		if _, err := msg.AppendPack(buf[:0]); err != nil {
+			b.Fatal(err)
 		}
 	}
 }
