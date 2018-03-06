@@ -22,15 +22,6 @@ var setupCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		i, err := newInstanceToken(cmd)
-		if err != nil {
-			i.Log.Fatal(err)
-		}
-
-		if err := i.TokenRenewRun(); err != nil {
-			i.Log.Fatal(err)
-		}
-
 		k := kubernetes.New(v, log)
 		if err != nil {
 			log.Fatal(err)
