@@ -125,10 +125,11 @@ func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err err
 	}
 
 	if certCAField, ok := sec.Data["ca_chain"]; ok {
-		certCA, ok = certCAField.(string)
+		certCAs, ok := certCAField.([]string)
 		if !ok {
 			return "", "", errors.New("failed to convert ca chain certificiate field to string")
 		}
+		certCA = strings.Join(certCAs, "\n")
 	} else {
 		c.Log.Debugf("CA chain field not found - trying issuing CA")
 		certCAField, ok := sec.Data["issuing_ca"]
@@ -146,7 +147,7 @@ func (c *Cert) decodeSec(sec *vault.Secret) (cert string, certCA string, err err
 
 func (c *Cert) createCSR() (csr []byte, err error) {
 	names := pkix.Name{
-		CommonName: c.CommonName(),
+		CommonName:   c.CommonName(),
 		Organization: c.Organisation(),
 	}
 	var csrTemplate = x509.CertificateRequest{

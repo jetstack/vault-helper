@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"testing"
 
+	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jetstack/vault-helper/pkg/instanceToken"
@@ -473,4 +474,58 @@ func initInstanceToken(t *testing.T, vaultDev *vault_dev.VaultDev, dir string) *
 	i.WipeTokenFile(i.TokenFilePath())
 
 	return i
+}
+
+func TestCaChainCertDecode(t *testing.T) {
+	cert := Cert{
+		Log: logrus.NewEntry(logrus.New()),
+	}
+
+	secret := &vault.Secret{
+		Data: map[string]interface{}{
+			"ca_chain":    []string{"cacert1", "cacert2"},
+			"certificate": "cert",
+		},
+	}
+
+	outCert, outCA, err := cert.decodeSec(secret)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if exp, act := "cert", outCert; exp != act {
+		t.Errorf("Unexpected cert exp=%s act=%s", exp, act)
+	}
+
+	if exp, act := "cacert1\ncacert2", outCA; exp != act {
+		t.Errorf("Unexpected ca cert exp=%s act=%s", exp, act)
+	}
+
+}
+
+func TestNoCaChainCertDecode(t *testing.T) {
+	cert := Cert{
+		Log: logrus.NewEntry(logrus.New()),
+	}
+
+	secret := &vault.Secret{
+		Data: map[string]interface{}{
+			"issuing_ca":  "cacert",
+			"certificate": "cert",
+		},
+	}
+
+	outCert, outCA, err := cert.decodeSec(secret)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if exp, act := "cert", outCert; exp != act {
+		t.Errorf("Unexpected cert exp=%s act=%s", exp, act)
+	}
+
+	if exp, act := "cacert", outCA; exp != act {
+		t.Errorf("Unexpected ca cert exp=%s act=%s", exp, act)
+	}
+
 }
