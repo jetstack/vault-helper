@@ -1,8 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [0.9.3] - 2018-03-06
-### Changed
+## [0.9.5] - 2018-03-06
+### Fixed
+- Support ca_chain properly for reading certificates (#6)
+
+## [0.9.4] - 2018-03-06
+### Fixed
 - Ensure vault-helper setup is not using instance tokens
 
 ## [0.9.3] - 2018-02-12
