@@ -1,8 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.3] - 2018-03-06
+### Changed
+- Ensure vault-helper setup is not using instance tokens
+
 ## [0.9.3] - 2018-02-12
-### Chnaged
+### Changed
 - Use Update to use lowercase logrus import
 
 ## [0.9.2] - 2017-11-23
