@@ -4,8 +4,8 @@
 [[projects]]
   name = "github.com/coreos/go-systemd"
   packages = ["daemon"]
-  revision = "d2196463941895ee908e13531a23a39feb9e1243"
-  version = "v15"
+  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
+  version = "v16"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -15,7 +15,11 @@
 
 [[projects]]
   name = "github.com/golang/mock"
-  packages = ["gomock","mockgen","mockgen/model"]
+  packages = [
+    "gomock",
+    "mockgen",
+    "mockgen/model"
+  ]
   revision = "13f360950a79f5864a972c786a10a50e44b69541"
   version = "v1.0.0"
 
@@ -52,14 +56,30 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
   name = "github.com/hashicorp/vault"
-  packages = ["api","helper/compressutil","helper/jsonutil","helper/parseutil"]
-  revision = "5acd6a21d5a69ab49d0f7c0bf540123a9b2c696d"
-  version = "v0.9.3"
+  packages = [
+    "api",
+    "helper/compressutil",
+    "helper/jsonutil",
+    "helper/parseutil",
+    "helper/strutil"
+  ]
+  revision = "36edb4d42380d89a897e7f633046423240b710d9"
+  version = "v0.9.5"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -77,13 +97,19 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "b4575eea38cca1123ec2dc90c26529b5c5acfcff"
+  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+
+[[projects]]
+  name = "github.com/ryanuber/go-glob"
+  packages = ["."]
+  revision = "572520ed46dbddaed19ea3d9541bdd0494163693"
+  version = "v0.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/sethgrid/pester"
   packages = ["."]
-  revision = "760f8913c0483b776294e1bee43f1d687527127b"
+  revision = "ed9870dad3170c0b25ab9b11830cc57c3a7798fb"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -95,7 +121,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "f91529fc609202eededff4de2dc0ba2f662240a3"
+  revision = "c6c44e6fdcc30161c7f4480754da7230d01c06e3"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -107,35 +133,58 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
+  revision = "85f98707c97e11569271e4d9b3d397e079c4f4d0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["http2","http2/hpack","idna","lex/httplex"]
-  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
+  packages = [
+    "http2",
+    "http2/hpack",
+    "idna",
+    "lex/httplex"
+  ]
+  revision = "07e8617a6db2368fa55d4616f371ee1b1403c817"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "3dbebcf8efb6a5011a60c2b4591c1022a759af8a"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "dd2ff4accc098aceecb86b36eaa7829b2a17b1c9"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/text"
-  packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
+  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
+  version = "v2.1.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3ed93377b62dd1438d1d273e9261e55873fee02551fca491bd1b3c63246c29b4"
+  inputs-digest = "2a4dbcfaa09ad055a6901dae3dd1510ac101e5f03a8780dbe91ca933c8f80819"
   solver-name = "gps-cdcl"
   solver-version = 1

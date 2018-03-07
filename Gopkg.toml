@@ -1,4 +1,3 @@
-
 # vendor in code gen tools
 required = ["github.com/golang/mock/mockgen"]
 
@@ -9,3 +8,12 @@ required = ["github.com/golang/mock/mockgen"]
 [[constraint]]
   branch = "master"
   name = "github.com/spf13/cobra"
+
+[[constraint]]
+  name = "github.com/hashicorp/vault"
+  version = "0.9.5"
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true
