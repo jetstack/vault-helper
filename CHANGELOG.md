@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.6] - 2018-03-07
+### Fixed
+- Do not use CA names in SAN DNS names
+
+### Changed
+- Use vault 0.9.5
+- Upgrade golang dependencies
+- Upgrade golang to 1.10
+
+
+
 ## [0.9.5] - 2018-03-06
 ### Fixed
 - Support ca_chain properly for reading certificates (#6)
