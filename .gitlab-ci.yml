@@ -14,7 +14,7 @@ stages:
 build:golang:
   tags:
   - docker
-  image: golang:1.9.2-alpine
+  image: golang:1.10-alpine
   services:
   - docker:dind
   script:
@@ -39,7 +39,7 @@ build:golang:
     expire_in: 4 weeks
 
 deploy:release:
-  image: golang:1.9.2-alpine
+  image: golang:1.10-alpine
   stage: deploy
   tags:
   - docker
