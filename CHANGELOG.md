@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.7] - 2018-03-21
+### Fixed
+- Allow usage of AWS SAN DNS names in kubelet's role
+
 ## [0.9.6] - 2018-03-07
 ### Fixed
 - Do not use CA names in SAN DNS names
@@ -9,8 +13,6 @@ All notable changes to this project will be documented in this file.
 - Use vault 0.9.5
 - Upgrade golang dependencies
 - Upgrade golang to 1.10
-
-
 
 ## [0.9.5] - 2018-03-06
 ### Fixed
