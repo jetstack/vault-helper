@@ -58,7 +58,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 		t.Fatalf("error runinning kubeconfig: %v", err)
 	}
 
-	yml := importYaml(t, u.FilePath())
+	yml := importYaml(t, u.ConfigPath())
 
 	ymlKeyBef := yml.Users[0].User.ClientKeyData
 	ymlCerBef := yml.Users[0].User.ClientCertificateData
@@ -71,7 +71,7 @@ func TestKubeconf_Busy_Vault(t *testing.T) {
 		t.Fatalf("Expected 400 error, premisson denied")
 	}
 
-	yml = importYaml(t, u.FilePath())
+	yml = importYaml(t, u.ConfigPath())
 
 	ymlKeyAft := yml.Users[0].User.ClientKeyData
 	ymlCerAft := yml.Users[0].User.ClientCertificateData
@@ -109,7 +109,7 @@ func TestKubeconf_File_Perms(t *testing.T) {
 		t.Fatalf("error runinning kubeconfig: %v", err)
 	}
 
-	yaml := filepath.Clean(u.FilePath())
+	yaml := filepath.Clean(u.ConfigPath())
 	checkFilePerm(t, yaml, os.FileMode(0600))
 	checkOwnerGroup(t, yaml)
 }
@@ -149,7 +149,7 @@ func TestKubeconf_Cert_Data(t *testing.T) {
 		t.Fatalf("failed to encode data at file '%s': %v", cerPem, err)
 	}
 
-	yml := importYaml(t, u.FilePath())
+	yml := importYaml(t, u.ConfigPath())
 
 	ymlKey := yml.Users[0].User.ClientKeyData
 	ymlCer := yml.Users[0].User.ClientCertificateData
@@ -297,7 +297,7 @@ func initKubeconf(t *testing.T, cert *cert.Cert) (u *Kubeconfig) {
 	log := logrus.NewEntry(logger)
 
 	u = New(log, cert)
-	u.SetFilePath(cert.Destination())
+	u.SetKubeConfigPath(cert.Destination())
 
 	return u
 }

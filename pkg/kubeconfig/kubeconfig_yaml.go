@@ -73,7 +73,7 @@ func (u *Kubeconfig) EncodeCerts() error {
 }
 
 func (u *Kubeconfig) StoreYaml(yml string) error {
-	path := filepath.Clean(u.FilePath())
+	path := filepath.Clean(u.ConfigPath())
 
 	file, err := os.Create(path)
 	if err != nil {
@@ -91,7 +91,7 @@ func (u *Kubeconfig) StoreYaml(yml string) error {
 }
 
 func (u *Kubeconfig) WritePermissions() error {
-	return u.Cert().WritePermissions(u.FilePath(), os.FileMode(0600))
+	return u.Cert().WritePermissions(u.ConfigPath(), os.FileMode(0600))
 }
 
 func (u *Kubeconfig) BuildYaml() (yml string, err error) {
