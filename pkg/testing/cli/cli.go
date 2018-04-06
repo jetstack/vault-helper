@@ -2,15 +2,21 @@ package cli
 
 import (
 	"fmt"
-	"strings"
-	"os"
 	"io/ioutil"
+	"os"
+	"os/exec"
+	//"path/filepath"
+	"strings"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/jetstack/vault-helper/cmd"
 	"github.com/jetstack/vault-helper/pkg/kubernetes"
 	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
+)
+
+const (
+	binPath = "src/github.com/jetstack/vault-helper/vault-helper_linux_amd64"
 )
 
 func InitVaultDev() (*vault_dev.VaultDev, error) {
@@ -35,15 +41,14 @@ func InitVaultDev() (*vault_dev.VaultDev, error) {
 	return vaultDev, nil
 }
 
-
 func InitKubernetes(vaultDev *vault_dev.VaultDev) (*kubernetes.Kubernetes, error) {
 	k := kubernetes.New(vaultDev.Client(), logrus.NewEntry(logrus.New()))
 	k.SetClusterID("test")
 	k.SetInitFlags(kubernetes.FlagInitTokens{
-		Etcd: "etcd",
+		Etcd:   "etcd",
 		Master: "master",
 		Worker: "worker",
-		All: "all",
+		All:    "all",
 	})
 
 	if err := k.Ensure(); err != nil {
@@ -53,26 +58,34 @@ func InitKubernetes(vaultDev *vault_dev.VaultDev) (*kubernetes.Kubernetes, error
 	return k, nil
 }
 
-func RunCommand(args []string) error {
+func RunCommand(args []string) (int, error) {
 	dir, err := initTokensDir()
 	if err != nil {
-		return fmt.Errorf("failed to create tokens directory: %v", err)
+		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
 	}
 
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
+	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
 
-	command := cmd.RootCmd
-	command.SetArgs(args)
-	command.PersistentFlags().Int("log-level", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
+	logrus.Infof("running command: [vault-helper %s]", strings.Join(args, " "))
 
-	command.Flag("log-level").Shorthand = "l"
-	logrus.Infof("running command: [%s %s]", command.Name(), strings.Join(args, " "))
-
-	if err := command.Execute(); err != nil {
-		return fmt.Errorf("error running command: %v", err)
+	if err := cmd.Start(); err != nil {
+		return -1, fmt.Errorf("error starting command: %v", err)
 	}
 
-	return nil
+	if err := cmd.Wait(); err != nil {
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				return status.ExitStatus(), nil
+			}
+
+			return -1, fmt.Errorf("failed to get command status: %v", err)
+		} else {
+			return -1, fmt.Errorf("error wait for command: %v", err)
+		}
+	}
+
+	return 0, nil
 }
 
 func initTokensDir() (string, error) {

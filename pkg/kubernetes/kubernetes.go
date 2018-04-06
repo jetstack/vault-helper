@@ -109,11 +109,19 @@ type Kubernetes struct {
 var _ Backend = &PKI{}
 var _ Backend = &Generic{}
 
-func (rv *realVault) Auth() VaultAuth       { return &realVaultAuth{a: rv.c.Auth()} }
-func (rv *realVault) Sys() VaultSys         { return rv.c.Sys() }
-func (rv *realVault) Logical() VaultLogical { return rv.c.Logical() }
+func (rv *realVault) Auth() VaultAuth {
+	return &realVaultAuth{a: rv.c.Auth()}
+}
+func (rv *realVault) Sys() VaultSys {
+	return rv.c.Sys()
+}
+func (rv *realVault) Logical() VaultLogical {
+	return rv.c.Logical()
+}
 
-func (rva *realVaultAuth) Token() VaultToken { return rva.a.Token() }
+func (rva *realVaultAuth) Token() VaultToken {
+	return rva.a.Token()
+}
 
 func realVaultFromAPI(vaultClient *vault.Client) Vault {
 	return &realVault{c: vaultClient}
@@ -149,15 +157,15 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 
 	k := &Kubernetes{
 		// set default validity periods
-		MaxValidityCA: time.Hour * 24 * 365 * 20, // Validity period of CA certificates
-		MaxValidityComponents: time.Hour * 24 * 30, // Validity period of Component certificates
-		MaxValidityAdmin: time.Hour * 24 * 365, // Validity period of Admin ceritficate
-		MaxValidityInitTokens: time.Hour * 24 * 365 * 5, // Validity of init tokens
+		MaxValidityCA:         time.Hour * 24 * 365 * 20, // Validity period of CA certificates
+		MaxValidityComponents: time.Hour * 24 * 30,       // Validity period of Component certificates
+		MaxValidityAdmin:      time.Hour * 24 * 365,      // Validity period of Admin ceritficate
+		MaxValidityInitTokens: time.Hour * 24 * 365 * 5,  // Validity of init tokens
 		FlagInitTokens: FlagInitTokens{
-			Etcd: "",
+			Etcd:   "",
 			Master: "",
 			Worker: "",
-			All: "",
+			All:    "",
 		},
 	}
 
@@ -235,13 +243,15 @@ func (k *Kubernetes) Ensure() error {
 	return result
 }
 
-func (k *Kubernetes) Path() string { return k.clusterID }
+func (k *Kubernetes) Path() string {
+	return k.clusterID
+}
 
 func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
 	return &Generic{
 		kubernetes: k,
 		initTokens: make(map[string]string),
-		Log: logger,
+		Log:        logger,
 	}
 }
 
@@ -264,9 +274,9 @@ func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, er
 
 func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *InitToken {
 	return &InitToken{
-		Role: role,
-		Policies: policies,
-		kubernetes: k,
+		Role:          role,
+		Policies:      policies,
+		kubernetes:    k,
 		ExpectedToken: expected,
 	}
 }
