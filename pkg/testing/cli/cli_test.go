@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -29,7 +30,6 @@ func TestMain(m *testing.M) {
 		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}
 	logrus.RegisterExitHandler(vault.Stop)
-	defer vault.Stop()
 
 	if err := InitKubernetes(); err != nil {
 		logrus.Fatalf("failed to initiate kubernetes for testing: %v", err)
@@ -41,6 +41,7 @@ func TestMain(m *testing.M) {
 		logrus.Errorf("error cleaning up tmp dirs: %v", err)
 	}
 
+	vault.Stop()
 	os.Exit(exitCode)
 }
 
@@ -78,7 +79,7 @@ func InitKubernetes() error {
 	}
 
 	var stdout, stderr bytes.Buffer
-	exitCode, err := runCommand(args, &stdout, &stderr, false)
+	exitCode, err := runCommand(args, &stdout, &stderr)
 	if err != nil {
 		return fmt.Errorf("failed to run command setup: %v", err)
 	}
@@ -95,7 +96,14 @@ func InitKubernetes() error {
 func RunTest(args []string, expCode int, t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
-	gotCode, err := runCommand(args, &stdout, &stderr, true)
+	dir, err := initTokensDir()
+	if err != nil {
+		t.Errorf("failed to create tokens directory: %v", err)
+		return
+	}
+	args = append(args, fmt.Sprintf("--config-path=%s", dir))
+
+	gotCode, err := runCommand(args, &stdout, &stderr)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -107,16 +115,35 @@ func RunTest(args []string, expCode int, t *testing.T) {
 	}
 }
 
-func runCommand(args []string, stdout, stderr *bytes.Buffer, configPath bool) (int, error) {
-	dir, err := initTokensDir()
+func TmpDir() (string, error) {
+	dir, err := ioutil.TempDir("", "test-cluster")
 	if err != nil {
-		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
+		return dir, fmt.Errorf("failed to create token directory: %v", err)
+	}
+	tmpDirs = append(tmpDirs, dir)
+
+	return dir, nil
+}
+
+func CleanDirs() error {
+	var result *multierror.Error
+
+	for _, dir := range tmpDirs {
+		if err := os.RemoveAll(dir); err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 
-	if configPath {
-		args = append(args, fmt.Sprintf("--config-path=%s", dir))
+	return result.ErrorOrNil()
+}
+
+func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		return -1, errors.New("GOPATH environment variable not set")
 	}
-	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
+
+	cmd := exec.Command(fmt.Sprintf("%s/%s", gopath, binPath), args...)
 
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -142,28 +169,6 @@ func runCommand(args []string, stdout, stderr *bytes.Buffer, configPath bool) (i
 	}
 
 	return 0, nil
-}
-
-func CleanDirs() error {
-	var result *multierror.Error
-
-	for _, dir := range tmpDirs {
-		if err := os.RemoveAll(dir); err != nil {
-			result = multierror.Append(result, err)
-		}
-	}
-
-	return result.ErrorOrNil()
-}
-
-func TmpDir() (string, error) {
-	dir, err := ioutil.TempDir("", "test-cluster")
-	if err != nil {
-		return dir, fmt.Errorf("failed to create token directory: %v", err)
-	}
-	tmpDirs = append(tmpDirs, dir)
-
-	return dir, nil
 }
 
 func initTokensDir() (string, error) {
