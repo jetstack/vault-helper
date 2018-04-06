@@ -5,10 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	//"path/filepath"
 	"strings"
 	"syscall"
+	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jetstack/vault-helper/pkg/kubernetes"
@@ -18,6 +19,8 @@ import (
 const (
 	binPath = "src/github.com/jetstack/vault-helper/vault-helper_linux_amd64"
 )
+
+var tmpDirs []string
 
 func InitVaultDev() (*vault_dev.VaultDev, error) {
 	vaultDev := vault_dev.New()
@@ -58,11 +61,21 @@ func InitKubernetes(vaultDev *vault_dev.VaultDev) (*kubernetes.Kubernetes, error
 	return k, nil
 }
 
-func RunCommand(args []string) (int, error) {
+func RunTest(args []string, expCode int, t *testing.T) {
+	gotCode, err := runCommand(args)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	checkExit(expCode, gotCode, t)
+}
+
+func runCommand(args []string) (int, error) {
 	dir, err := initTokensDir()
 	if err != nil {
 		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
 	}
+	tmpDirs = append(tmpDirs, dir)
 
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
 	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
@@ -88,6 +101,18 @@ func RunCommand(args []string) (int, error) {
 	return 0, nil
 }
 
+func CleanDirs() error {
+	var result *multierror.Error
+
+	for _, dir := range tmpDirs {
+		if err := os.RemoveAll(dir); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result.ErrorOrNil()
+}
+
 func initTokensDir() (string, error) {
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
 	if err != nil {
@@ -108,4 +133,10 @@ func initTokensDir() (string, error) {
 	f.Close()
 
 	return dir, nil
+}
+
+func checkExit(exp, got int, t *testing.T) {
+	if exp != got {
+		t.Errorf("unexpected error code, exp=%d got=%d", exp, got)
+	}
 }

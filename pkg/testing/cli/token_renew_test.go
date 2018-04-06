@@ -1,27 +1,56 @@
 package cli
 
 import (
+	"os"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
-func TestRenewToken_Success(t *testing.T) {
+func TestMain(m *testing.M) {
+
 	vault, err := InitVaultDev()
 	if err != nil {
-		t.Fatalf("failed to initiate vault for testing: %v", err)
+		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}
+	logrus.RegisterExitHandler(vault.Stop)
 	defer vault.Stop()
 
 	if _, err := InitKubernetes(vault); err != nil {
-		t.Fatalf("failed to initiate kubernetes for testing: %v", err)
+		logrus.Fatalf("failed to initiate kubernetes for testing: %v", err)
 	}
 
-	args := []string{"renew-token", "--init-role=test-master"}
-	exitcode, err := RunCommand(args)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	returnCode := m.Run()
+
+	if err := CleanDirs(); err != nil {
+		logrus.Errorf("error removing temp dirs: %v", err)
 	}
 
-	if exitcode != 0 {
-		t.Errorf("unexpected error code, exp=0 got=%d", exitcode)
+	os.Exit(returnCode)
+}
+
+func TestRenewToken_Success(t *testing.T) {
+
+	args := [][]string{
+		[]string{"renew-token", "--init-role=test-master"},
+		[]string{"renew-token", "--init-role=test-worker"},
+		[]string{"renew-token", "--init-role=test-etcd"},
+		[]string{"renew-token", "--init-role=test-all"},
+	}
+
+	for _, arg := range args {
+		RunTest(arg, 0, t)
+	}
+}
+
+func TestRenewToken_Fail(t *testing.T) {
+
+	args := [][]string{
+		[]string{"renew-token", "--init-role=test-foo"},
+		[]string{"renew-token", "--init-role=foo"},
+		[]string{"renew-token", "--init-role="},
+	}
+	for _, arg := range args {
+		RunTest(arg, 1, t)
 	}
 }
