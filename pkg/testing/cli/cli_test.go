@@ -104,7 +104,6 @@ func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
 	if err != nil {
 		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
 	}
-	tmpDirs = append(tmpDirs, dir)
 
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
 	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
@@ -126,8 +125,9 @@ func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
 			}
 
 			return -1, fmt.Errorf("failed to get command status: %v", err)
+
 		} else {
-			return -1, fmt.Errorf("error wait for command: %v", err)
+			return -1, fmt.Errorf("error during wait for command: %v", err)
 		}
 	}
 
@@ -146,24 +146,36 @@ func CleanDirs() error {
 	return result.ErrorOrNil()
 }
 
-func initTokensDir() (string, error) {
-	dir, err := ioutil.TempDir("", "test-cluster-dir")
+func TmpDir() (string, error) {
+	dir, err := ioutil.TempDir("", "test-cluster")
 	if err != nil {
-		return "", fmt.Errorf("failed to create token directory: %v", err)
+		return dir, fmt.Errorf("failed to create token directory: %v", err)
+	}
+	tmpDirs = append(tmpDirs, dir)
+
+	return dir, nil
+}
+
+func initTokensDir() (string, error) {
+	dir, err := TmpDir()
+	if err != nil {
+		return dir, err
 	}
 
 	initTokenFile := fmt.Sprintf("%s/init-token", dir)
 	tokenFile := fmt.Sprintf("%s/token", dir)
 
 	if err := ioutil.WriteFile(initTokenFile, []byte("root-token-dev"), 0644); err != nil {
-		return "", fmt.Errorf("failed to write root-token-dev token to file: %v", err)
+		return dir, fmt.Errorf("failed to write root-token-dev token to file: %v", err)
 	}
 
 	f, err := os.Create(tokenFile)
 	if err != nil {
-		return "", fmt.Errorf("failed to create token file: %v", err)
+		return dir, fmt.Errorf("failed to create token file: %v", err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		return dir, fmt.Errorf("failed to close token file: %v", err)
+	}
 
 	return dir, nil
 }

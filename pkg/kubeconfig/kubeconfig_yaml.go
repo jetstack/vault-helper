@@ -85,7 +85,7 @@ func (u *Kubeconfig) StoreYaml(yml string) error {
 		return fmt.Errorf("error writting to yaml file '%s': %v", path, err)
 	}
 
-	u.Log.Infof("Yaml writting to file: %s", path)
+	u.Log.Infof("Yaml written to file: %s", path)
 
 	return u.WritePermissions()
 }
