@@ -17,7 +17,6 @@ func TestKubeconfig_Success(t *testing.T) {
 	config := fmt.Sprintf("%s/config", dir)
 
 	var args [][]string
-
 	for _, role := range []string{"master", "worker", "etcd", "all"} {
 		for _, sign := range []string{"admin", "kubelet", "kube-apiserver", "kube-controller-manager", "kube-proxy", "kube-scheduler"} {
 			args = append(args, []string{"kubeconfig", "test/pki/k8s/sign/" + sign, sign, path, config, "--init-role=test-" + role})
@@ -41,7 +40,6 @@ func TestKubeconfig_Fail(t *testing.T) {
 	config := fmt.Sprintf("%s/config", dir)
 
 	var args [][]string
-
 	for _, role := range []string{"foo", "bar"} {
 		for _, sign := range []string{"admin", "kubelet", "kube-apiserver", "kube-controller-manager", "kube-proxy", "kube-scheduler"} {
 			args = append(args, []string{"kubeconfig", "test/pki/k8s/sign/" + sign, sign, path, config, "--init-role=test-" + role})

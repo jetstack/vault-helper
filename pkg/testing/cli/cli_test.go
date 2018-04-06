@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
-	//"github.com/jetstack/vault-helper/pkg/kubernetes"
 	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
 )
 
@@ -32,7 +31,7 @@ func TestMain(m *testing.M) {
 	logrus.RegisterExitHandler(vault.Stop)
 	defer vault.Stop()
 
-	if err := InitKubernetes(vault); err != nil {
+	if err := InitKubernetes(); err != nil {
 		logrus.Fatalf("failed to initiate kubernetes for testing: %v", err)
 	}
 
@@ -67,7 +66,7 @@ func InitVaultDev() (*vault_dev.VaultDev, error) {
 	return vaultDev, nil
 }
 
-func InitKubernetes(vaultDev *vault_dev.VaultDev) error {
+func InitKubernetes() error {
 
 	args := []string{
 		"setup",
