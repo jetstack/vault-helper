@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
-	"github.com/jetstack/vault-helper/pkg/kubernetes"
+	//"github.com/jetstack/vault-helper/pkg/kubernetes"
 	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
 )
 
@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 	logrus.RegisterExitHandler(vault.Stop)
 	defer vault.Stop()
 
-	if _, err := InitKubernetes(vault); err != nil {
+	if err := InitKubernetes(vault); err != nil {
 		logrus.Fatalf("failed to initiate kubernetes for testing: %v", err)
 	}
 
@@ -67,45 +67,56 @@ func InitVaultDev() (*vault_dev.VaultDev, error) {
 	return vaultDev, nil
 }
 
-func InitKubernetes(vaultDev *vault_dev.VaultDev) (*kubernetes.Kubernetes, error) {
-	k := kubernetes.New(vaultDev.Client(), logrus.NewEntry(logrus.New()))
-	k.SetClusterID("test")
-	k.SetInitFlags(kubernetes.FlagInitTokens{
-		Etcd:   "etcd",
-		Master: "master",
-		Worker: "worker",
-		All:    "all",
-	})
+func InitKubernetes(vaultDev *vault_dev.VaultDev) error {
 
-	if err := k.Ensure(); err != nil {
-		return nil, fmt.Errorf("error ensuring kubernetes: %v", err)
+	args := []string{
+		"setup",
+		"test",
+		"--init-token-all=all",
+		"--init-token-master=master",
+		"--init-token-worker=worker",
+		"--init-token-etcd=etcd",
 	}
 
-	return k, nil
+	var stdout, stderr bytes.Buffer
+	exitCode, err := runCommand(args, &stdout, &stderr, false)
+	if err != nil {
+		return fmt.Errorf("failed to run command setup: %v", err)
+	}
+
+	if exitCode != 0 {
+		fmt.Printf("%s\n", stdout.String())
+		fmt.Printf("%s\n", stderr.String())
+		return fmt.Errorf("unexpected error code, exp=0 got=%d", exitCode)
+	}
+
+	return nil
 }
 
 func RunTest(args []string, expCode int, t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
-	gotCode, err := runCommand(args, &stdout, &stderr)
+	gotCode, err := runCommand(args, &stdout, &stderr, true)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if expCode != gotCode {
-		t.Errorf("unexpected error code, exp=%d got=%d", expCode, gotCode)
 		fmt.Printf("%s\n", stdout.String())
 		fmt.Printf("%s\n", stderr.String())
+		t.Errorf("unexpected error code, exp=%d got=%d", expCode, gotCode)
 	}
 }
 
-func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
+func runCommand(args []string, stdout, stderr *bytes.Buffer, configPath bool) (int, error) {
 	dir, err := initTokensDir()
 	if err != nil {
 		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
 	}
 
-	args = append(args, fmt.Sprintf("--config-path=%s", dir))
+	if configPath {
+		args = append(args, fmt.Sprintf("--config-path=%s", dir))
+	}
 	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
 
 	cmd.Stdout = stdout
