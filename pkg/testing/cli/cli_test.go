@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,6 +22,28 @@ const (
 )
 
 var tmpDirs []string
+
+func TestMain(m *testing.M) {
+
+	vault, err := InitVaultDev()
+	if err != nil {
+		logrus.Fatalf("failed to initiate vault for testing: %v", err)
+	}
+	logrus.RegisterExitHandler(vault.Stop)
+	defer vault.Stop()
+
+	if _, err := InitKubernetes(vault); err != nil {
+		logrus.Fatalf("failed to initiate kubernetes for testing: %v", err)
+	}
+
+	exitCode := m.Run()
+
+	if err := CleanDirs(); err != nil {
+		logrus.Errorf("error cleaning up tmp dirs: %v", err)
+	}
+
+	os.Exit(exitCode)
+}
 
 func InitVaultDev() (*vault_dev.VaultDev, error) {
 	vaultDev := vault_dev.New()
@@ -62,15 +85,21 @@ func InitKubernetes(vaultDev *vault_dev.VaultDev) (*kubernetes.Kubernetes, error
 }
 
 func RunTest(args []string, expCode int, t *testing.T) {
-	gotCode, err := runCommand(args)
+	var stdout, stderr bytes.Buffer
+
+	gotCode, err := runCommand(args, &stdout, &stderr)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	checkExit(expCode, gotCode, t)
+	if expCode != gotCode {
+		t.Errorf("unexpected error code, exp=%d got=%d", expCode, gotCode)
+		fmt.Printf("%s\n", stdout.String())
+		fmt.Printf("%s\n", stderr.String())
+	}
 }
 
-func runCommand(args []string) (int, error) {
+func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
 	dir, err := initTokensDir()
 	if err != nil {
 		return -1, fmt.Errorf("failed to create tokens directory: %v", err)
@@ -80,6 +109,9 @@ func runCommand(args []string) (int, error) {
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
 	cmd := exec.Command(fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), binPath), args...)
 
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
 	logrus.Infof("running command: [vault-helper %s]", strings.Join(args, " "))
 
 	if err := cmd.Start(); err != nil {
@@ -87,6 +119,7 @@ func runCommand(args []string) (int, error) {
 	}
 
 	if err := cmd.Wait(); err != nil {
+
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				return status.ExitStatus(), nil
@@ -133,10 +166,4 @@ func initTokensDir() (string, error) {
 	f.Close()
 
 	return dir, nil
-}
-
-func checkExit(exp, got int, t *testing.T) {
-	if exp != got {
-		t.Errorf("unexpected error code, exp=%d got=%d", exp, got)
-	}
 }
