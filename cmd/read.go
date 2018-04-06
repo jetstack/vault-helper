@@ -11,7 +11,7 @@ import (
 
 // initCmd represents the init command
 var readCmd = &cobra.Command{
-	Use:   "read [vault path]",
+	Use: "read [vault path]",
 	Short: "Read arbitrary vault path. If no output file specified, output to console.",
 	Run: func(cmd *cobra.Command, args []string) {
 		log := LogLevel(cmd)

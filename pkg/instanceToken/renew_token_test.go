@@ -113,8 +113,8 @@ func TestRenew_Token_Exists_NoRenew(t *testing.T) {
 	notRenewable := false
 	tCreateRequest := &vault.TokenCreateRequest{
 		DisplayName: "master",
-		Policies:    []string{"root"},
-		Renewable:   &notRenewable,
+		Policies: []string{"root"},
+		Renewable: &notRenewable,
 	}
 
 	newToken, err := vaultDev.Client().Auth().Token().CreateOrphan(tCreateRequest)

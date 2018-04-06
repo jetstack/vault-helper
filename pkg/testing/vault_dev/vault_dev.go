@@ -109,6 +109,10 @@ func (v *VaultDev) SetPort(port int) {
 	v.port = &port
 }
 
+func (v *VaultDev) Port() int {
+	return *v.port
+}
+
 func getUnusedPort() int {
 	l, err := net.ListenTCP("tcp", &net.TCPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
