@@ -11,6 +11,9 @@ BUILD_IMAGE_NAME := golang:1.9.2
 CI_COMMIT_TAG ?= unknown
 CI_COMMIT_SHA ?= unknown
 
+VAULT_VERSION := 0.9.5
+VAULT_HASH := f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
+
 help:
 	# all       - runs verify, build targets
 	# test      - runs go_test target
@@ -59,7 +62,15 @@ bin/mockgen:
 	mkdir -p $(BINDIR)
 	go build -o $(BINDIR)/mockgen ./vendor/github.com/golang/mock/mockgen
 
-depend: bin/mockgen
+bin/vault:
+	which unzip || apt-get install -y unzip
+	mkdir -p $(BINDIR)
+	curl -sL  https://releases.hashicorp.com/vault/$(VAULT_VERSION)/vault_$(VAULT_VERSION)_linux_amd64.zip > $(BINDIR)/vault.zip
+	echo "$(VAULT_HASH)  $(BINDIR)/vault.zip" | sha256sum  -c
+	cd $(BINDIR) && unzip vault.zip
+	rm $(BINDIR)/vault.zip
+
+depend: bin/mockgen bin/vault
 
 go_generate: depend
 	mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
