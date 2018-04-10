@@ -92,7 +92,7 @@ func (k *Kubernetes) k8sAPIServerRole() *pkiRole {
 			"allow_bare_domains":  true,
 			"allow_ip_sans":       true,
 			"server_flag":         true,
-			"client_flag":         false,
+			"client_flag":         true,
 			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
 			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
 		},
