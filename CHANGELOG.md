@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.8] - 2018-04-10
+
+### Fixed
+- Parsing of flags for `kubeconfig` #11
+
+### Changed
+- Mark kube-apiserver's certificate as client cert #15
+
 ## [0.9.7] - 2018-03-21
 ### Fixed
 - Allow usage of AWS SAN DNS names in kubelet's role
