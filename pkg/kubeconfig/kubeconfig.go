@@ -2,14 +2,15 @@ package kubeconfig
 
 import (
 	"github.com/jetstack/vault-helper/pkg/cert"
+
 	"github.com/sirupsen/logrus"
 )
 
 type Kubeconfig struct {
-	filePath  string
-	certKey64 string
-	certCA64  string
-	cert64    string
+	configPath string
+	certKey64  string
+	certCA64   string
+	cert64     string
 
 	cert *cert.Cert
 	Log  *logrus.Entry
@@ -40,18 +41,18 @@ func (u *Kubeconfig) RunKube() error {
 	return u.StoreYaml(yml)
 }
 
+func (u *Kubeconfig) ConfigPath() string {
+	return u.configPath
+}
+func (u *Kubeconfig) SetKubeConfigPath(path string) {
+	u.configPath = path
+}
+
 func (u *Kubeconfig) SetCert(cert *cert.Cert) {
 	u.cert = cert
 }
 func (u *Kubeconfig) Cert() (c *cert.Cert) {
 	return u.cert
-}
-
-func (u *Kubeconfig) SetFilePath(path string) {
-	u.filePath = path
-}
-func (u *Kubeconfig) FilePath() (path string) {
-	return u.filePath
 }
 
 func (u *Kubeconfig) SetCertCA64(byt string) {

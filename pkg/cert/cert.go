@@ -43,22 +43,12 @@ func (c *Cert) RunCert() error {
 		return fmt.Errorf("error ensuring key: %v", err)
 	}
 
-	//if err := c.TokenRenew(); err != nil {
-	//	return fmt.Errorf("error renewing tokens: %v", err)
-	//}
-
 	if err := c.RequestCertificate(); err != nil {
 		return fmt.Errorf("error requesting certificate: %v", err)
 	}
 
 	return nil
 }
-
-//func (c *Cert) TokenRenew() error {
-//	i := instanceToken.New(c.vaultClient, c.Log)
-//
-//	return i.TokenRenewRun()
-//}
 
 func (c *Cert) DeleteFile(path string) error {
 	if err := os.Remove(path); err != nil {
