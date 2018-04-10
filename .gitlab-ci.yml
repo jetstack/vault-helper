@@ -23,13 +23,6 @@ build:golang:
   - mkdir -p /go/src/github.com/jetstack
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
   - cd /go/src/github.com/jetstack/vault-helper
-  # Installs vault version as specified
-  - curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip
-  - echo "${VAULT_HASH}  /tmp/vault.zip" | sha256sum  -c
-  - unzip /tmp/vault.zip
-  - rm /tmp/vault.zip
-  - mv vault /usr/local/bin/vault
-  - chmod +x /usr/local/bin/vault
   - make all
   - mv /go/src/github.com/jetstack/vault-helper ${CI_PROJECT_DIR}
   stage: build
