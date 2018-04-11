@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,54 +12,60 @@ import (
 )
 
 // initCmd represents the init command
-var setupCmd = &cobra.Command{
+var SetupCmd = &cobra.Command{
 	Use:   "setup [cluster ID]",
 	Short: "Setup kubernetes on a running vault server.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := LogLevel(cmd)
+		log, err := LogLevel(cmd)
+		if err != nil {
+			Must(err)
+		}
 
 		v, err := vault.NewClient(nil)
 		if err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		k := kubernetes.New(v, log)
 		if err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		if len(args) > 0 {
 			k.SetClusterID(args[0])
 		} else {
-			log.Fatal("no cluster id was given")
+			Must(errors.New("no cluster id was given"))
 		}
 
 		if err := setFlagsKubernetes(k, cmd); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		if err := k.Ensure(); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		for n, t := range k.InitTokens() {
 			log.Infof(n + "-init_token := " + t)
 		}
-
 	},
 }
 
 func init() {
-	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
-	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
-	setupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
+	InitSetupFlags()
+}
 
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
-	setupCmd.PersistentFlags().String(kubernetes.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
+func InitSetupFlags() {
+	SetupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityCA, time.Hour*24*365*20, "Maxium validity for CA certificates")
+	SetupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityAdmin, time.Hour*24*365, "Maxium validity for admin certificates")
+	SetupCmd.PersistentFlags().Duration(kubernetes.FlagMaxValidityComponents, time.Hour*24*30, "Maxium validity for component certificates")
 
-	RootCmd.AddCommand(setupCmd)
+	SetupCmd.PersistentFlags().String(kubernetes.FlagInitTokenEtcd, "", "Set init-token-etcd   (Default to new token)")
+	SetupCmd.PersistentFlags().String(kubernetes.FlagInitTokenWorker, "", "Set init-token-worker (Default to new token)")
+	SetupCmd.PersistentFlags().String(kubernetes.FlagInitTokenMaster, "", "Set init-token-master (Default to new token)")
+	SetupCmd.PersistentFlags().String(kubernetes.FlagInitTokenAll, "", "Set init-token-all    (Default to new token)")
+
+	RootCmd.AddCommand(SetupCmd)
 }
 
 func setFlagsKubernetes(k *kubernetes.Kubernetes, cmd *cobra.Command) error {

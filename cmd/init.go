@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/jetstack/vault-helper/pkg/instanceToken"
@@ -19,17 +19,24 @@ var RootCmd = &cobra.Command{
 	Short: "Automates PKI tasks using Hashicorp's Vault as a backend.",
 }
 
+var Must = func(err error) {
+	if err != nil {
+		logrus.Fatal(err)
+	}
+}
+
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-
-	RootCmd.PersistentFlags().Int("log-level", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
-	RootCmd.Flag("log-level").Shorthand = "l"
-
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+}
+
+func init() {
+	RootCmd.PersistentFlags().Int("log-level", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
+	RootCmd.Flag("log-level").Shorthand = "l"
 }
 
 func instanceTokenFlags(cmd *cobra.Command) {
@@ -37,12 +44,17 @@ func instanceTokenFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringP(instanceToken.FlagInitRole, "r", "", "Set role of token to renew. (default *no role*)")
 }
 
-func newInstanceToken(cmd *cobra.Command) (iToken *instanceToken.InstanceToken, result error) {
-	log := LogLevel(cmd)
+func newInstanceToken(cmd *cobra.Command) (*instanceToken.InstanceToken, error) {
+	var result *multierror.Error
+
+	log, err := LogLevel(cmd)
+	if err != nil {
+		return nil, err
+	}
 
 	v, err := vault.NewClient(nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	i := instanceToken.New(v, log)
@@ -72,18 +84,18 @@ func newInstanceToken(cmd *cobra.Command) (iToken *instanceToken.InstanceToken, 
 		i.SetVaultConfigPath(abs)
 	}
 
-	return i, result
+	return i, result.ErrorOrNil()
 }
 
-func LogLevel(cmd *cobra.Command) *logrus.Entry {
+func LogLevel(cmd *cobra.Command) (*logrus.Entry, error) {
 	logger := logrus.New()
 
 	i, err := RootCmd.PersistentFlags().GetInt("log-level")
 	if err != nil {
-		logrus.Fatalf("failed to get log level of flag: %s", err)
+		return nil, fmt.Errorf("failed to get log level of flag: %s", err)
 	}
 	if i < 0 || i > 2 {
-		logrus.Fatalf("not a valid log level")
+		return nil, fmt.Errorf("not a valid log level")
 	}
 	switch i {
 	case 0:
@@ -94,5 +106,5 @@ func LogLevel(cmd *cobra.Command) *logrus.Entry {
 		logger.Level = logrus.DebugLevel
 	}
 
-	return logrus.NewEntry(logger)
+	return logrus.NewEntry(logger), nil
 }

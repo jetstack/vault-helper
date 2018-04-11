@@ -1,19 +1,15 @@
 package cli
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 
+	"github.com/jetstack/vault-helper/cmd"
 	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
 )
 
@@ -68,51 +64,40 @@ func InitVaultDev() (*vault_dev.VaultDev, error) {
 }
 
 func InitKubernetes() error {
-
-	args := []string{
+	cmd.RootCmd.SetArgs([]string{
 		"setup",
 		"test",
 		"--init-token-all=all",
 		"--init-token-master=master",
 		"--init-token-worker=worker",
 		"--init-token-etcd=etcd",
-	}
-
-	var stdout, stderr bytes.Buffer
-	exitCode, err := runCommand(args, &stdout, &stderr)
-	if err != nil {
-		return fmt.Errorf("failed to run command setup: %v", err)
-	}
-
-	if exitCode != 0 {
-		fmt.Printf("%s\n", stdout.String())
-		fmt.Printf("%s\n", stderr.String())
-		return fmt.Errorf("unexpected error code, exp=0 got=%d", exitCode)
-	}
+	})
+	cmd.RootCmd.Execute()
 
 	return nil
 }
 
-func RunTest(args []string, expCode int, t *testing.T) {
-	var stdout, stderr bytes.Buffer
-
+func RunTest(args []string, pass bool, t *testing.T) {
 	dir, err := initTokensDir()
 	if err != nil {
 		t.Errorf("failed to create tokens directory: %v", err)
 		return
 	}
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
+	cmd.RootCmd.SetArgs(args)
 
-	gotCode, err := runCommand(args, &stdout, &stderr)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	cmd.Must = func(err error) {
+		if err != nil && pass {
+			t.Errorf("unexpected error: %v\nargs: %v", err, args)
+			return
+		}
+
+		if err == nil && !pass {
+			t.Errorf("expected error: got=none\nargs: %v", args)
+		}
 	}
 
-	if expCode != gotCode {
-		fmt.Printf("%s\n", stdout.String())
-		fmt.Printf("%s\n", stderr.String())
-		t.Errorf("unexpected error code, exp=%d got=%d", expCode, gotCode)
-	}
+	cmd.RootCmd.Execute()
 }
 
 func TmpDir() (string, error) {
@@ -135,40 +120,6 @@ func CleanDirs() error {
 	}
 
 	return result.ErrorOrNil()
-}
-
-func runCommand(args []string, stdout, stderr *bytes.Buffer) (int, error) {
-	gopath := os.Getenv("GOPATH")
-	if gopath == "" {
-		return -1, errors.New("GOPATH environment variable not set")
-	}
-
-	cmd := exec.Command(fmt.Sprintf("%s/%s", gopath, binPath), args...)
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	logrus.Infof("running command: [vault-helper %s]", strings.Join(args, " "))
-
-	if err := cmd.Start(); err != nil {
-		return -1, fmt.Errorf("error starting command: %v", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return status.ExitStatus(), nil
-			}
-
-			return -1, fmt.Errorf("failed to get command status: %v", err)
-
-		} else {
-			return -1, fmt.Errorf("error during wait for command: %v", err)
-		}
-	}
-
-	return 0, nil
 }
 
 func initTokensDir() (string, error) {

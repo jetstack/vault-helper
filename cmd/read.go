@@ -14,29 +14,32 @@ var readCmd = &cobra.Command{
 	Use:   "read [vault path]",
 	Short: "Read arbitrary vault path. If no output file specified, output to console.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := LogLevel(cmd)
+		log, err := LogLevel(cmd)
+		if err != nil {
+			Must(err)
+		}
 
 		i, err := newInstanceToken(cmd)
 		if err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 
 		if err := i.TokenRenewRun(); err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 
 		r := read.New(log, i)
 		if len(args) != 1 {
-			log.Fatal("incorrect number of arguments given. Usage: vault-helper read [vault path] [flags]")
+			Must(fmt.Errorf("incorrect number of arguments given. Usage: vault-helper read [vault path] [flags]"))
 		}
 		r.SetVaultPath(args[0])
 
 		if err := setFlagsRead(r, cmd); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		if err := r.RunRead(); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 	},
 }
