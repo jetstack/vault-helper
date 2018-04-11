@@ -6,9 +6,13 @@ import (
 
 func TestRead_Success(t *testing.T) {
 
-	args := [][]string{
-		[]string{"read", "test/secrets/service-accounts", "--init-role=test-master"},
-		[]string{"read", "test/secrets/service-accounts", "--init-role=test-all"},
+	var args [][]string
+	for _, role := range []string{"test-master", "test-all"} {
+		args = append(args, []string{
+			"read",
+			"test/secrets/service-accounts",
+			"--init-role=" + role,
+		})
 	}
 
 	for _, arg := range args {
@@ -18,17 +22,29 @@ func TestRead_Success(t *testing.T) {
 
 func TestRead_Fail(t *testing.T) {
 
-	args := [][]string{
-		[]string{"read", "test/secrets/service-accounts", "--init-role=test-worker"},
-		[]string{"read", "test/secrets/service-accounts", "--init-role=test-etcd"},
-		[]string{"read", "test/secrets/init_token_all", "--init-role=test-all"},
-		[]string{"read", "test/secrets/init_token_etcd", "--init-role=test-etcd"},
-		[]string{"read", "test/secrets/init_token_master", "--init-role=test-master"},
-		[]string{"read", "test/secrets/init_token_worker", "--init-role=test-worker"},
-		[]string{"read", "test/secrets/init_token_all", "--init-role=test-master"},
-		[]string{"read", "test/secrets/init_token_etcd", "--init-role=test-master"},
-		[]string{"read", "test/secrets/init_token_worker", "--init-role=test-master"},
+	var args [][]string
+	for _, role := range []string{"test-worker", "test-etcd"} {
+		args = append(args, []string{
+			"read",
+			"test/secrets/service-accounts",
+			"--init-role=" + role,
+		})
 	}
+
+	for _, arg := range [][]string{
+		[]string{"service-accounts", "test-worker"},
+		[]string{"service-accounts", "test-etcd"},
+		[]string{"init_token_all", "test-all"},
+		[]string{"init_token_etcd", "test-etcd"},
+		[]string{"init_token_master", "test-master"},
+		[]string{"init_token_worker", "test-worker"},
+		[]string{"init_token_all", "test-master"},
+		[]string{"init_token_etcd", "test-master"},
+		[]string{"init_token_worker", "test-master"},
+	} {
+		args = append(args, []string{"read", "test/secrets/" + arg[0], "--init-role=" + arg[1]})
+	}
+
 	for _, arg := range args {
 		RunTest(arg, 1, t)
 	}
