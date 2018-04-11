@@ -1,5 +1,8 @@
+# Copyright Jetstack Ltd. See LICENSE for details.
 BINDIR ?= $(PWD)/bin
 PATH   := $(BINDIR):$(PATH)
+
+HACK_DIR     ?= hack
 
 REGISTRY := quay.io/jetstack
 IMAGE_NAME := vault-helper
@@ -34,7 +37,7 @@ test: go_test
 
 generate: go_generate
 
-go_verify: go_fmt go_vet go_test
+go_verify: go_fmt go_vet verify_boilerplate go_test
 
 go_test:
 	go test $$(go list ./pkg/... ./cmd/...)
@@ -50,6 +53,9 @@ go_fmt:
 
 go_vet:
 	go vet $$(go list ./pkg/... ./cmd/...)
+
+verify_boilerplate:
+	$(HACK_DIR)/verify-boilerplate.sh
 
 go_build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%d_%H:%M:%S)' -o vault-helper_linux_amd64
@@ -75,8 +81,8 @@ bin/vault:
 depend: bin/mockgen bin/vault
 
 go_generate: depend
-	mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
-
+	$(BINDIR)/mockgen -package kubernetes -source=pkg/kubernetes/kubernetes.go > pkg/kubernetes/kubernetes_mocks_test.go
+	sed -i '1s/^/\/\/ Copyright Jetstack Ltd. See LICENSE for details.\n/' pkg/kubernetes/kubernetes_mocks_test.go
 
 .builder_image:
 	docker pull ${BUILD_IMAGE_NAME}
