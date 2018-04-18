@@ -198,7 +198,66 @@ func TestApiServerCanAdd(t *testing.T) {
 	}
 
 	logrus.Infof("Can add any ip/hostname to apiserver")
+}
 
+func TestKubeletPKIRoles(t *testing.T) {
+	vault := vault_dev.New()
+	if err := vault.Start(); err != nil {
+		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
+		return
+	}
+	defer vault.Stop()
+
+	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
+	k.SetClusterID("test-cluster")
+
+	if err := k.Ensure(); err != nil {
+		t.Errorf("failed to ensure %v", err)
+		return
+	}
+
+	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
+	pass := []string{
+		"0-99-37-81.eu-west-2.compute.internal",
+		"217.0.0.1.us-east-1.ec2.internal",
+		"foo.compute.internal",
+		"bar.ec2.internal",
+		"kubelet",
+		"system:node",
+		"system:node:foo",
+	}
+	fail := []string{
+		".compute.internal",
+		".ec2.internal",
+		"foo.copute.internal",
+		".compte.internal",
+		"ec2.internal",
+		"internal",
+		".internal",
+		"ec2.internal.foo",
+		"bar.internal",
+		"kubelet:foo",
+		"foo:system:node",
+		"127.0.0.1",
+	}
+
+	data := map[string]interface{}{
+		"san_hosts": "kubelet",
+	}
+
+	for _, c := range pass {
+		data["common_name"] = c
+		if _, err := writeCertificate(path, data, vault.Client()); err != nil {
+			t.Errorf("unexpected kublet PKI error: %v", err)
+		}
+	}
+
+	for _, c := range fail {
+		data["common_name"] = c
+		if _, err := writeCertificate(path, data, vault.Client()); err == nil {
+			t.Errorf("expected kublet pki error, got=none. common_name[%s]", c)
+		}
+	}
 }
 
 func writeCertificate(path string, data map[string]interface{}, vault *vault.Client) (*vault.Secret, error) {
