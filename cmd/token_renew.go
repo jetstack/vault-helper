@@ -12,11 +12,11 @@ var renewtokenCmd = &cobra.Command{
 
 		i, err := newInstanceToken(cmd)
 		if err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 
 		if err := i.TokenRenewRun(); err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 	},
 }

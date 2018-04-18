@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,43 +20,46 @@ var devServerCmd = &cobra.Command{
 	Use:   "dev-server [cluster ID]",
 	Short: "Run a vault server in development mode with kubernetes PKI created.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := LogLevel(cmd)
+		log, err := LogLevel(cmd)
+		if err != nil {
+			Must(err)
+		}
 
 		if len(args) < 1 {
-			log.Fatalf("no cluster ID was given")
+			Must(errors.New("no cluster ID was given"))
 		}
 
 		wait, err := cmd.PersistentFlags().GetBool(dev_server.FlagWaitSignal)
 		if err != nil {
-			log.Fatalf("error finding wait value: %v", err)
+			Must(fmt.Errorf("error finding wait value: %v", err))
 		}
 
 		port, err := cmd.PersistentFlags().GetInt(dev_server.FlagPortNumber)
 		if err != nil {
-			log.Fatalf("error finding port value: %v", err)
+			Must(fmt.Errorf("error finding port value: %v", err))
 		}
 		if port > 65536 {
-			log.Fatalf("invalid port %d > 65536", port)
+			Must(fmt.Errorf("invalid port %d > 65536", port))
 		}
 		if port < 1 {
-			log.Fatalf("invalid port %d < 1", port)
+			Must(fmt.Errorf("invalid port %d < 1", port))
 		}
 
 		v := dev_server.New(log)
 		v.Vault.SetPort(port)
 		if err := v.Vault.Start(); err != nil {
-			log.Fatalf("unable to initialise dev vault: %s", err)
+			Must(fmt.Errorf("unable to initialise dev vault: %s", err))
 		}
 
 		v.Kubernetes = kubernetes.New(v.Vault.Client(), v.Log)
 		v.Kubernetes.SetClusterID(args[0])
 
 		if err := setFlagsKubernetes(v.Kubernetes, cmd); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		if err := v.Kubernetes.Ensure(); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		for n, t := range v.Kubernetes.InitTokens() {

@@ -10,38 +10,41 @@ import (
 )
 
 // initCmd represents the init command
-var certCmd = &cobra.Command{
+var CertCmd = &cobra.Command{
 	Use: "cert [cert role] [common name] [destination path]",
 	// TODO: Make short better
 	Short: "Create local key to generate a CSR. Call vault with CSR for specified cert role.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := LogLevel(cmd)
+		log, err := LogLevel(cmd)
+		if err != nil {
+			Must(err)
+		}
 
 		i, err := newInstanceToken(cmd)
 		if err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 
 		if err := i.TokenRenewRun(); err != nil {
-			i.Log.Fatal(err)
+			Must(err)
 		}
 
 		c := cert.New(log, i)
 		if len(args) != 3 {
-			i.Log.Fatal("wrong number of arguments given. Usage: vault-helper cert [cert role] [common name] [destination path]")
+			Must(fmt.Errorf("wrong number of arguments given. Usage: vault-helper cert [cert role] [common name] [destination path]"))
 		}
 		if err := setFlagsCert(c, cmd, args); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 
 		if err := c.RunCert(); err != nil {
-			log.Fatal(err)
+			Must(err)
 		}
 	},
 }
 
 func init() {
-	InitCertCmdFlags(certCmd)
+	InitCertCmdFlags(CertCmd)
 }
 
 func InitCertCmdFlags(cmd *cobra.Command) {

@@ -30,6 +30,8 @@ all: verify build
 
 build: generate go_build
 
+test: go_test
+
 generate: go_generate
 
 go_verify: go_fmt go_vet go_test
