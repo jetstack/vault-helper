@@ -18,7 +18,7 @@ build:golang:
   services:
   - docker:dind
   script:
-  - apk --update add curl unzip make docker
+  - apk --update add curl unzip make git docker python bash
   - rm -rf /go/src/github.com/jetstack/vault-helper
   - mkdir -p /go/src/github.com/jetstack
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
@@ -37,7 +37,7 @@ deploy:release:
   tags:
   - docker
   script:
-  - apk --update add curl unzip make git docker
+  - apk --update add curl unzip make git docker python bash
   - umask 0077
   - mkdir -p /root/.gnupg
   - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
