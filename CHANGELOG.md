@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.9] - 2018-04-19
+
+### Fixed
+
+- Add internal EC2 domain for us-east-1 #18
+
+### Changed
+
+- Added CLI tests #15
+
 ## [0.9.8] - 2018-04-10
 
 ### Fixed
