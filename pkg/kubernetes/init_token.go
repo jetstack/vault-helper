@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	vault "github.com/hashicorp/vault/api"
 )
 
 type InitToken struct {
@@ -39,6 +40,34 @@ func (i *InitToken) Ensure() error {
 	i.token = &initToken
 
 	return result
+}
+
+func (i *InitToken) EnsureDryRun() (bool, error) {
+	var result *multierror.Error
+
+	secret, err := i.readTokenRole()
+	if err != nil {
+		result = multierror.Append(result, err)
+	} else if len(secret.Data) == 0 {
+		return true, result.ErrorOrNil()
+	}
+
+	policy, err := i.readInitTokenPolicy()
+	if err != nil {
+		result = multierror.Append(result, err)
+	} else if policy != i.policy().Policy() {
+		return true, result.ErrorOrNil()
+	}
+
+	// get init token from generic
+	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
+	if err != nil {
+		result = multierror.Append(result, err)
+	} else if token == "" {
+		return true, result.ErrorOrNil()
+	}
+
+	return false, result.ErrorOrNil()
 }
 
 // Get init token name
@@ -81,9 +110,17 @@ func (i *InitToken) writeTokenRole() error {
 	return nil
 }
 
-// Construct policy and send to kubernetes to be written to vault
-func (i *InitToken) writeInitTokenPolicy() error {
-	p := &Policy{
+func (i *InitToken) readTokenRole() (*vault.Secret, error) {
+	secret, err := i.kubernetes.vaultClient.Logical().Read(i.Path())
+	if err != nil {
+		return nil, fmt.Errorf("error read token role %s: %v", i.Path(), err)
+	}
+
+	return secret, nil
+}
+
+func (i *InitToken) policy() *Policy {
+	return &Policy{
 		Name: fmt.Sprintf("%s-creator", i.namePath()),
 		Policies: []*policyPath{
 			&policyPath{
@@ -92,7 +129,15 @@ func (i *InitToken) writeInitTokenPolicy() error {
 			},
 		},
 	}
-	return i.kubernetes.WritePolicy(p)
+}
+
+// Construct policy and send to kubernetes to be written to vault
+func (i *InitToken) writeInitTokenPolicy() error {
+	return i.kubernetes.WritePolicy(i.policy())
+}
+
+func (i *InitToken) readInitTokenPolicy() (string, error) {
+	return i.kubernetes.ReadPolicy(i.policy())
 }
 
 // Return init token if token exists

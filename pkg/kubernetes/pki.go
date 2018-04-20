@@ -32,16 +32,7 @@ func NewPKI(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKI {
 }
 
 func (p *PKI) TuneMount(mount *vault.MountOutput) error {
-	tuneMountRequired := false
-
-	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-
-	if tuneMountRequired {
+	if p.TuneMountRequired(mount) {
 		mountConfig := p.getMountConfigInput()
 		err := p.kubernetes.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
 		if err != nil {
@@ -53,6 +44,18 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 	p.Log.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
+}
+
+func (p *PKI) TuneMountRequired(mount *vault.MountOutput) bool {
+
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+		return true
+	}
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+		return true
+	}
+
+	return false
 }
 
 func (p *PKI) Ensure() error {
@@ -96,6 +99,38 @@ func (p *PKI) Ensure() error {
 	}
 
 	return p.ensureCA()
+}
+
+func (p *PKI) EnsureDryRun() (bool, error) {
+	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
+	if err != nil {
+		return false, err
+	}
+
+	// Mount doesn't Exist
+	if mount == nil {
+		return true, nil
+
+	} else {
+		if mount.Type != "pki" {
+			return true, nil
+		}
+	}
+
+	if p.TuneMountRequired(mount) {
+		return true, nil
+	}
+
+	exist, err := p.caPathExists()
+	if err != nil {
+		return false, err
+	}
+
+	if !exist {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (p *PKI) ensureCA() error {
@@ -156,6 +191,17 @@ func (p *PKI) WriteRole(role *pkiRole) error {
 	}
 
 	return nil
+}
+
+func (p *PKI) ReadRole(role *pkiRole) (*vault.Secret, error) {
+	path := filepath.Join(p.Path(), "roles", role.Name)
+
+	secret, err := p.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading role '%s' to '%s': %v", role.Name, p.Path(), err)
+	}
+
+	return secret, nil
 }
 
 func (p *PKI) Path() string {

@@ -17,6 +17,15 @@ func (k *Kubernetes) WritePolicy(p *Policy) error {
 	return nil
 }
 
+func (k *Kubernetes) ReadPolicy(p *Policy) (string, error) {
+	policy, err := k.vaultClient.Sys().GetPolicy(p.Name)
+	if err != nil {
+		return "", fmt.Errorf("error reading policy '%s': %v", p.Name, err)
+	}
+
+	return policy, nil
+}
+
 func (k *Kubernetes) ensurePolicies() error {
 	var result error
 
@@ -35,6 +44,22 @@ func (k *Kubernetes) ensurePolicies() error {
 	k.Log.Infof(str)
 
 	return result
+}
+
+func (k *Kubernetes) ensureDryRunPolicies() (bool, error) {
+	var result *multierror.Error
+
+	for _, p := range []*Policy{k.etcdPolicy(), k.masterPolicy(), k.workerPolicy()} {
+		policy, err := k.ReadPolicy(p)
+		if err != nil {
+			result = multierror.Append(result, err)
+		} else if policy != p.Policy() {
+			return true, result.ErrorOrNil()
+		}
+
+	}
+
+	return false, result.ErrorOrNil()
 }
 
 func (k *Kubernetes) etcdPolicy() *Policy {

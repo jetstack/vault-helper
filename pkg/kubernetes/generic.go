@@ -23,8 +23,27 @@ type Generic struct {
 }
 
 func (g *Generic) Ensure() error {
-	err := g.GenerateSecretsMount()
-	return err
+	return g.GenerateSecretsMount()
+}
+
+func (g *Generic) EnsureDryRun() (bool, error) {
+	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
+	if err != nil {
+		return false, err
+	}
+
+	if mount == nil {
+		return true, nil
+	}
+
+	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
+	} else if secret == nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (g *Generic) Path() string {

@@ -25,6 +25,7 @@ const FlagInitTokenWorker = "init-token-worker"
 
 type Backend interface {
 	Ensure() error
+	EnsureDryRun() (bool, error)
 	Path() string
 }
 
@@ -105,6 +106,8 @@ type Kubernetes struct {
 	FlagInitTokens FlagInitTokens
 
 	initTokens []*InitToken
+
+	version int
 }
 
 var _ Backend = &PKI{}
@@ -207,14 +210,14 @@ func (k *Kubernetes) Ensure() error {
 	}
 
 	// setup backends
-	var result error
+	var result *multierror.Error
 	for _, backend := range k.backends() {
 		if err := backend.Ensure(); err != nil {
 			result = multierror.Append(result, fmt.Errorf("backend %s: %s", backend.Path(), err))
 		}
 	}
 	if result != nil {
-		return result
+		return result.ErrorOrNil()
 	}
 
 	// setup pki roles
@@ -241,7 +244,60 @@ func (k *Kubernetes) Ensure() error {
 		result = multierror.Append(result, err)
 	}
 
+	k.version++
+
 	return result
+}
+
+type DryRun struct {
+	result *multierror.Error
+}
+
+// return true if change needed
+func (k *Kubernetes) EnsureDryRun() (bool, error) {
+	d := &DryRun{
+		result: new(multierror.Error),
+	}
+
+	for _, b := range k.backends() {
+		if d.changeNeeded(b.EnsureDryRun()) {
+			return true, d.result.ErrorOrNil()
+		}
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdKubernetesPKI)) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdOverlayPKI)) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8S(k.kubernetesPKI)) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8SAPIProxy(k.kubernetesAPIProxy)) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPolicies()) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunInitTokens()) {
+		return true, d.result.ErrorOrNil()
+	}
+
+	return false, d.result.ErrorOrNil()
+}
+
+func (d *DryRun) changeNeeded(change bool, err error) bool {
+	if err != nil {
+		d.result = multierror.Append(d.result, err)
+	}
+
+	return change
 }
 
 func (k *Kubernetes) Path() string {
@@ -282,24 +338,32 @@ func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *Ini
 	}
 }
 
-func (k *Kubernetes) ensureInitTokens() error {
-	var result error
+func (k *Kubernetes) NewInitTokens() []*InitToken {
+	var initTokens []*InitToken
 
-	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", k.FlagInitTokens.Etcd, []string{
+	initTokens = append(initTokens, k.NewInitToken("etcd", k.FlagInitTokens.Etcd, []string{
 		k.etcdPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("master", k.FlagInitTokens.Master, []string{
+	initTokens = append(initTokens, k.NewInitToken("master", k.FlagInitTokens.Master, []string{
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("worker", k.FlagInitTokens.Worker, []string{
+	initTokens = append(initTokens, k.NewInitToken("worker", k.FlagInitTokens.Worker, []string{
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("all", k.FlagInitTokens.All, []string{
+	initTokens = append(initTokens, k.NewInitToken("all", k.FlagInitTokens.All, []string{
 		k.etcdPolicy().Name,
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
+
+	return initTokens
+}
+
+func (k *Kubernetes) ensureInitTokens() error {
+	var result *multierror.Error
+
+	k.initTokens = append(k.initTokens, k.NewInitTokens()...)
 
 	for _, initToken := range k.initTokens {
 		if err := initToken.Ensure(); err != nil {
@@ -307,6 +371,25 @@ func (k *Kubernetes) ensureInitTokens() error {
 		}
 	}
 	return result
+}
+
+func (k *Kubernetes) ensureDryRunInitTokens() (bool, error) {
+	if len(k.initTokens) == 0 {
+		return true, nil
+	}
+
+	var result *multierror.Error
+	for _, i := range k.initTokens {
+		changeNeeded, err := i.EnsureDryRun()
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+		if changeNeeded {
+			return true, result.ErrorOrNil()
+		}
+	}
+
+	return false, result.ErrorOrNil()
 }
 
 func (k *Kubernetes) InitTokens() map[string]string {
@@ -322,4 +405,8 @@ func (k *Kubernetes) InitTokens() map[string]string {
 
 func (k *Kubernetes) SetInitFlags(flags FlagInitTokens) {
 	k.FlagInitTokens = flags
+}
+
+func (k *Kubernetes) Version() int {
+	return k.version
 }

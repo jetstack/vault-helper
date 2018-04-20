@@ -45,22 +45,6 @@ func (k *Kubernetes) etcdServerRole() *pkiRole {
 	}
 }
 
-// this makes sure all etcd PKI roles are setup correctly
-func (k *Kubernetes) ensurePKIRolesEtcd(p *PKI) error {
-	var err error
-	var result error
-
-	if err = p.WriteRole(k.etcdClientRole()); err != nil {
-		result = multierror.Append(result, err)
-	}
-
-	if err = p.WriteRole(k.etcdServerRole()); err != nil {
-		result = multierror.Append(result, err)
-	}
-
-	return result
-}
-
 func (k *Kubernetes) k8sAdminRole() *pkiRole {
 	return &pkiRole{
 		Name: "admin",
@@ -162,6 +146,22 @@ func (k *Kubernetes) k8sComponentRole(roleName string) *pkiRole {
 	}
 }
 
+// this makes sure all etcd PKI roles are setup correctly
+func (k *Kubernetes) ensurePKIRolesEtcd(p *PKI) error {
+	var err error
+	var result error
+
+	if err = p.WriteRole(k.etcdClientRole()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err = p.WriteRole(k.etcdServerRole()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result
+}
+
 // this makes sure all kubernetes PKI roles are setup correctly
 func (k *Kubernetes) ensurePKIRolesK8S(p *PKI) error {
 	var result error
@@ -199,4 +199,61 @@ func (k *Kubernetes) ensurePKIRolesK8SAPIProxy(p *PKI) error {
 	}
 
 	return result
+}
+
+func (k *Kubernetes) ensureDryRunPKIRolesEtcd(p *PKI) (bool, error) {
+	var result *multierror.Error
+
+	secret, err := p.ReadRole(k.etcdClientRole())
+	if err != nil {
+		result = multierror.Append(result, err)
+	} else if len(secret.Data) == 0 {
+		return true, nil
+	}
+
+	secret, err = p.ReadRole(k.etcdServerRole())
+	if err != nil {
+		result = multierror.Append(result, err)
+	} else if len(secret.Data) == 0 {
+		return true, nil
+	}
+
+	return false, result.ErrorOrNil()
+}
+
+func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
+	var result *multierror.Error
+
+	roles := []*pkiRole{
+		k.k8sAdminRole(),
+		k.k8sAPIServerRole(),
+		k.k8sComponentRole("kube-scheduler"),
+		k.k8sComponentRole("kube-controller-manager"),
+		k.k8sComponentRole("kube-proxy"),
+		k.k8sKubeletRole(),
+	}
+
+	for _, role := range roles {
+		secret, err := p.ReadRole(role)
+		if err != nil {
+			result = multierror.Append(result, err)
+		} else if len(secret.Data) == 0 {
+			return true, nil
+		}
+	}
+
+	return false, result.ErrorOrNil()
+}
+
+func (k *Kubernetes) ensureDryRunPKIRolesK8SAPIProxy(p *PKI) (bool, error) {
+	secret, err := p.ReadRole(k.k8sAPIServerProxyRole())
+	if err != nil {
+		return false, err
+	}
+
+	if len(secret.Data) == 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
