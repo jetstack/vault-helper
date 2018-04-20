@@ -32,6 +32,7 @@ type Backend interface {
 type VaultLogical interface {
 	Write(path string, data map[string]interface{}) (*vault.Secret, error)
 	Read(path string) (*vault.Secret, error)
+	Delete(path string) (*vault.Secret, error)
 }
 
 type VaultSys interface {
@@ -42,6 +43,9 @@ type VaultSys interface {
 	PutPolicy(name, rules string) error
 	TuneMount(path string, config vault.MountConfigInput) error
 	GetPolicy(name string) (string, error)
+
+	Unmount(path string) error
+	DeletePolicy(policy string) error
 }
 
 type VaultAuth interface {
@@ -250,54 +254,60 @@ func (k *Kubernetes) Ensure() error {
 }
 
 type DryRun struct {
-	result *multierror.Error
+	*multierror.Error
+}
+
+func (d *DryRun) changeNeeded(change bool, err error) bool {
+	if err != nil {
+		d.Error = multierror.Append(d.Error, err)
+	}
+
+	return change
 }
 
 // return true if change needed
 func (k *Kubernetes) EnsureDryRun() (bool, error) {
 	d := &DryRun{
-		result: new(multierror.Error),
+		new(multierror.Error),
 	}
 
 	for _, b := range k.backends() {
 		if d.changeNeeded(b.EnsureDryRun()) {
-			return true, d.result.ErrorOrNil()
+			return true, d.ErrorOrNil()
 		}
 	}
 
 	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdKubernetesPKI)) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
 	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdOverlayPKI)) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
 	if d.changeNeeded(k.ensureDryRunPKIRolesK8S(k.kubernetesPKI)) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
 	if d.changeNeeded(k.ensureDryRunPKIRolesK8SAPIProxy(k.kubernetesAPIProxy)) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
 	if d.changeNeeded(k.ensureDryRunPolicies()) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
 	if d.changeNeeded(k.ensureDryRunInitTokens()) {
-		return true, d.result.ErrorOrNil()
+		return true, d.ErrorOrNil()
 	}
 
-	return false, d.result.ErrorOrNil()
+	return false, d.ErrorOrNil()
 }
 
-func (d *DryRun) changeNeeded(change bool, err error) bool {
-	if err != nil {
-		d.result = multierror.Append(d.result, err)
-	}
+func (k *Kubernetes) Delete() error {
+	var result *multierror.Error
 
-	return change
+	return result.ErrorOrNil()
 }
 
 func (k *Kubernetes) Path() string {

@@ -147,7 +147,6 @@ func (p *PKI) ensureCA() error {
 }
 
 func (p *PKI) generateCA() error {
-	path := filepath.Join(p.Path(), "root", "generate", "internal")
 	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
 
 	data := map[string]interface{}{
@@ -156,7 +155,7 @@ func (p *PKI) generateCA() error {
 		"exclude_cn_from_sans": true,
 	}
 
-	_, err := p.kubernetes.vaultClient.Logical().Write(path, data)
+	_, err := p.kubernetes.vaultClient.Logical().Write(p.caGenPath(), data)
 	if err != nil {
 		return fmt.Errorf("error writing new CA: %v", err)
 	}
@@ -237,4 +236,8 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	p.Log.Debugf("Policy Found: %s", name)
 
 	return true, nil
+}
+
+func (p *PKI) caGenPath() string {
+	return filepath.Join(p.Path(), "root", "generate", "internal")
 }
