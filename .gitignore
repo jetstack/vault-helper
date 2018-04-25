@@ -3,3 +3,4 @@
 /vault-helper_linux_amd64
 /vault-helper-image.tar
 /vendor.orig/
+pkg/kubernetes/kubernetes_mocks_test.go
