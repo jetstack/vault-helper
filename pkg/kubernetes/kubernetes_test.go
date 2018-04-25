@@ -2,9 +2,45 @@
 package kubernetes
 
 import (
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
 )
+
+const (
+	clusterName = "test-cluster"
+)
+
+var (
+	vaultDev *vault_dev.VaultDev
+	k        *Kubernetes
+)
+
+func TestMain(m *testing.M) {
+	v, err := vault_dev.InitVaultDev()
+	if err != nil {
+		logrus.Fatalf("failed to initiate vault for testing: %v", err)
+	}
+	vaultDev = v
+	defer v.Stop()
+	logrus.RegisterExitHandler(v.Stop)
+
+	k8s := New(v.Client(), logrus.NewEntry(logrus.New()))
+	k8s.SetClusterID(clusterName)
+	k = k8s
+
+	if k.Ensure(); err != nil {
+		logrus.Fatalf("error ensuring: %v", err)
+	}
+	exitCode := m.Run()
+
+	v.Stop()
+	os.Exit(exitCode)
+}
 
 func TestIsValidClusterID(t *testing.T) {
 	var err error
@@ -35,40 +71,19 @@ func TestIsValidClusterID(t *testing.T) {
 }
 
 func TestKubernetes_Ensure(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
-
-	vault.Ensure()
-
 	err := k.Ensure()
 	if err != nil {
-		t.Fatalf("error ensuring: %v", err)
-		return
+		t.Errorf("error ensuring kubernetes: %v", err)
 	}
 }
 
 func TestKubernetes_NewToken_Role(t *testing.T) {
-	vault := NewFakeVault(t)
-	defer vault.Finish()
-	k := vault.Kubernetes()
-
-	vault.NewToken()
-
-	adminRole := k.k8sAdminRole()
-
-	err := k.kubernetesPKI.WriteRole(adminRole)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-		return
+	if err := k.kubernetesPKI.WriteRole(k.k8sAdminRole()); err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	kubeSchedulerRole := k.k8sComponentRole("kube-scheduler")
-
-	err = k.kubernetesPKI.WriteRole(kubeSchedulerRole)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err := k.kubernetesPKI.WriteRole(kubeSchedulerRole); err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

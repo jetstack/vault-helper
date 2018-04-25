@@ -27,6 +27,8 @@ type Backend interface {
 	Ensure() error
 	EnsureDryRun() (bool, error)
 	Path() string
+	Type() string
+	Name() string
 }
 
 type VaultLogical interface {
@@ -46,6 +48,7 @@ type VaultSys interface {
 
 	Unmount(path string) error
 	DeletePolicy(policy string) error
+	Revoke(id string) error
 }
 
 type VaultAuth interface {
@@ -248,9 +251,7 @@ func (k *Kubernetes) Ensure() error {
 		result = multierror.Append(result, err)
 	}
 
-	k.version++
-
-	return result
+	return result.ErrorOrNil()
 }
 
 type DryRun struct {
@@ -306,6 +307,26 @@ func (k *Kubernetes) EnsureDryRun() (bool, error) {
 
 func (k *Kubernetes) Delete() error {
 	var result *multierror.Error
+
+	for _, p := range []*Policy{
+		k.etcdPolicy(),
+		k.masterPolicy(),
+		k.workerPolicy(),
+	} {
+		if err := k.vaultClient.Sys().DeletePolicy(p.Policy()); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	if _, err := k.vaultClient.Logical().Delete(k.clusterID + "/secrets/service-accounts"); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	for _, b := range k.backends() {
+		if err := k.vaultClient.Sys().Unmount(b.Path()); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
 
 	return result.ErrorOrNil()
 }

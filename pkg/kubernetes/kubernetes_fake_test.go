@@ -33,12 +33,14 @@ func NewFakeVault(t *testing.T) *fakeVault {
 		fakeToken:   NewMockVaultToken(ctrl),
 	}
 
+	return v
+}
+
+func (v *fakeVault) ExpectWrite() {
 	v.fakeVault.EXPECT().Sys().AnyTimes().Return(v.fakeSys)
 	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
 	v.fakeVault.EXPECT().Auth().AnyTimes().Return(v.fakeAuth)
 	v.fakeAuth.EXPECT().Token().AnyTimes().Return(v.fakeToken)
-
-	return v
 }
 
 func (v *fakeVault) Kubernetes() *Kubernetes {

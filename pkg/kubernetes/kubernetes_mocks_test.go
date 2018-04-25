@@ -45,6 +45,19 @@ func (_mr *MockBackendMockRecorder) Ensure() *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Ensure", reflect.TypeOf((*MockBackend)(nil).Ensure))
 }
 
+// EnsureDryRun mocks base method
+func (_m *MockBackend) EnsureDryRun() (bool, error) {
+	ret := _m.ctrl.Call(_m, "EnsureDryRun")
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnsureDryRun indicates an expected call of EnsureDryRun
+func (_mr *MockBackendMockRecorder) EnsureDryRun() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "EnsureDryRun", reflect.TypeOf((*MockBackend)(nil).EnsureDryRun))
+}
+
 // Path mocks base method
 func (_m *MockBackend) Path() string {
 	ret := _m.ctrl.Call(_m, "Path")
@@ -104,6 +117,19 @@ func (_m *MockVaultLogical) Read(path string) (*api.Secret, error) {
 // Read indicates an expected call of Read
 func (_mr *MockVaultLogicalMockRecorder) Read(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Read", reflect.TypeOf((*MockVaultLogical)(nil).Read), arg0)
+}
+
+// Delete mocks base method
+func (_m *MockVaultLogical) Delete(path string) (*api.Secret, error) {
+	ret := _m.ctrl.Call(_m, "Delete", path)
+	ret0, _ := ret[0].(*api.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Delete indicates an expected call of Delete
+func (_mr *MockVaultLogicalMockRecorder) Delete(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Delete", reflect.TypeOf((*MockVaultLogical)(nil).Delete), arg0)
 }
 
 // MockVaultSys is a mock of VaultSys interface
@@ -202,6 +228,42 @@ func (_m *MockVaultSys) GetPolicy(name string) (string, error) {
 // GetPolicy indicates an expected call of GetPolicy
 func (_mr *MockVaultSysMockRecorder) GetPolicy(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetPolicy", reflect.TypeOf((*MockVaultSys)(nil).GetPolicy), arg0)
+}
+
+// Unmount mocks base method
+func (_m *MockVaultSys) Unmount(path string) error {
+	ret := _m.ctrl.Call(_m, "Unmount", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Unmount indicates an expected call of Unmount
+func (_mr *MockVaultSysMockRecorder) Unmount(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Unmount", reflect.TypeOf((*MockVaultSys)(nil).Unmount), arg0)
+}
+
+// DeletePolicy mocks base method
+func (_m *MockVaultSys) DeletePolicy(policy string) error {
+	ret := _m.ctrl.Call(_m, "DeletePolicy", policy)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePolicy indicates an expected call of DeletePolicy
+func (_mr *MockVaultSysMockRecorder) DeletePolicy(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "DeletePolicy", reflect.TypeOf((*MockVaultSys)(nil).DeletePolicy), arg0)
+}
+
+// Revoke mocks base method
+func (_m *MockVaultSys) Revoke(id string) error {
+	ret := _m.ctrl.Call(_m, "Revoke", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Revoke indicates an expected call of Revoke
+func (_mr *MockVaultSysMockRecorder) Revoke(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Revoke", reflect.TypeOf((*MockVaultSys)(nil).Revoke), arg0)
 }
 
 // MockVaultAuth is a mock of VaultAuth interface

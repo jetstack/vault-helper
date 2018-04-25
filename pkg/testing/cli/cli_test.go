@@ -21,8 +21,7 @@ const (
 var tmpDirs []string
 
 func TestMain(m *testing.M) {
-
-	vault, err := InitVaultDev()
+	vault, err := vault_dev.InitVaultDev()
 	if err != nil {
 		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}
@@ -42,28 +41,6 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-func InitVaultDev() (*vault_dev.VaultDev, error) {
-	vaultDev := vault_dev.New()
-
-	if err := vaultDev.Start(); err != nil {
-		return nil, fmt.Errorf("unable to initialise vault dev server for testing: %v", err)
-	}
-
-	addr := fmt.Sprintf("http://127.0.0.1:%d", vaultDev.Port())
-
-	if err := os.Setenv("VAULT_ADDR", addr); err != nil {
-		vaultDev.Stop()
-		return nil, fmt.Errorf("failed to set vault address environment variable: %v", err)
-	}
-
-	if err := os.Setenv("VAULT_TOKEN", "root-token-dev"); err != nil {
-		vaultDev.Stop()
-		return nil, fmt.Errorf("failed to set vault root token environment variable: %v", err)
-	}
-
-	return vaultDev, nil
-}
-
 func InitKubernetes() error {
 	cmd.RootCmd.SetArgs([]string{
 		"setup",
@@ -73,9 +50,8 @@ func InitKubernetes() error {
 		"--init-token-worker=worker",
 		"--init-token-etcd=etcd",
 	})
-	cmd.RootCmd.Execute()
 
-	return nil
+	return cmd.RootCmd.Execute()
 }
 
 func RunTest(args []string, pass bool, dir string, t *testing.T) {

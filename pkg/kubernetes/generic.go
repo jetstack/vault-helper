@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	genericType = "generic"
+)
+
 type Generic struct {
 	kubernetes *Kubernetes
 	initTokens map[string]string
@@ -32,7 +36,7 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 		return false, err
 	}
 
-	if mount == nil {
+	if mount == nil || mount.Type != genericType {
 		return true, nil
 	}
 
@@ -62,7 +66,7 @@ func (g *Generic) GenerateSecretsMount() error {
 			g.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
-				Type:        "generic",
+				Type:        genericType,
 			},
 		)
 
@@ -216,4 +220,12 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	g.Log.Infof("Init token written for '%s' at '%s'", role, path)
 
 	return nil
+}
+
+func (g *Generic) Type() string {
+	return genericType
+}
+
+func (g *Generic) Name() string {
+	return "secrets"
 }

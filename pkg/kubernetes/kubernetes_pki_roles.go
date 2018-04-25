@@ -3,7 +3,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -20,8 +20,8 @@ func (k *Kubernetes) etcdClientRole() *pkiRole {
 			"use_csr_common_name": false,
 			"use_csr_sans":        false,
 			"allow_any_name":      true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 			"allow_ip_sans":       true,
 			"server_flag":         false,
 			"client_flag":         true,
@@ -36,8 +36,8 @@ func (k *Kubernetes) etcdServerRole() *pkiRole {
 			"use_csr_common_name": false,
 			"use_csr_sans":        false,
 			"allow_any_name":      true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 			"allow_ip_sans":       true,
 			"server_flag":         true,
 			"client_flag":         true,
@@ -51,16 +51,16 @@ func (k *Kubernetes) k8sAdminRole() *pkiRole {
 		Data: map[string]interface{}{
 			"use_csr_common_name": false,
 			"enforce_hostnames":   false,
-			"organization":        "system:masters",
-			"allowed_domains":     "admin",
+			"organization":        []string{"system:masters"},
+			"allowed_domains":     []string{"admin"},
 			"allow_bare_domains":  true,
 			"allow_localhost":     false,
 			"allow_subdomains":    false,
 			"allow_ip_sans":       false,
 			"server_flag":         false,
 			"client_flag":         true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityAdmin.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityAdmin.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityAdmin),
+			"ttl":                 constructTimeString(k.MaxValidityAdmin),
 		},
 	}
 }
@@ -78,8 +78,8 @@ func (k *Kubernetes) k8sAPIServerRole() *pkiRole {
 			"allow_ip_sans":       true,
 			"server_flag":         true,
 			"client_flag":         true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 		},
 	}
 }
@@ -97,9 +97,9 @@ func (k *Kubernetes) k8sAPIServerProxyRole() *pkiRole {
 			"allow_ip_sans":       false,
 			"server_flag":         false,
 			"client_flag":         true,
-			"allowed_domains":     strings.Join([]string{"kube-apiserver-proxy"}, ","),
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"allowed_domains":     []string{"kube-apiserver-proxy"},
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 		},
 	}
 }
@@ -111,8 +111,8 @@ func (k *Kubernetes) k8sKubeletRole() *pkiRole {
 			"use_csr_common_name": false,
 			"use_csr_sans":        false,
 			"enforce_hostnames":   false,
-			"organization":        "system:nodes",
-			"allowed_domains":     strings.Join([]string{"kubelet", "system:node", "system:node:*", "*.compute.internal", "*.ec2.internal"}, ","),
+			"organization":        []string{"system:nodes"},
+			"allowed_domains":     []string{"kubelet", "system:node", "system:node:*", "*.compute.internal", "*.ec2.internal"},
 			"allow_bare_domains":  true,
 			"allow_glob_domains":  true,
 			"allow_any_name":      false,
@@ -121,8 +121,8 @@ func (k *Kubernetes) k8sKubeletRole() *pkiRole {
 			"allow_ip_sans":       false,
 			"server_flag":         true,
 			"client_flag":         true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 		},
 	}
 }
@@ -133,15 +133,15 @@ func (k *Kubernetes) k8sComponentRole(roleName string) *pkiRole {
 		Data: map[string]interface{}{
 			"use_csr_common_name": false,
 			"enforce_hostnames":   false,
-			"allowed_domains":     strings.Join([]string{roleName, fmt.Sprintf("system:%s", roleName)}, ","),
+			"allowed_domains":     []string{roleName, fmt.Sprintf("system:%s", roleName)},
 			"allow_bare_domains":  true,
 			"allow_localhost":     false,
 			"allow_subdomains":    false,
 			"allow_ip_sans":       true,
 			"server_flag":         false,
 			"client_flag":         true,
-			"max_ttl":             fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
-			"ttl":                 fmt.Sprintf("%ds", int(k.MaxValidityComponents.Seconds())),
+			"max_ttl":             constructTimeString(k.MaxValidityComponents),
+			"ttl":                 constructTimeString(k.MaxValidityComponents),
 		},
 	}
 }
@@ -211,11 +211,19 @@ func (k *Kubernetes) ensureDryRunPKIRolesEtcd(p *PKI) (bool, error) {
 		return true, nil
 	}
 
+	if !secretDataMatch(secret.Data, k.etcdClientRole().Data) {
+		return true, result.ErrorOrNil()
+	}
+
 	secret, err = p.ReadRole(k.etcdServerRole())
 	if err != nil {
 		result = multierror.Append(result, err)
 	} else if len(secret.Data) == 0 {
 		return true, nil
+	}
+
+	if !secretDataMatch(secret.Data, k.etcdServerRole().Data) {
+		return true, result.ErrorOrNil()
 	}
 
 	return false, result.ErrorOrNil()
@@ -240,6 +248,10 @@ func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
 		} else if len(secret.Data) == 0 {
 			return true, nil
 		}
+
+		if !secretDataMatch(secret.Data, role.Data) {
+			return true, result.ErrorOrNil()
+		}
 	}
 
 	return false, result.ErrorOrNil()
@@ -255,5 +267,29 @@ func (k *Kubernetes) ensureDryRunPKIRolesK8SAPIProxy(p *PKI) (bool, error) {
 		return true, nil
 	}
 
+	if !secretDataMatch(secret.Data, k.k8sAPIServerProxyRole().Data) {
+		return true, nil
+	}
+
 	return false, nil
+}
+
+func constructTimeString(t time.Duration) string {
+	h := int(t / time.Hour)
+	t = t % time.Hour
+	m := int(t / time.Minute)
+	t = t % time.Minute
+	s := int(t / time.Second)
+	return fmt.Sprintf("%dh%dm%ds", h, m, s)
+}
+
+func secretDataMatch(secretData, roleData map[string]interface{}) bool {
+	for key, data := range roleData {
+		d, ok := secretData[key]
+		if !ok || fmt.Sprintf("%v", data) != fmt.Sprintf("%v", d) {
+			return false
+		}
+	}
+
+	return true
 }
