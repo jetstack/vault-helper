@@ -70,6 +70,30 @@ func (_mr *MockBackendMockRecorder) Path() *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Path", reflect.TypeOf((*MockBackend)(nil).Path))
 }
 
+// Type mocks base method
+func (_m *MockBackend) Type() string {
+	ret := _m.ctrl.Call(_m, "Type")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Type indicates an expected call of Type
+func (_mr *MockBackendMockRecorder) Type() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Type", reflect.TypeOf((*MockBackend)(nil).Type))
+}
+
+// Name mocks base method
+func (_m *MockBackend) Name() string {
+	ret := _m.ctrl.Call(_m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (_mr *MockBackendMockRecorder) Name() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Name", reflect.TypeOf((*MockBackend)(nil).Name))
+}
+
 // MockVaultLogical is a mock of VaultLogical interface
 type MockVaultLogical struct {
 	ctrl     *gomock.Controller

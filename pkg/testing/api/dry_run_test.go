@@ -2,6 +2,7 @@
 package api
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -131,24 +132,46 @@ func TestDryRun_KubernetesAPIRole(t *testing.T) {
 	checkDryRun(true, t)
 }
 
-func checkDryRun(exp bool, t *testing.T) {
-	b, err := k.EnsureDryRun()
-	Must(err, t)
+func TestDryRun_Policies(t *testing.T) {
+	Must(k.Ensure(), t)
+	checkDryRun(false, t)
 
-	if b != exp {
-		t.Errorf("unexpected changes required, exp=%t got=%t", exp, b)
+	policy := `path "test-cluster/pki/etcd-overlay/sign/server" {
+  capabilities = []
+}`
+
+	for _, role := range []string{"etcd", "master", "worker"} {
+		policyName := fmt.Sprintf("%s/%s", clusterName, role)
+		Must(v.Client().Sys().PutPolicy(policyName, policy), t)
+		checkDryRun(true, t)
+
+		Must(k.Ensure(), t)
+		checkDryRun(false, t)
 	}
 }
 
-func createErrorData(dataMap map[string]interface{}) map[string]interface{} {
-	for key, data := range map[string]interface{}{
-		"max_ttl":         "0s",
-		"ttl":             "0s",
-		"organization":    "foo",
-		"allowed_domains": []string{"foo"},
-	} {
-		dataMap[key] = data
-	}
+func TestDryRun_InitToken(t *testing.T) {
+	Must(k.Ensure(), t)
+	checkDryRun(false, t)
 
-	return dataMap
+	policy := `path "test-cluster/pki/etcd-overlay/sign/server" {
+  capabilities = []
+}`
+
+	for _, token := range k.NewInitTokens() {
+
+		secret, err := v.Client().Logical().Read(token.Path())
+		Must(err, t)
+
+		_, err = v.Client().Logical().Write(token.Path(), createErrorData(secret.Data))
+		Must(err, t)
+		checkDryRun(true, t)
+
+		policyName := fmt.Sprintf("%s/%s-creator", clusterName, token.Role)
+		Must(v.Client().Sys().PutPolicy(policyName, policy), t)
+		checkDryRun(true, t)
+
+		Must(k.Ensure(), t)
+		checkDryRun(false, t)
+	}
 }

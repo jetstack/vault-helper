@@ -4,7 +4,6 @@ package kubernetes
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
@@ -52,6 +51,10 @@ func (i *InitToken) EnsureDryRun() (bool, error) {
 		return true, result.ErrorOrNil()
 	}
 
+	if !secretDataMatch(secret.Data, i.writeData()) {
+		return true, result.ErrorOrNil()
+	}
+
 	policy, err := i.readInitTokenPolicy()
 	if err != nil {
 		result = multierror.Append(result, err)
@@ -92,17 +95,7 @@ func (i *InitToken) Path() string {
 
 // Write token role to vault
 func (i *InitToken) writeTokenRole() error {
-	policies := i.Policies
-	policies = append(policies, "default")
-
-	writeData := map[string]interface{}{
-		"period":           fmt.Sprintf("%ds", int(i.kubernetes.MaxValidityComponents.Seconds())),
-		"orphan":           true,
-		"allowed_policies": strings.Join(policies, ","),
-		"path_suffix":      i.namePath(),
-	}
-
-	_, err := i.kubernetes.vaultClient.Logical().Write(i.Path(), writeData)
+	_, err := i.kubernetes.vaultClient.Logical().Write(i.Path(), i.writeData())
 	if err != nil {
 		return fmt.Errorf("error writing token role %s: %v", i.Path(), err)
 	}
@@ -159,4 +152,16 @@ func (i *InitToken) InitToken() (string, error) {
 
 func (i *InitToken) secretsGeneric() *Generic {
 	return i.kubernetes.secretsGeneric
+}
+
+func (i *InitToken) writeData() map[string]interface{} {
+	policies := i.Policies
+	//policies = append(policies, "default")
+
+	return map[string]interface{}{
+		"period":           fmt.Sprintf("%d", int(i.kubernetes.MaxValidityComponents.Seconds())),
+		"orphan":           true,
+		"allowed_policies": policies,
+		"path_suffix":      i.namePath(),
+	}
 }
