@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 )
@@ -40,14 +41,27 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 		return true, nil
 	}
 
-	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
-	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
-		return false, fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.rsaPath()); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", g.rsaPath(), err)
 	} else if secret == nil {
 		return true, nil
 	}
 
 	return false, nil
+}
+
+func (g *Generic) Delete() error {
+	var result *multierror.Error
+
+	if err := g.deleteRSAKey(g.rsaPath()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := g.unMount(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result.ErrorOrNil()
 }
 
 func (g *Generic) Path() string {
@@ -77,7 +91,7 @@ func (g *Generic) GenerateSecretsMount() error {
 		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
-	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
+	rsaKeyPath := g.rsaPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
 	} else if secret == nil {
@@ -85,6 +99,14 @@ func (g *Generic) GenerateSecretsMount() error {
 		if err != nil {
 			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
 		}
+	}
+
+	return nil
+}
+
+func (g *Generic) unMount() error {
+	if err := g.kubernetes.vaultClient.Sys().Unmount(g.Path()); err != nil {
+		return fmt.Errorf("failed to unmount secrects mount: %v", err)
 	}
 
 	return nil
@@ -122,6 +144,15 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	}
 
 	g.Log.Infof("Key written to secrets '%s'", secretPath)
+
+	return nil
+}
+
+func (g *Generic) deleteRSAKey(secretPath string) error {
+	_, err := g.kubernetes.vaultClient.Logical().Delete(secretPath)
+	if err != nil {
+		return fmt.Errorf("error deletign key from secrets: %v", err)
+	}
 
 	return nil
 }
@@ -222,10 +253,25 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	return nil
 }
 
+func (g *Generic) DeleteInitTokenStore(role string) error {
+	path := g.initTokenPath(role)
+
+	_, err := g.kubernetes.vaultClient.Logical().Delete(path)
+	if err != nil {
+		return fmt.Errorf("error deleting init token at path:  %v", path)
+	}
+
+	return nil
+}
+
 func (g *Generic) Type() string {
 	return genericType
 }
 
 func (g *Generic) Name() string {
 	return "secrets"
+}
+
+func (g *Generic) rsaPath() string {
+	return filepath.Join(g.Path(), "service-accounts")
 }

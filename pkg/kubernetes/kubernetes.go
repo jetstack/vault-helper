@@ -26,6 +26,7 @@ const FlagInitTokenWorker = "init-token-worker"
 type Backend interface {
 	Ensure() error
 	EnsureDryRun() (bool, error)
+	Delete() error
 	Path() string
 	Type() string
 	Name() string
@@ -308,22 +309,31 @@ func (k *Kubernetes) EnsureDryRun() (bool, error) {
 func (k *Kubernetes) Delete() error {
 	var result *multierror.Error
 
-	for _, p := range []*Policy{
-		k.etcdPolicy(),
-		k.masterPolicy(),
-		k.workerPolicy(),
-	} {
-		if err := k.vaultClient.Sys().DeletePolicy(p.Policy()); err != nil {
+	for _, i := range k.initTokens {
+		if err := i.Delete(); err != nil {
 			result = multierror.Append(result, err)
 		}
 	}
 
-	if _, err := k.vaultClient.Logical().Delete(k.clusterID + "/secrets/service-accounts"); err != nil {
+	if err := k.deletePolicies(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := k.deletePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesK8S(k.kubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesK8SAPIProxy(k.kubernetesAPIProxy); err != nil {
 		result = multierror.Append(result, err)
 	}
 
 	for _, b := range k.backends() {
-		if err := k.vaultClient.Sys().Unmount(b.Path()); err != nil {
+		if err := b.Delete(); err != nil {
 			result = multierror.Append(result, err)
 		}
 	}

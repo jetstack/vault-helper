@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 )
@@ -48,6 +49,10 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 	p.Log.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
+}
+
+func (p *PKI) unMount() error {
+	return p.kubernetes.vaultClient.Sys().Unmount(p.Path())
 }
 
 func (p *PKI) TuneMountRequired(mount *vault.MountOutput) bool {
@@ -103,6 +108,20 @@ func (p *PKI) Ensure() error {
 	}
 
 	return p.ensureCA()
+}
+
+func (p *PKI) Delete() error {
+	var result *multierror.Error
+
+	if err := p.deleteCA(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := p.unMount(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result.ErrorOrNil()
 }
 
 func (p *PKI) EnsureDryRun() (bool, error) {
@@ -167,6 +186,15 @@ func (p *PKI) generateCA() error {
 	return nil
 }
 
+func (p *PKI) deleteCA() error {
+	_, err := p.kubernetes.vaultClient.Logical().Delete(p.caGenPath())
+	if err != nil {
+		return fmt.Errorf("error deleting CA: %v", err)
+	}
+
+	return nil
+}
+
 func (p *PKI) caPathExists() (bool, error) {
 	path := filepath.Join(p.Path(), "cert", "ca")
 
@@ -186,11 +214,18 @@ func (p *PKI) caPathExists() (bool, error) {
 }
 
 func (p *PKI) WriteRole(role *pkiRole) error {
-	path := filepath.Join(p.Path(), "roles", role.Name)
-
-	_, err := p.kubernetes.vaultClient.Logical().Write(path, role.Data)
+	_, err := p.kubernetes.vaultClient.Logical().Write(p.rolePath(role.Name), role.Data)
 	if err != nil {
 		return fmt.Errorf("error writting role '%s' to '%s': %v", role.Name, p.Path(), err)
+	}
+
+	return nil
+}
+
+func (p *PKI) DeleteRole(role *pkiRole) error {
+	_, err := p.kubernetes.vaultClient.Logical().Delete(p.rolePath(role.Name))
+	if err != nil {
+		return fmt.Errorf("error deleting role '%s' to '%s': %v", role.Name, p.Path(), err)
 	}
 
 	return nil
@@ -252,4 +287,8 @@ func (p *PKI) Type() string {
 
 func (p *PKI) Name() string {
 	return p.pkiName
+}
+
+func (p *PKI) rolePath(role string) string {
+	return filepath.Join(p.Path(), "roles", role)
 }

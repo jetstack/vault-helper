@@ -41,6 +41,20 @@ func (i *InitToken) Ensure() error {
 	return result
 }
 
+func (i *InitToken) Delete() error {
+	var result *multierror.Error
+
+	if err := i.deleteInitTokenPolicy(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := i.deleteTokenRole(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result.ErrorOrNil()
+}
+
 func (i *InitToken) EnsureDryRun() (bool, error) {
 	var result *multierror.Error
 
@@ -103,6 +117,15 @@ func (i *InitToken) writeTokenRole() error {
 	return nil
 }
 
+func (i *InitToken) deleteTokenRole() error {
+	_, err := i.kubernetes.vaultClient.Logical().Delete(i.Path())
+	if err != nil {
+		return fmt.Errorf("error deleting token role %s: %v", i.Path(), err)
+	}
+
+	return nil
+}
+
 func (i *InitToken) readTokenRole() (*vault.Secret, error) {
 	secret, err := i.kubernetes.vaultClient.Logical().Read(i.Path())
 	if err != nil {
@@ -127,6 +150,10 @@ func (i *InitToken) policy() *Policy {
 // Construct policy and send to kubernetes to be written to vault
 func (i *InitToken) writeInitTokenPolicy() error {
 	return i.kubernetes.WritePolicy(i.policy())
+}
+
+func (i *InitToken) deleteInitTokenPolicy() error {
+	return i.kubernetes.DeletePolicy(i.policy())
 }
 
 func (i *InitToken) readInitTokenPolicy() (string, error) {

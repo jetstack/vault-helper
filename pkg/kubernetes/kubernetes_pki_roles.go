@@ -162,40 +162,15 @@ func (k *Kubernetes) ensurePKIRolesEtcd(p *PKI) error {
 	return result
 }
 
-// this makes sure all kubernetes PKI roles are setup correctly
-func (k *Kubernetes) ensurePKIRolesK8S(p *PKI) error {
+func (k *Kubernetes) deletePKIRolesEtcd(p *PKI) error {
 	var result error
 
-	roles := []*pkiRole{
-		k.k8sAdminRole(),
-		k.k8sAPIServerRole(),
-		k.k8sComponentRole("kube-scheduler"),
-		k.k8sComponentRole("kube-controller-manager"),
-		k.k8sComponentRole("kube-proxy"),
-		k.k8sKubeletRole(),
+	if err := p.DeleteRole(k.etcdClientRole()); err != nil {
+		result = multierror.Append(result, err)
 	}
 
-	for _, role := range roles {
-		if err := p.WriteRole(role); err != nil {
-			result = multierror.Append(result, err)
-		}
-	}
-
-	return result
-}
-
-// this makes sure all kubernetes API Proxy PKI roles are setup correctly
-func (k *Kubernetes) ensurePKIRolesK8SAPIProxy(p *PKI) error {
-	var result error
-
-	roles := []*pkiRole{
-		k.k8sAPIServerProxyRole(),
-	}
-
-	for _, role := range roles {
-		if err := p.WriteRole(role); err != nil {
-			result = multierror.Append(result, err)
-		}
+	if err := p.DeleteRole(k.etcdServerRole()); err != nil {
+		result = multierror.Append(result, err)
 	}
 
 	return result
@@ -229,10 +204,8 @@ func (k *Kubernetes) ensureDryRunPKIRolesEtcd(p *PKI) (bool, error) {
 	return false, result.ErrorOrNil()
 }
 
-func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
-	var result *multierror.Error
-
-	roles := []*pkiRole{
+func (k *Kubernetes) pkiRoleK8s() []*pkiRole {
+	return []*pkiRole{
 		k.k8sAdminRole(),
 		k.k8sAPIServerRole(),
 		k.k8sComponentRole("kube-scheduler"),
@@ -240,8 +213,37 @@ func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
 		k.k8sComponentRole("kube-proxy"),
 		k.k8sKubeletRole(),
 	}
+}
 
-	for _, role := range roles {
+// this makes sure all kubernetes PKI roles are setup correctly
+func (k *Kubernetes) ensurePKIRolesK8S(p *PKI) error {
+	var result error
+
+	for _, role := range k.pkiRoleK8s() {
+		if err := p.WriteRole(role); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
+func (k *Kubernetes) deletePKIRolesK8S(p *PKI) error {
+	var result error
+
+	for _, role := range k.pkiRoleK8s() {
+		if err := p.DeleteRole(role); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
+func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
+	var result *multierror.Error
+
+	for _, role := range k.pkiRoleK8s() {
 		secret, err := p.ReadRole(role)
 		if err != nil {
 			result = multierror.Append(result, err)
@@ -255,6 +257,39 @@ func (k *Kubernetes) ensureDryRunPKIRolesK8S(p *PKI) (bool, error) {
 	}
 
 	return false, result.ErrorOrNil()
+}
+
+// this makes sure all kubernetes API Proxy PKI roles are setup correctly
+func (k *Kubernetes) ensurePKIRolesK8SAPIProxy(p *PKI) error {
+	var result error
+
+	roles := []*pkiRole{
+		k.k8sAPIServerProxyRole(),
+	}
+
+	for _, role := range roles {
+		if err := p.WriteRole(role); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
+func (k *Kubernetes) deletePKIRolesK8SAPIProxy(p *PKI) error {
+	var result error
+
+	roles := []*pkiRole{
+		k.k8sAPIServerProxyRole(),
+	}
+
+	for _, role := range roles {
+		if err := p.DeleteRole(role); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
 }
 
 func (k *Kubernetes) ensureDryRunPKIRolesK8SAPIProxy(p *PKI) (bool, error) {
