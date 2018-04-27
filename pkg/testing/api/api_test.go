@@ -2,9 +2,11 @@
 package api
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
+	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 
 	"github.com/jetstack/vault-helper/pkg/kubernetes"
@@ -77,4 +79,24 @@ func createErrorData(dataMap map[string]interface{}) map[string]interface{} {
 	}
 
 	return dataMap
+}
+
+func MustSecret(secret *vault.Secret, isNil bool, t *testing.T) {
+	if !isNil && secret == nil {
+		t.Errorf("expected secret to not be nil, got=nil")
+	} else if isNil && secret != nil {
+		t.Errorf("expected secret to be nil, got=%+v", secret)
+	}
+}
+
+func MustPolicy(policy string, isNil bool, t *testing.T) {
+	if !isNil && policy == "" {
+		t.Errorf("expected policy to not be nil, got=nil")
+	} else if isNil && policy != "" {
+		t.Errorf("expected policy to be nil, got=%s", policy)
+	}
+}
+
+func vaultPath(path string) string {
+	return fmt.Sprintf("%s/", path)
 }

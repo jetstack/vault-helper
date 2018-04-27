@@ -309,14 +309,14 @@ func (k *Kubernetes) EnsureDryRun() (bool, error) {
 func (k *Kubernetes) Delete() error {
 	var result *multierror.Error
 
+	if err := k.deletePolicies(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	for _, i := range k.initTokens {
 		if err := i.Delete(); err != nil {
 			result = multierror.Append(result, err)
 		}
-	}
-
-	if err := k.deletePolicies(); err != nil {
-		result = multierror.Append(result, err)
 	}
 
 	if err := k.deletePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {

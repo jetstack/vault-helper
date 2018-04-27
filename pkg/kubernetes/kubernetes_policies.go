@@ -18,7 +18,7 @@ func (k *Kubernetes) WritePolicy(p *Policy) error {
 }
 
 func (k *Kubernetes) DeletePolicy(p *Policy) error {
-	err := k.vaultClient.Sys().DeletePolicy(p.Policy())
+	err := k.vaultClient.Sys().DeletePolicy(p.Name)
 	if err != nil {
 		return fmt.Errorf("error deleting policy '%s': %v", p.Name, err)
 	}

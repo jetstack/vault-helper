@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 )
@@ -111,17 +110,11 @@ func (p *PKI) Ensure() error {
 }
 
 func (p *PKI) Delete() error {
-	var result *multierror.Error
-
-	if err := p.deleteCA(); err != nil {
-		result = multierror.Append(result, err)
-	}
-
 	if err := p.unMount(); err != nil {
-		result = multierror.Append(result, err)
+		return err
 	}
 
-	return result.ErrorOrNil()
+	return nil
 }
 
 func (p *PKI) EnsureDryRun() (bool, error) {
@@ -181,15 +174,6 @@ func (p *PKI) generateCA() error {
 	_, err := p.kubernetes.vaultClient.Logical().Write(p.caGenPath(), data)
 	if err != nil {
 		return fmt.Errorf("error writing new CA: %v", err)
-	}
-
-	return nil
-}
-
-func (p *PKI) deleteCA() error {
-	_, err := p.kubernetes.vaultClient.Logical().Delete(p.caGenPath())
-	if err != nil {
-		return fmt.Errorf("error deleting CA: %v", err)
 	}
 
 	return nil
