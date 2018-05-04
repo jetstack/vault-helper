@@ -11,7 +11,7 @@ BUILD_TAG := build
 
 BUILD_IMAGE_NAME := golang:1.9.2
 
-CI_COMMIT_TAG ?= unknown
+CI_COMMIT_TAG ?= $(shell git rev-parse HEAD)
 CI_COMMIT_SHA ?= unknown
 
 VAULT_VERSION := 0.9.5

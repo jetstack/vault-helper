@@ -229,7 +229,7 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 func (g *Generic) revokeToken(token, path, role string) error {
 	err := g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(token)
 	if err != nil {
-		return fmt.Errorf("failed to revoke init token at path: %s", path)
+		return fmt.Errorf("failed to revoke init token at path '%s': %v", path, err)
 	}
 
 	g.Log.Infof("Revoked Token '%s': '%s'", role, token)
@@ -245,7 +245,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	}
 	_, err := g.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return fmt.Errorf("error writting init token at path:  %v", path)
+		return fmt.Errorf("error writting init token at path '%s': %v", path, err)
 	}
 
 	g.Log.Infof("Init token written for '%s' at '%s'", role, path)
@@ -258,7 +258,7 @@ func (g *Generic) DeleteInitTokenStore(role string) error {
 
 	_, err := g.kubernetes.vaultClient.Logical().Delete(path)
 	if err != nil {
-		return fmt.Errorf("error deleting init token at path:  %v", path)
+		return fmt.Errorf("error deleting init token at path '%s': %v", path, err)
 	}
 
 	return nil

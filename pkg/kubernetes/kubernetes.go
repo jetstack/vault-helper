@@ -23,6 +23,8 @@ const FlagInitTokenAll = "init-token-all"
 const FlagInitTokenMaster = "init-token-master"
 const FlagInitTokenWorker = "init-token-worker"
 
+var Version string
+
 type Backend interface {
 	Ensure() error
 	EnsureDryRun() (bool, error)
@@ -115,7 +117,7 @@ type Kubernetes struct {
 
 	initTokens []*InitToken
 
-	version int
+	version string
 }
 
 var _ Backend = &PKI{}
@@ -179,6 +181,7 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 			Worker: "",
 			All:    "",
 		},
+		version: Version,
 	}
 
 	if vaultClient != nil {
@@ -271,6 +274,10 @@ func (d *DryRun) changeNeeded(change bool, err error) bool {
 func (k *Kubernetes) EnsureDryRun() (bool, error) {
 	d := &DryRun{
 		new(multierror.Error),
+	}
+
+	if len(k.initTokens) == 0 {
+		k.initTokens = k.NewInitTokens()
 	}
 
 	for _, b := range k.backends() {
@@ -448,6 +455,10 @@ func (k *Kubernetes) SetInitFlags(flags FlagInitTokens) {
 	k.FlagInitTokens = flags
 }
 
-func (k *Kubernetes) Version() int {
+func (k *Kubernetes) Version() string {
 	return k.version
+}
+
+func (k *Kubernetes) SetVersion(version string) {
+	k.version = version
 }
