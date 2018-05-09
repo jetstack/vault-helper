@@ -16,6 +16,6 @@ func main() {
 	cmd.Version.Version = version
 	cmd.Version.Commit = commit
 	cmd.Version.BuildDate = date
-	cmd.Execute()
 	kubernetes.Version = version
+	cmd.Execute()
 }
