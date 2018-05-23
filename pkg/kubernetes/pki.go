@@ -207,7 +207,12 @@ func (p *PKI) WriteRole(role *pkiRole) error {
 }
 
 func (p *PKI) DeleteRole(role *pkiRole) error {
-	_, err := p.kubernetes.vaultClient.Logical().Delete(p.rolePath(role.Name))
+	s, err := p.kubernetes.vaultClient.Logical().Read(p.rolePath(role.Name))
+	if err != nil || s == nil || s.Data == nil {
+		return nil
+	}
+
+	_, err = p.kubernetes.vaultClient.Logical().Delete(p.rolePath(role.Name))
 	if err != nil {
 		return fmt.Errorf("error deleting role '%s' to '%s': %v", role.Name, p.Path(), err)
 	}

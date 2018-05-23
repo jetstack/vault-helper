@@ -149,9 +149,14 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 }
 
 func (g *Generic) deleteRSAKey(secretPath string) error {
-	_, err := g.kubernetes.vaultClient.Logical().Delete(secretPath)
+	s, err := g.kubernetes.vaultClient.Logical().Read(secretPath)
+	if err != nil || s == nil || s.Data == nil {
+		return nil
+	}
+
+	_, err = g.kubernetes.vaultClient.Logical().Delete(secretPath)
 	if err != nil {
-		return fmt.Errorf("error deletign key from secrets: %v", err)
+		return fmt.Errorf("error deleting key from secrets: %v", err)
 	}
 
 	return nil
