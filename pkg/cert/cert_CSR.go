@@ -16,19 +16,6 @@ import (
 )
 
 func (c *Cert) RequestCertificate() error {
-	if err := c.verifyCertificates(); err != nil {
-		c.Log.Debugf("Couldn't verify certificates: %v", err)
-		c.Log.Info("Generating new certificates")
-		return c.createNewCerts()
-	}
-
-	c.Log.Infof("Found certificates at %s", c.Destination())
-	c.Log.Info("Certificates verified.")
-
-	return nil
-}
-
-func (c *Cert) createNewCerts() error {
 	ipSans := strings.Join(c.IPSans(), ",")
 	hosts := strings.Join(c.SanHosts(), ",")
 
@@ -58,8 +45,8 @@ func (c *Cert) createNewCerts() error {
 
 	c.Log.Infof("New certificate received for: %s", c.CommonName())
 
-	certPath := filepath.Clean(c.Destination() + ".pem")
-	caPath := filepath.Clean(c.Destination() + "-ca.pem")
+	certPath := c.certPath()
+	caPath := c.caPath()
 
 	if err := c.storeCertificate(certPath, cert); err != nil {
 		return fmt.Errorf("error storing certificate at path '%s': %v", certPath, err)
@@ -207,4 +194,12 @@ func (c *Cert) storeCertificate(path, cert string) error {
 	c.Log.Infof("Certificate written to: %s", path)
 
 	return nil
+}
+
+func (c *Cert) certPath() string {
+	return filepath.Clean(c.Destination() + ".pem")
+}
+
+func (c *Cert) caPath() string {
+	return filepath.Clean(c.Destination() + "-ca.pem")
 }
