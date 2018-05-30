@@ -7,6 +7,12 @@ import (
 
 func TestRead_Success(t *testing.T) {
 
+	dir, err := TmpDir()
+	if err != nil {
+		t.Errorf("unexpected error getting tmp dir: %v", err)
+		return
+	}
+
 	var args [][]string
 	for _, role := range []string{"test-master", "test-all"} {
 		args = append(args, []string{
@@ -17,11 +23,17 @@ func TestRead_Success(t *testing.T) {
 	}
 
 	for _, arg := range args {
-		RunTest(arg, true, t)
+		RunTest(arg, true, dir, t)
 	}
 }
 
 func TestRead_Fail(t *testing.T) {
+
+	dir, err := TmpDir()
+	if err != nil {
+		t.Errorf("unexpected error getting tmp dir: %v", err)
+		return
+	}
 
 	var args [][]string
 	for _, role := range []string{"test-worker", "test-etcd"} {
@@ -47,6 +59,6 @@ func TestRead_Fail(t *testing.T) {
 	}
 
 	for _, arg := range args {
-		RunTest(arg, false, t)
+		RunTest(arg, false, dir, t)
 	}
 }
