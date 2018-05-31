@@ -39,6 +39,20 @@ type Cert struct {
 	instanceToken *instanceToken.InstanceToken
 }
 
+func New(logger *logrus.Entry, i *instanceToken.InstanceToken) *Cert {
+	c := &Cert{
+		bitSize:       2048,
+		keyType:       "RSA",
+		instanceToken: i,
+	}
+
+	if logger != nil {
+		c.Log = logger
+	}
+
+	return c
+}
+
 func (c *Cert) RunCert() error {
 	if err := c.EnsureKey(); err != nil {
 		return fmt.Errorf("error ensuring key: %v", err)
@@ -128,20 +142,6 @@ func (c *Cert) WritePermissions(path string, perm os.FileMode) error {
 	c.Log.Debugf("Set permissons on file: %s", path)
 
 	return nil
-}
-
-func New(logger *logrus.Entry, i *instanceToken.InstanceToken) *Cert {
-	c := &Cert{
-		bitSize:       2048,
-		keyType:       "RSA",
-		instanceToken: i,
-	}
-
-	if logger != nil {
-		c.Log = logger
-	}
-
-	return c
 }
 
 func (c *Cert) SetRole(role string) {

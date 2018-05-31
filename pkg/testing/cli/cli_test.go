@@ -78,12 +78,7 @@ func InitKubernetes() error {
 	return nil
 }
 
-func RunTest(args []string, pass bool, t *testing.T) {
-	dir, err := initTokensDir()
-	if err != nil {
-		t.Errorf("failed to create tokens directory: %v", err)
-		return
-	}
+func RunTest(args []string, pass bool, dir string, t *testing.T) {
 	args = append(args, fmt.Sprintf("--config-path=%s", dir))
 	cmd.RootCmd.SetArgs(args)
 
@@ -108,27 +103,6 @@ func TmpDir() (string, error) {
 	}
 	tmpDirs = append(tmpDirs, dir)
 
-	return dir, nil
-}
-
-func CleanDirs() error {
-	var result *multierror.Error
-
-	for _, dir := range tmpDirs {
-		if err := os.RemoveAll(dir); err != nil {
-			result = multierror.Append(result, err)
-		}
-	}
-
-	return result.ErrorOrNil()
-}
-
-func initTokensDir() (string, error) {
-	dir, err := TmpDir()
-	if err != nil {
-		return dir, err
-	}
-
 	initTokenFile := fmt.Sprintf("%s/init-token", dir)
 	tokenFile := fmt.Sprintf("%s/token", dir)
 
@@ -145,4 +119,16 @@ func initTokensDir() (string, error) {
 	}
 
 	return dir, nil
+}
+
+func CleanDirs() error {
+	var result *multierror.Error
+
+	for _, dir := range tmpDirs {
+		if err := os.RemoveAll(dir); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result.ErrorOrNil()
 }

@@ -25,7 +25,7 @@ func TestKubeconfig_Success(t *testing.T) {
 	}
 
 	for _, arg := range args {
-		RunTest(arg, true, t)
+		RunTest(arg, true, dir, t)
 	}
 }
 
@@ -53,6 +53,6 @@ func TestKubeconfig_Fail(t *testing.T) {
 	}
 
 	for _, arg := range args {
-		RunTest(arg, false, t)
+		RunTest(arg, false, dir, t)
 	}
 }

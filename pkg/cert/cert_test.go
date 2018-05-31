@@ -222,7 +222,7 @@ func TestCert_ConfigPath(t *testing.T) {
 	}
 }
 
-// Test if already existing valid certificate and key, they are kept
+// Test if already existing valid certificate and key, key is kept and certificate renewed
 func TestCert_Exist_NoChange(t *testing.T) {
 	dir, err := ioutil.TempDir("", "test-cluster-dir")
 	if err != nil {
@@ -266,8 +266,6 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("no key at file '%s'", keyPem)
 	}
 
-	c.Log.Infof("-- Second run call --")
-
 	if err := c.RunCert(); err != nil {
 		if len(err.Error()) < 36 {
 			t.Fatalf("unexpected error: %v", err)
@@ -277,16 +275,14 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		if errStr != str {
 			t.Fatalf("unexpexted error. exp=%s got=%v", str, err)
 		}
-		c.Log.Infof("expected error: %v", err)
 	}
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
 	if err != nil {
 		t.Fatalf("error reading from certificate file path: '%s': %v", dotPem, err)
 	}
-
-	if string(datDotPem) != string(datDotPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists: %s", dotPem)
+	if string(datDotPem) == string(datDotPemAfter) {
+		t.Errorf("certificate has not been changed after cert call: %s", dotPem)
 	}
 
 	datCAPemAfter, err := ioutil.ReadFile(caPem)
@@ -294,7 +290,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("error reading from certificate file path: '%s': %v", caPem, err)
 	}
 	if string(datCAPem) != string(datCAPemAfter) {
-		t.Fatalf("certificate has been changed after cert call even though it exists: %s", caPem)
+		t.Errorf("certificate ca has been changed after cert call: %s", caPem)
 	}
 
 	datKeyPemAfter, err := ioutil.ReadFile(keyPem)
@@ -302,7 +298,7 @@ func TestCert_Exist_NoChange(t *testing.T) {
 		t.Fatalf("error reading from certificate file path: '%s': %v", keyPem, err)
 	}
 	if string(datKeyPem) != string(datKeyPemAfter) {
-		t.Fatalf("key has been changed after cert call even though it exists: %s", keyPem)
+		t.Errorf("key has been changed after cert call even though it exists: %s", keyPem)
 	}
 }
 
@@ -349,15 +345,14 @@ func TestCert_Busy_Vault(t *testing.T) {
 		t.Fatalf("no key at file '%s'", keyPem)
 	}
 
-	c.Log.Infof("-- Second run call --")
 	if err := c.InstanceToken().VaultClient().Sys().Seal(); err != nil {
-		t.Fatalf("error sealing vault")
+		t.Fatalf("error sealing vault: %v", err)
 	}
 	if err := c.InstanceToken().TokenRenewRun(); err == nil {
 		t.Fatalf("expected 400 error, permission denied")
 	}
-	if err := c.RunCert(); err != nil {
-		t.Fatalf("Unexpected error")
+	if err := c.RunCert(); err == nil {
+		t.Fatalf("expected error, got none")
 	}
 
 	datDotPemAfter, err := ioutil.ReadFile(dotPem)
