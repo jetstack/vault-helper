@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.10] - 2018-04-19
+
+### Fixed
+
+- Certificates are now getting renewed on every command run #22
+
 ## [0.9.9] - 2018-04-19
 
 ### Fixed
