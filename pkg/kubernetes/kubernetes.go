@@ -361,20 +361,20 @@ func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
 }
 
 func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
+	mountPath = filepath.Clean(mountPath)
+
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {
 		return nil, fmt.Errorf("error listing mounts: %v", err)
 	}
 
-	var mount *vault.MountOutput
 	for key, _ := range mounts {
-		if filepath.Clean(key) == filepath.Clean(mountPath) {
-			mount = mounts[key]
-			break
+		if filepath.Clean(key) == mountPath || filepath.Dir(key) == mountPath {
+			return mounts[key], nil
 		}
 	}
 
-	return mount, nil
+	return nil, nil
 }
 
 func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *InitToken {

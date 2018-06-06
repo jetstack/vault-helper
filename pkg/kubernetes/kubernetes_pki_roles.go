@@ -182,7 +182,7 @@ func (k *Kubernetes) ensureDryRunPKIRolesEtcd(p *PKI) (bool, error) {
 	secret, err := p.ReadRole(k.etcdClientRole())
 	if err != nil {
 		result = multierror.Append(result, err)
-	} else if len(secret.Data) == 0 {
+	} else if secret == nil || secret.Data == nil || len(secret.Data) == 0 {
 		return true, nil
 	}
 
