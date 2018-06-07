@@ -7,9 +7,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
@@ -79,6 +81,12 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 		return true, nil
 	}
 
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.EncryptionConfigPath()); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", g.EncryptionConfigPath(), err)
+	} else if secret == nil {
+		return true, nil
+	}
+
 	return false, nil
 }
 
@@ -98,6 +106,51 @@ func (g *Generic) Delete() error {
 
 func (g *Generic) Path() string {
 	return filepath.Join(g.kubernetes.Path(), "secrets")
+}
+
+func (g *Generic) GenerateSecretsMount() error {
+	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
+	if err != nil {
+		return err
+	}
+
+	if mount == nil {
+		g.Log.Debugf("No secrects mount found for: %s", g.Path())
+		err = g.kubernetes.vaultClient.Sys().Mount(
+			g.Path(),
+			&vault.MountInput{
+				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
+				Type:        genericType,
+			},
+		)
+
+		if err != nil {
+			return fmt.Errorf("error creating mount: %v", err)
+		}
+
+		g.Log.Infof("Mounted secrets: '%s'", g.Path())
+	}
+
+	rsaKeyPath := g.rsaPath()
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
+		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
+	} else if secret == nil {
+		err = g.writeNewRSAKey(rsaKeyPath, 4096)
+		if err != nil {
+			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
+		}
+	}
+
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.EncryptionConfigPath()); err != nil {
+		return fmt.Errorf("error checking for secret %s: %v", g.EncryptionConfigPath(), err)
+	} else if secret == nil {
+		err = g.writeNewEncryptionConfig(g.EncryptionConfigPath())
+		if err != nil {
+			return fmt.Errorf("error creating encryption config at %s: %v", g.EncryptionConfigPath(), err)
+		}
+	}
+
+	return nil
 }
 
 func (g *Generic) unMount() error {
@@ -137,6 +190,41 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	_, err = g.kubernetes.vaultClient.Logical().Write(secretPath, writeData)
 	if err != nil {
 		return fmt.Errorf("error writting key to secrets: %v", err)
+	}
+
+	g.Log.Infof("Key written to secrets '%s'", secretPath)
+
+	return nil
+}
+
+func (g *Generic) writeNewEncryptionConfig(secretPath string) error {
+	encryptionConfig := `kind: EncryptionConfig
+apiVersion: v1
+resources:
+  - resources:
+    - secrets
+    providers:
+    - aescbc:
+        keys:
+        - name: key1
+          secret: SECRET
+    - identity: {}
+`
+
+	secret := make([]byte, 32)
+
+	_, err := rand.Read(secret)
+	if err != nil {
+		return fmt.Errorf("error generating secret: %v", err)
+	}
+
+	writeData := map[string]interface{}{
+		"content": strings.Replace(encryptionConfig, "SECRET", base64.StdEncoding.EncodeToString(secret), 1),
+	}
+
+	_, err = g.kubernetes.vaultClient.Logical().Write(secretPath, writeData)
+	if err != nil {
+		return fmt.Errorf("error writing key to secrets: %v", err)
 	}
 
 	g.Log.Infof("Key written to secrets '%s'", secretPath)
@@ -275,4 +363,9 @@ func (g *Generic) Name() string {
 
 func (g *Generic) rsaPath() string {
 	return filepath.Join(g.Path(), "service-accounts")
+}
+
+// EncryptionConfigPath is the vault path for the kubernetes encryption config file content
+func (g *Generic) EncryptionConfigPath() string {
+	return filepath.Join(g.Path(), "encryption-config")
 }
