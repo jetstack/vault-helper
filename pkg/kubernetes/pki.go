@@ -124,16 +124,7 @@ func (p *PKI) EnsureDryRun() (bool, error) {
 	}
 
 	// Mount doesn't Exist
-	if mount == nil {
-		return true, nil
-
-	} else {
-		if mount.Type != pkiType {
-			return true, nil
-		}
-	}
-
-	if p.TuneMountRequired(mount) {
+	if mount == nil || mount.Type != pkiType || p.TuneMountRequired(mount) {
 		return true, nil
 	}
 

@@ -28,47 +28,6 @@ type Generic struct {
 }
 
 func (g *Generic) Ensure() error {
-	return g.GenerateSecretsMount()
-}
-
-func (g *Generic) EnsureDryRun() (bool, error) {
-	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
-	if err != nil {
-		return false, err
-	}
-
-	if mount == nil || mount.Type != genericType {
-		return true, nil
-	}
-
-	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.rsaPath()); err != nil {
-		return false, fmt.Errorf("error checking for secret %s: %v", g.rsaPath(), err)
-	} else if secret == nil {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (g *Generic) Delete() error {
-	var result *multierror.Error
-
-	if err := g.deleteRSAKey(g.rsaPath()); err != nil {
-		result = multierror.Append(result, err)
-	}
-
-	if err := g.unMount(); err != nil {
-		result = multierror.Append(result, err)
-	}
-
-	return result.ErrorOrNil()
-}
-
-func (g *Generic) Path() string {
-	return filepath.Join(g.kubernetes.Path(), "secrets")
-}
-
-func (g *Generic) GenerateSecretsMount() error {
 	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return err
@@ -102,6 +61,43 @@ func (g *Generic) GenerateSecretsMount() error {
 	}
 
 	return nil
+}
+
+func (g *Generic) EnsureDryRun() (bool, error) {
+	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
+	if err != nil {
+		return false, err
+	}
+
+	if mount == nil || mount.Type != genericType {
+		return true, nil
+	}
+
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.rsaPath()); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", g.rsaPath(), err)
+	} else if secret == nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (g *Generic) Delete() error {
+	var result *multierror.Error
+
+	if err := g.deleteSecret(g.rsaPath()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := g.unMount(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result.ErrorOrNil()
+}
+
+func (g *Generic) Path() string {
+	return filepath.Join(g.kubernetes.Path(), "secrets")
 }
 
 func (g *Generic) unMount() error {
@@ -148,7 +144,7 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	return nil
 }
 
-func (g *Generic) deleteRSAKey(secretPath string) error {
+func (g *Generic) deleteSecret(secretPath string) error {
 	s, err := g.kubernetes.vaultClient.Logical().Read(secretPath)
 	if err != nil || s == nil || s.Data == nil {
 		return nil
