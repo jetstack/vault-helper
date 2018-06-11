@@ -21,14 +21,8 @@ func TestDryRun_Backend(t *testing.T) {
 		kubernetes.NewPKI(k, "k8s-api-proxy", k.Log),
 		k.NewGeneric(k.Log),
 	} {
-
-		backendType := "pki"
-		if b.Type() == backendType {
-			backendType = "generic"
-		}
-
 		mount := &vault.MountInput{
-			Type: backendType,
+			Type: b.Type(),
 			Config: vault.MountConfigInput{
 				DefaultLeaseTTL: "",
 				MaxLeaseTTL:     "",
