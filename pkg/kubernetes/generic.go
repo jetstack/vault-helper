@@ -53,7 +53,7 @@ func (g *Generic) Ensure() error {
 	}
 
 	//TODO the same code is ran when generating the secrets mount
-	rsaKeyPath := g.rsaPath()
+	rsaKeyPath := g.ServiceAccountsPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
 	} else if secret == nil {
@@ -85,8 +85,8 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 		return true, nil
 	}
 
-	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.rsaPath()); err != nil {
-		return false, fmt.Errorf("error checking for secret %s: %v", g.rsaPath(), err)
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.ServiceAccountsPath()); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", g.ServiceAccountsPath(), err)
 	} else if secret == nil {
 		return true, nil
 	}
@@ -103,7 +103,7 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 func (g *Generic) Delete() error {
 	var result *multierror.Error
 
-	if err := g.deleteSecret(g.rsaPath()); err != nil {
+	if err := g.deleteSecret(g.ServiceAccountsPath()); err != nil {
 		result = multierror.Append(result, err)
 	}
 
@@ -145,7 +145,7 @@ func (g *Generic) GenerateSecretsMount() error {
 		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
-	rsaKeyPath := g.rsaPath()
+	rsaKeyPath := g.ServiceAccountsPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
 	} else if secret == nil {
@@ -375,7 +375,8 @@ func (g *Generic) Name() string {
 	return "secrets"
 }
 
-func (g *Generic) rsaPath() string {
+// ServiceAccountsPath is the vault path for the service-accounts certificate content
+func (g *Generic) ServiceAccountsPath() string {
 	return filepath.Join(g.Path(), "service-accounts")
 }
 
