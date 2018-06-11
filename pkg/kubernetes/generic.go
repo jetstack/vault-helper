@@ -52,6 +52,7 @@ func (g *Generic) Ensure() error {
 		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
+	//TODO the same code is ran when generating the secrets mount
 	rsaKeyPath := g.rsaPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
@@ -59,6 +60,15 @@ func (g *Generic) Ensure() error {
 		err = g.writeNewRSAKey(rsaKeyPath, 4096)
 		if err != nil {
 			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
+		}
+	}
+
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.EncryptionConfigPath()); err != nil {
+		return fmt.Errorf("error checking for secret %s: %v", g.EncryptionConfigPath(), err)
+	} else if secret == nil {
+		err = g.writeNewEncryptionConfig(g.EncryptionConfigPath())
+		if err != nil {
+			return fmt.Errorf("error creating encryption config at %s: %v", g.EncryptionConfigPath(), err)
 		}
 	}
 
@@ -94,6 +104,10 @@ func (g *Generic) Delete() error {
 	var result *multierror.Error
 
 	if err := g.deleteSecret(g.rsaPath()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := g.deleteSecret(g.EncryptionConfigPath()); err != nil {
 		result = multierror.Append(result, err)
 	}
 
