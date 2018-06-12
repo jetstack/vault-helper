@@ -91,19 +91,19 @@ type Kubernetes struct {
 	Log         *logrus.Entry
 
 	// PKI for kubernetes' state storage in Etcd
-	etcdKubernetesPKI *PKI
+	etcdKubernetesBackend *PKIVaultBackend
 
 	// PKI for the overlay network's state storage in Etcd
-	etcdOverlayPKI *PKI
+	etcdOverlayBackend *PKIVaultBackend
 
 	// This is the core kubernetes PKI, which is used to authenticate all
 	// kubernetes components.
-	kubernetesPKI *PKI
+	kubernetesBackend *PKIVaultBackend
 
 	// This is a separate kubernetes PKI, it is used to authenticate request
 	// headers proxied through the API server. This is utilized for API server
 	// aggregation.
-	kubernetesAPIProxy *PKI
+	kubernetesAPIProxyBackend *PKIVaultBackend
 
 	// A generic backend for static secrets
 	secretsGeneric *Generic
@@ -120,7 +120,7 @@ type Kubernetes struct {
 	version string
 }
 
-var _ Backend = &PKI{}
+var _ Backend = &PKIVaultBackend{}
 var _ Backend = &Generic{}
 
 func (rv *realVault) Auth() VaultAuth {
@@ -191,10 +191,10 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 		k.Log = logger
 	}
 
-	k.etcdKubernetesPKI = NewPKI(k, "etcd-k8s", k.Log)
-	k.etcdOverlayPKI = NewPKI(k, "etcd-overlay", k.Log)
-	k.kubernetesPKI = NewPKI(k, "k8s", k.Log)
-	k.kubernetesAPIProxy = NewPKI(k, "k8s-api-proxy", k.Log)
+	k.etcdKubernetesBackend = NewPKIVaultBackend(k, "etcd-k8s", k.Log)
+	k.etcdOverlayBackend = NewPKIVaultBackend(k, "etcd-overlay", k.Log)
+	k.kubernetesBackend = NewPKIVaultBackend(k, "k8s", k.Log)
+	k.kubernetesAPIProxyBackend = NewPKIVaultBackend(k, "k8s-api-proxy", k.Log)
 
 	k.secretsGeneric = k.NewGeneric(k.Log)
 
@@ -207,10 +207,10 @@ func (k *Kubernetes) SetClusterID(clusterID string) {
 
 func (k *Kubernetes) backends() []Backend {
 	return []Backend{
-		k.etcdKubernetesPKI,
-		k.etcdOverlayPKI,
-		k.kubernetesPKI,
-		k.kubernetesAPIProxy,
+		k.etcdKubernetesBackend,
+		k.etcdOverlayBackend,
+		k.kubernetesBackend,
+		k.kubernetesAPIProxyBackend,
 		k.secretsGeneric,
 	}
 }
@@ -232,16 +232,16 @@ func (k *Kubernetes) Ensure() error {
 	}
 
 	// setup pki roles
-	if err := k.ensurePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {
+	if err := k.ensurePKIRolesEtcd(k.etcdKubernetesBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.ensurePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
+	if err := k.ensurePKIRolesEtcd(k.etcdOverlayBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.ensurePKIRolesK8S(k.kubernetesPKI); err != nil {
+	if err := k.ensurePKIRolesK8S(k.kubernetesBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.ensurePKIRolesK8SAPIProxy(k.kubernetesAPIProxy); err != nil {
+	if err := k.ensurePKIRolesK8SAPIProxy(k.kubernetesAPIProxyBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
 
@@ -286,19 +286,19 @@ func (k *Kubernetes) EnsureDryRun() (bool, error) {
 		}
 	}
 
-	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdKubernetesPKI)) {
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdKubernetesBackend)) {
 		return true, d.ErrorOrNil()
 	}
 
-	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdOverlayPKI)) {
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdOverlayBackend)) {
 		return true, d.ErrorOrNil()
 	}
 
-	if d.changeNeeded(k.ensureDryRunPKIRolesK8S(k.kubernetesPKI)) {
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8S(k.kubernetesBackend)) {
 		return true, d.ErrorOrNil()
 	}
 
-	if d.changeNeeded(k.ensureDryRunPKIRolesK8SAPIProxy(k.kubernetesAPIProxy)) {
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8SAPIProxy(k.kubernetesAPIProxyBackend)) {
 		return true, d.ErrorOrNil()
 	}
 
@@ -326,16 +326,16 @@ func (k *Kubernetes) Delete() error {
 		}
 	}
 
-	if err := k.deletePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {
+	if err := k.deletePKIRolesEtcd(k.etcdKubernetesBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.deletePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
+	if err := k.deletePKIRolesEtcd(k.etcdOverlayBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.deletePKIRolesK8S(k.kubernetesPKI); err != nil {
+	if err := k.deletePKIRolesK8S(k.kubernetesBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
-	if err := k.deletePKIRolesK8SAPIProxy(k.kubernetesAPIProxy); err != nil {
+	if err := k.deletePKIRolesK8SAPIProxy(k.kubernetesAPIProxyBackend); err != nil {
 		result = multierror.Append(result, err)
 	}
 

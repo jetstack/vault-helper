@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type PKI struct {
+type PKIVaultBackend struct {
 	pkiName    string
 	kubernetes *Kubernetes
 
@@ -21,8 +21,8 @@ type PKI struct {
 	Log *logrus.Entry
 }
 
-func NewPKI(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKI {
-	return &PKI{
+func NewPKIVaultBackend(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKIVaultBackend {
+	return &PKIVaultBackend{
 		pkiName:         pkiName,
 		kubernetes:      k,
 		MaxLeaseTTL:     k.MaxValidityCA,
@@ -31,7 +31,7 @@ func NewPKI(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKI {
 	}
 }
 
-func (p *PKI) TuneMount(mount *vault.MountOutput) error {
+func (p *PKIVaultBackend) TuneMount(mount *vault.MountOutput) error {
 	if p.TuneMountRequired(mount) {
 		mountConfig := p.getMountConfigInput()
 		err := p.kubernetes.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
@@ -46,11 +46,11 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 	return nil
 }
 
-func (p *PKI) unMount() error {
+func (p *PKIVaultBackend) unMount() error {
 	return p.kubernetes.vaultClient.Sys().Unmount(p.Path())
 }
 
-func (p *PKI) TuneMountRequired(mount *vault.MountOutput) bool {
+func (p *PKIVaultBackend) TuneMountRequired(mount *vault.MountOutput) bool {
 
 	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
 		return true
@@ -62,7 +62,7 @@ func (p *PKI) TuneMountRequired(mount *vault.MountOutput) bool {
 	return false
 }
 
-func (p *PKI) Ensure() error {
+func (p *PKIVaultBackend) Ensure() error {
 	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (p *PKI) Ensure() error {
 	return p.ensureCA()
 }
 
-func (p *PKI) Delete() error {
+func (p *PKIVaultBackend) Delete() error {
 	if err := p.unMount(); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (p *PKI) Delete() error {
 	return nil
 }
 
-func (p *PKI) EnsureDryRun() (bool, error) {
+func (p *PKIVaultBackend) EnsureDryRun() (bool, error) {
 	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
 	if err != nil {
 		return false, err
@@ -136,7 +136,7 @@ func (p *PKI) EnsureDryRun() (bool, error) {
 	return false, nil
 }
 
-func (p *PKI) ensureCA() error {
+func (p *PKIVaultBackend) ensureCA() error {
 	b, err := p.caPathExists()
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (p *PKI) ensureCA() error {
 	return nil
 }
 
-func (p *PKI) generateCA() error {
+func (p *PKIVaultBackend) generateCA() error {
 	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
 
 	data := map[string]interface{}{
@@ -166,7 +166,7 @@ func (p *PKI) generateCA() error {
 	return nil
 }
 
-func (p *PKI) caPathExists() (bool, error) {
+func (p *PKIVaultBackend) caPathExists() (bool, error) {
 	path := filepath.Join(p.Path(), "cert", "ca")
 
 	s, err := p.kubernetes.vaultClient.Logical().Read(path)
@@ -184,7 +184,7 @@ func (p *PKI) caPathExists() (bool, error) {
 	return true, nil
 }
 
-func (p *PKI) WriteRole(role *pkiRole) error {
+func (p *PKIVaultBackend) WriteRole(role *pkiRole) error {
 	_, err := p.kubernetes.vaultClient.Logical().Write(p.rolePath(role.Name), role.Data)
 	if err != nil {
 		return fmt.Errorf("error writting role '%s' to '%s': %v", role.Name, p.Path(), err)
@@ -193,7 +193,7 @@ func (p *PKI) WriteRole(role *pkiRole) error {
 	return nil
 }
 
-func (p *PKI) DeleteRole(role *pkiRole) error {
+func (p *PKIVaultBackend) DeleteRole(role *pkiRole) error {
 	s, err := p.kubernetes.vaultClient.Logical().Read(p.rolePath(role.Name))
 	if err != nil || s == nil || s.Data == nil {
 		return nil
@@ -207,7 +207,7 @@ func (p *PKI) DeleteRole(role *pkiRole) error {
 	return nil
 }
 
-func (p *PKI) ReadRole(role *pkiRole) (*vault.Secret, error) {
+func (p *PKIVaultBackend) ReadRole(role *pkiRole) (*vault.Secret, error) {
 	path := filepath.Join(p.Path(), "roles", role.Name)
 
 	secret, err := p.kubernetes.vaultClient.Logical().Read(path)
@@ -218,26 +218,26 @@ func (p *PKI) ReadRole(role *pkiRole) (*vault.Secret, error) {
 	return secret, nil
 }
 
-func (p *PKI) Path() string {
+func (p *PKIVaultBackend) Path() string {
 	return filepath.Join(p.kubernetes.Path(), p.Type(), p.pkiName)
 }
 
-func (p *PKI) getMountConfigInput() vault.MountConfigInput {
+func (p *PKIVaultBackend) getMountConfigInput() vault.MountConfigInput {
 	return vault.MountConfigInput{
 		DefaultLeaseTTL: p.getDefaultLeaseTTL(),
 		MaxLeaseTTL:     p.getMaxLeaseTTL(),
 	}
 }
 
-func (p *PKI) getDefaultLeaseTTL() string {
+func (p *PKIVaultBackend) getDefaultLeaseTTL() string {
 	return fmt.Sprintf("%ds", int(p.DefaultLeaseTTL.Seconds()))
 }
 
-func (p *PKI) getMaxLeaseTTL() string {
+func (p *PKIVaultBackend) getMaxLeaseTTL() string {
 	return fmt.Sprintf("%ds", int(p.MaxLeaseTTL.Seconds()))
 }
 
-func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
+func (p *PKIVaultBackend) getTokenPolicyExists(name string) (bool, error) {
 	policy, err := p.kubernetes.vaultClient.Sys().GetPolicy(name)
 	if err != nil {
 		return false, err
@@ -253,19 +253,19 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	return true, nil
 }
 
-func (p *PKI) caGenPath() string {
+func (p *PKIVaultBackend) caGenPath() string {
 	return filepath.Join(p.Path(), "root", "generate", "internal")
 }
 
 // Type is the sting key of the vault backend type
-func (p *PKI) Type() string {
+func (p *PKIVaultBackend) Type() string {
 	return "pki"
 }
 
-func (p *PKI) Name() string {
+func (p *PKIVaultBackend) Name() string {
 	return p.pkiName
 }
 
-func (p *PKI) rolePath(role string) string {
+func (p *PKIVaultBackend) rolePath(role string) string {
 	return filepath.Join(p.Path(), "roles", role)
 }
