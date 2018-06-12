@@ -11,7 +11,7 @@ import (
 	"github.com/jetstack/vault-helper/pkg/kubernetes"
 )
 
-func TestDryRun_Backend(t *testing.T) {
+func TestDryRun_BackendTypeDiffers(t *testing.T) {
 	checkDryRun(false, t)
 
 	for _, b := range []kubernetes.Backend{
@@ -22,8 +22,9 @@ func TestDryRun_Backend(t *testing.T) {
 		k.NewGenericVaultBackend(k.Log),
 	} {
 
+		//toggle the backend type
 		backendType := "pki"
-		if b.Type() == backendType {
+		if b.Type() == "pki" {
 			backendType = "generic"
 		}
 
