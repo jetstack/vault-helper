@@ -28,7 +28,7 @@ func TestPKIVaultBackend_Ensure(t *testing.T) {
 	if exp, act := fmt.Sprintf("%s-inside/pki/k8s", clusterName), fk.kubernetesBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
-	if exp, act := fmt.Sprintf("%s-inside/secrets", clusterName), fk.secretsGeneric.Path(); exp != act {
+	if exp, act := fmt.Sprintf("%s-inside/secrets", clusterName), fk.secretsBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
 

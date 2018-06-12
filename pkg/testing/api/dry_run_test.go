@@ -19,7 +19,7 @@ func TestDryRun_Backend(t *testing.T) {
 		kubernetes.NewPKIVaultBackend(k, "etcd-overlay", k.Log),
 		kubernetes.NewPKIVaultBackend(k, "k8s", k.Log),
 		kubernetes.NewPKIVaultBackend(k, "k8s-api-proxy", k.Log),
-		k.NewGeneric(k.Log),
+		k.NewGenericVaultBackend(k.Log),
 	} {
 		mount := &vault.MountInput{
 			Type: b.Type(),

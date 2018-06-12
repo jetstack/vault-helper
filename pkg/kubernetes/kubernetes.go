@@ -105,8 +105,8 @@ type Kubernetes struct {
 	// aggregation.
 	kubernetesAPIProxyBackend *PKIVaultBackend
 
-	// A generic backend for static secrets
-	secretsGeneric *Generic
+	// A generic vault backend for static secrets
+	secretsBackend *GenericVaultBackend
 
 	MaxValidityAdmin      time.Duration
 	MaxValidityComponents time.Duration
@@ -121,7 +121,7 @@ type Kubernetes struct {
 }
 
 var _ Backend = &PKIVaultBackend{}
-var _ Backend = &Generic{}
+var _ Backend = &GenericVaultBackend{}
 
 func (rv *realVault) Auth() VaultAuth {
 	return &realVaultAuth{a: rv.c.Auth()}
@@ -196,7 +196,7 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 	k.kubernetesBackend = NewPKIVaultBackend(k, "k8s", k.Log)
 	k.kubernetesAPIProxyBackend = NewPKIVaultBackend(k, "k8s-api-proxy", k.Log)
 
-	k.secretsGeneric = k.NewGeneric(k.Log)
+	k.secretsBackend = k.NewGenericVaultBackend(k.Log)
 
 	return k
 }
@@ -211,7 +211,7 @@ func (k *Kubernetes) backends() []Backend {
 		k.etcdOverlayBackend,
 		k.kubernetesBackend,
 		k.kubernetesAPIProxyBackend,
-		k.secretsGeneric,
+		k.secretsBackend,
 	}
 }
 
@@ -352,8 +352,8 @@ func (k *Kubernetes) Path() string {
 	return k.clusterID
 }
 
-func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
-	return &Generic{
+func (k *Kubernetes) NewGenericVaultBackend(logger *logrus.Entry) *GenericVaultBackend {
+	return &GenericVaultBackend{
 		kubernetes: k,
 		initTokens: make(map[string]string),
 		Log:        logger,

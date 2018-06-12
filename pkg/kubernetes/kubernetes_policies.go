@@ -120,7 +120,7 @@ func (k *Kubernetes) masterPolicy() *Policy {
 				capabilities: []string{"read"},
 			},
 			&policyPath{
-				path:         k.secretsGeneric.EncryptionConfigPath(),
+				path:         k.secretsBackend.EncryptionConfigPath(),
 				capabilities: []string{"read"},
 			},
 		},

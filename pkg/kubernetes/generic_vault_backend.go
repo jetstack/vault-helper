@@ -18,18 +18,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	genericType = "generic"
-)
-
-type Generic struct {
+type GenericVaultBackend struct {
 	kubernetes *Kubernetes
 	initTokens map[string]string
 
 	Log *logrus.Entry
 }
 
-func (g *Generic) Ensure() error {
+func (g *GenericVaultBackend) Ensure() error {
 	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return err
@@ -41,7 +37,7 @@ func (g *Generic) Ensure() error {
 			g.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
-				Type:        genericType,
+				Type:        g.Type(),
 			},
 		)
 
@@ -74,13 +70,13 @@ func (g *Generic) Ensure() error {
 	return nil
 }
 
-func (g *Generic) EnsureDryRun() (bool, error) {
+func (g *GenericVaultBackend) EnsureDryRun() (bool, error) {
 	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return false, err
 	}
 
-	if mount == nil || mount.Type != genericType {
+	if mount == nil || mount.Type != g.Type() {
 		return true, nil
 	}
 
@@ -99,7 +95,7 @@ func (g *Generic) EnsureDryRun() (bool, error) {
 	return false, nil
 }
 
-func (g *Generic) Delete() error {
+func (g *GenericVaultBackend) Delete() error {
 	var result *multierror.Error
 
 	if err := g.deleteSecret(g.ServiceAccountsPath()); err != nil {
@@ -117,11 +113,11 @@ func (g *Generic) Delete() error {
 	return result.ErrorOrNil()
 }
 
-func (g *Generic) Path() string {
+func (g *GenericVaultBackend) Path() string {
 	return filepath.Join(g.kubernetes.Path(), "secrets")
 }
 
-func (g *Generic) unMount() error {
+func (g *GenericVaultBackend) unMount() error {
 	if err := g.kubernetes.vaultClient.Sys().Unmount(g.Path()); err != nil {
 		return fmt.Errorf("failed to unmount secrects mount: %v", err)
 	}
@@ -129,7 +125,7 @@ func (g *Generic) unMount() error {
 	return nil
 }
 
-func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
+func (g *GenericVaultBackend) writeNewRSAKey(secretPath string, bitSize int) error {
 	reader := rand.Reader
 	key, err := rsa.GenerateKey(reader, bitSize)
 	if err != nil {
@@ -200,7 +196,7 @@ resources:
 	return nil
 }
 
-func (g *Generic) deleteSecret(secretPath string) error {
+func (g *GenericVaultBackend) deleteSecret(secretPath string) error {
 	s, err := g.kubernetes.vaultClient.Logical().Read(secretPath)
 	if err != nil || s == nil || s.Data == nil {
 		return nil
@@ -214,7 +210,7 @@ func (g *Generic) deleteSecret(secretPath string) error {
 	return nil
 }
 
-func (g *Generic) InitToken(name, role string, policies []string, expectedToken string) (string, error) {
+func (g *GenericVaultBackend) InitToken(name, role string, policies []string, expectedToken string) (string, error) {
 	path := g.initTokenPath(role)
 
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(path); err != nil {
@@ -256,11 +252,11 @@ func (g *Generic) InitToken(name, role string, policies []string, expectedToken 
 	return token.Auth.ClientToken, nil
 }
 
-func (g *Generic) initTokenPath(role string) string {
+func (g *GenericVaultBackend) initTokenPath(role string) string {
 	return filepath.Join(g.Path(), fmt.Sprintf("init_token_%s", role))
 }
 
-func (g *Generic) InitTokenStore(role string) (token string, err error) {
+func (g *GenericVaultBackend) InitTokenStore(role string) (token string, err error) {
 	path := g.initTokenPath(role)
 
 	s, err := g.kubernetes.vaultClient.Logical().Read(path)
@@ -283,7 +279,7 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 	return token, nil
 }
 
-func (g *Generic) revokeToken(token, path, role string) error {
+func (g *GenericVaultBackend) revokeToken(token, path, role string) error {
 	err := g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(token)
 	if err != nil {
 		return fmt.Errorf("failed to revoke init token at path '%s': %v", path, err)
@@ -294,7 +290,7 @@ func (g *Generic) revokeToken(token, path, role string) error {
 	return nil
 }
 
-func (g *Generic) SetInitTokenStore(role string, token string) error {
+func (g *GenericVaultBackend) SetInitTokenStore(role string, token string) error {
 	path := g.initTokenPath(role)
 
 	data := map[string]interface{}{
@@ -310,7 +306,7 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	return nil
 }
 
-func (g *Generic) DeleteInitTokenStore(role string) error {
+func (g *GenericVaultBackend) DeleteInitTokenStore(role string) error {
 	path := g.initTokenPath(role)
 
 	_, err := g.kubernetes.vaultClient.Logical().Delete(path)
@@ -321,20 +317,20 @@ func (g *Generic) DeleteInitTokenStore(role string) error {
 	return nil
 }
 
-func (g *Generic) Type() string {
-	return genericType
+func (g *GenericVaultBackend) Type() string {
+	return "generic"
 }
 
-func (g *Generic) Name() string {
+func (g *GenericVaultBackend) Name() string {
 	return "secrets"
 }
 
 // ServiceAccountsPath is the vault path for the service-accounts certificate content
-func (g *Generic) ServiceAccountsPath() string {
+func (g *GenericVaultBackend) ServiceAccountsPath() string {
 	return filepath.Join(g.Path(), "service-accounts")
 }
 
 // EncryptionConfigPath is the vault path for the kubernetes encryption config file content
-func (g *Generic) EncryptionConfigPath() string {
+func (g *GenericVaultBackend) EncryptionConfigPath() string {
 	return filepath.Join(g.Path(), "encryption-config")
 }
