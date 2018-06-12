@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.11] - 2018-06-12
+
+### Fixed
+- Migrate `docker_*` build targets to use docker cp [PR 25](https://github.com/jetstack/vault-helper/pull/25)
+- Improve vault backend names [PR 24](https://github.com/jetstack/vault-helper/pull/24)
+
+### Changed
+- Write the kubernetes encryption config file to vault [PR 23](https://github.com/jetstack/vault-helper/pull/23)
+- Add dryrun, delete and versioning for kubernetes vault provider [PR 20](https://github.com/jetstack/vault-helper/pull/20)
+
 ## [0.9.10] - 2018-04-19
 
 ### Fixed
