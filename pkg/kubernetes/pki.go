@@ -11,10 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	pkiType = "pki"
-)
-
 type PKI struct {
 	pkiName    string
 	kubernetes *Kubernetes
@@ -79,7 +75,7 @@ func (p *PKI) Ensure() error {
 			p.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA",
-				Type:        pkiType,
+				Type:        p.Type(),
 			},
 		)
 
@@ -93,7 +89,7 @@ func (p *PKI) Ensure() error {
 		p.Log.Infof("Mounted '%s'", p.pkiName)
 
 	} else {
-		if mount.Type != pkiType {
+		if mount.Type != p.Type() {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
 		p.Log.Debugf("Mount '%s' already existing", p.Path())
@@ -124,7 +120,7 @@ func (p *PKI) EnsureDryRun() (bool, error) {
 	}
 
 	// Mount doesn't Exist
-	if mount == nil || mount.Type != pkiType || p.TuneMountRequired(mount) {
+	if mount == nil || mount.Type != p.Type() || p.TuneMountRequired(mount) {
 		return true, nil
 	}
 
@@ -223,7 +219,7 @@ func (p *PKI) ReadRole(role *pkiRole) (*vault.Secret, error) {
 }
 
 func (p *PKI) Path() string {
-	return filepath.Join(p.kubernetes.Path(), pkiType, p.pkiName)
+	return filepath.Join(p.kubernetes.Path(), p.Type(), p.pkiName)
 }
 
 func (p *PKI) getMountConfigInput() vault.MountConfigInput {
@@ -261,8 +257,9 @@ func (p *PKI) caGenPath() string {
 	return filepath.Join(p.Path(), "root", "generate", "internal")
 }
 
+// Type is the sting key of the vault backend type
 func (p *PKI) Type() string {
-	return pkiType
+	return "pki"
 }
 
 func (p *PKI) Name() string {
