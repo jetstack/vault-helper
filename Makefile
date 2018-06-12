@@ -65,8 +65,12 @@ go_build:
 image:
 	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
 
-save:
-	docker save $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) -o vault-helper-image.tar
+image_push: image
+	set -e; \
+		for tag in $(IMAGE_TAGS); do \
+		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
+		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
+		done
 
 bin/mockgen:
 	mkdir -p $(BINDIR)
@@ -111,9 +115,3 @@ docker_%:
 	# remove container
 	docker rm $(CONTAINER_ID)
 
-docker_push: docker_build
-	set -e; \
-		for tag in $(IMAGE_TAGS); do \
-		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
-		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
-		done
