@@ -161,7 +161,7 @@ func (g *GenericVaultBackend) writeNewRSAKey(secretPath string, bitSize int) err
 	return nil
 }
 
-func (g *Generic) writeNewEncryptionConfig(secretPath string) error {
+func (g *GenericVaultBackend) writeNewEncryptionConfig(secretPath string) error {
 	encryptionConfig := `kind: EncryptionConfig
 apiVersion: v1
 resources:

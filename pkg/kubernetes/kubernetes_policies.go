@@ -116,7 +116,7 @@ func (k *Kubernetes) masterPolicy() *Policy {
 				capabilities: []string{"create", "read", "update"},
 			},
 			&policyPath{
-				path:         k.secretsGeneric.ServiceAccountsPath(),
+				path:         k.secretsBackend.ServiceAccountsPath(),
 				capabilities: []string{"read"},
 			},
 			&policyPath{
