@@ -4,6 +4,7 @@ package vault_dev
 import (
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -124,4 +125,26 @@ func getUnusedPort() int {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
+}
+
+func InitVaultDev() (*VaultDev, error) {
+	vaultDev := New()
+
+	if err := vaultDev.Start(); err != nil {
+		return nil, fmt.Errorf("unable to initialise vault dev server for testing: %v", err)
+	}
+
+	addr := fmt.Sprintf("http://127.0.0.1:%d", vaultDev.Port())
+
+	if err := os.Setenv("VAULT_ADDR", addr); err != nil {
+		vaultDev.Stop()
+		return nil, fmt.Errorf("failed to set vault address environment variable: %v", err)
+	}
+
+	if err := os.Setenv("VAULT_TOKEN", "root-token-dev"); err != nil {
+		vaultDev.Stop()
+		return nil, fmt.Errorf("failed to set vault root token environment variable: %v", err)
+	}
+
+	return vaultDev, nil
 }

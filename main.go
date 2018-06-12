@@ -1,7 +1,10 @@
 // Copyright Jetstack Ltd. See LICENSE for details.
 package main
 
-import "github.com/jetstack/vault-helper/cmd"
+import (
+	"github.com/jetstack/vault-helper/cmd"
+	"github.com/jetstack/vault-helper/pkg/kubernetes"
+)
 
 var (
 	version string = "dev"
@@ -13,5 +16,6 @@ func main() {
 	cmd.Version.Version = version
 	cmd.Version.Commit = commit
 	cmd.Version.BuildDate = date
+	kubernetes.Version = version
 	cmd.Execute()
 }

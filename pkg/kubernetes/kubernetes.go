@@ -23,14 +23,21 @@ const FlagInitTokenAll = "init-token-all"
 const FlagInitTokenMaster = "init-token-master"
 const FlagInitTokenWorker = "init-token-worker"
 
+var Version string
+
 type Backend interface {
 	Ensure() error
+	EnsureDryRun() (bool, error)
+	Delete() error
 	Path() string
+	Type() string
+	Name() string
 }
 
 type VaultLogical interface {
 	Write(path string, data map[string]interface{}) (*vault.Secret, error)
 	Read(path string) (*vault.Secret, error)
+	Delete(path string) (*vault.Secret, error)
 }
 
 type VaultSys interface {
@@ -41,6 +48,10 @@ type VaultSys interface {
 	PutPolicy(name, rules string) error
 	TuneMount(path string, config vault.MountConfigInput) error
 	GetPolicy(name string) (string, error)
+
+	Unmount(path string) error
+	DeletePolicy(policy string) error
+	Revoke(id string) error
 }
 
 type VaultAuth interface {
@@ -105,6 +116,8 @@ type Kubernetes struct {
 	FlagInitTokens FlagInitTokens
 
 	initTokens []*InitToken
+
+	version string
 }
 
 var _ Backend = &PKI{}
@@ -168,6 +181,7 @@ func New(vaultClient *vault.Client, logger *logrus.Entry) *Kubernetes {
 			Worker: "",
 			All:    "",
 		},
+		version: Version,
 	}
 
 	if vaultClient != nil {
@@ -207,14 +221,14 @@ func (k *Kubernetes) Ensure() error {
 	}
 
 	// setup backends
-	var result error
+	var result *multierror.Error
 	for _, backend := range k.backends() {
 		if err := backend.Ensure(); err != nil {
 			result = multierror.Append(result, fmt.Errorf("backend %s: %s", backend.Path(), err))
 		}
 	}
 	if result != nil {
-		return result
+		return result.ErrorOrNil()
 	}
 
 	// setup pki roles
@@ -241,7 +255,97 @@ func (k *Kubernetes) Ensure() error {
 		result = multierror.Append(result, err)
 	}
 
-	return result
+	return result.ErrorOrNil()
+}
+
+type DryRun struct {
+	*multierror.Error
+}
+
+func (d *DryRun) changeNeeded(change bool, err error) bool {
+	if err != nil {
+		d.Error = multierror.Append(d.Error, err)
+	}
+
+	return change
+}
+
+// return true if change needed
+func (k *Kubernetes) EnsureDryRun() (bool, error) {
+	d := &DryRun{
+		new(multierror.Error),
+	}
+
+	if len(k.initTokens) == 0 {
+		k.initTokens = k.NewInitTokens()
+	}
+
+	for _, b := range k.backends() {
+		if d.changeNeeded(b.EnsureDryRun()) {
+			return true, d.ErrorOrNil()
+		}
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdKubernetesPKI)) {
+		return true, d.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesEtcd(k.etcdOverlayPKI)) {
+		return true, d.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8S(k.kubernetesPKI)) {
+		return true, d.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPKIRolesK8SAPIProxy(k.kubernetesAPIProxy)) {
+		return true, d.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunPolicies()) {
+		return true, d.ErrorOrNil()
+	}
+
+	if d.changeNeeded(k.ensureDryRunInitTokens()) {
+		return true, d.ErrorOrNil()
+	}
+
+	return false, d.ErrorOrNil()
+}
+
+func (k *Kubernetes) Delete() error {
+	var result *multierror.Error
+
+	if err := k.deletePolicies(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	for _, i := range k.initTokens {
+		if err := i.Delete(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	if err := k.deletePKIRolesEtcd(k.etcdKubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesEtcd(k.etcdOverlayPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesK8S(k.kubernetesPKI); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := k.deletePKIRolesK8SAPIProxy(k.kubernetesAPIProxy); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	for _, b := range k.backends() {
+		if err := b.Delete(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result.ErrorOrNil()
 }
 
 func (k *Kubernetes) Path() string {
@@ -257,20 +361,20 @@ func (k *Kubernetes) NewGeneric(logger *logrus.Entry) *Generic {
 }
 
 func GetMountByPath(vaultClient Vault, mountPath string) (*vault.MountOutput, error) {
+	mountPath = filepath.Clean(mountPath)
+
 	mounts, err := vaultClient.Sys().ListMounts()
 	if err != nil {
 		return nil, fmt.Errorf("error listing mounts: %v", err)
 	}
 
-	var mount *vault.MountOutput
 	for key, _ := range mounts {
-		if filepath.Clean(key) == filepath.Clean(mountPath) {
-			mount = mounts[key]
-			break
+		if filepath.Clean(key) == mountPath || filepath.Dir(key) == mountPath {
+			return mounts[key], nil
 		}
 	}
 
-	return mount, nil
+	return nil, nil
 }
 
 func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *InitToken {
@@ -282,24 +386,32 @@ func (k *Kubernetes) NewInitToken(role, expected string, policies []string) *Ini
 	}
 }
 
-func (k *Kubernetes) ensureInitTokens() error {
-	var result error
+func (k *Kubernetes) NewInitTokens() []*InitToken {
+	var initTokens []*InitToken
 
-	k.initTokens = append(k.initTokens, k.NewInitToken("etcd", k.FlagInitTokens.Etcd, []string{
+	initTokens = append(initTokens, k.NewInitToken("etcd", k.FlagInitTokens.Etcd, []string{
 		k.etcdPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("master", k.FlagInitTokens.Master, []string{
+	initTokens = append(initTokens, k.NewInitToken("master", k.FlagInitTokens.Master, []string{
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("worker", k.FlagInitTokens.Worker, []string{
+	initTokens = append(initTokens, k.NewInitToken("worker", k.FlagInitTokens.Worker, []string{
 		k.workerPolicy().Name,
 	}))
-	k.initTokens = append(k.initTokens, k.NewInitToken("all", k.FlagInitTokens.All, []string{
+	initTokens = append(initTokens, k.NewInitToken("all", k.FlagInitTokens.All, []string{
 		k.etcdPolicy().Name,
 		k.masterPolicy().Name,
 		k.workerPolicy().Name,
 	}))
+
+	return initTokens
+}
+
+func (k *Kubernetes) ensureInitTokens() error {
+	var result *multierror.Error
+
+	k.initTokens = append(k.initTokens, k.NewInitTokens()...)
 
 	for _, initToken := range k.initTokens {
 		if err := initToken.Ensure(); err != nil {
@@ -307,6 +419,25 @@ func (k *Kubernetes) ensureInitTokens() error {
 		}
 	}
 	return result
+}
+
+func (k *Kubernetes) ensureDryRunInitTokens() (bool, error) {
+	if len(k.initTokens) == 0 {
+		return true, nil
+	}
+
+	var result *multierror.Error
+	for _, i := range k.initTokens {
+		changeNeeded, err := i.EnsureDryRun()
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+		if changeNeeded {
+			return true, result.ErrorOrNil()
+		}
+	}
+
+	return false, result.ErrorOrNil()
 }
 
 func (k *Kubernetes) InitTokens() map[string]string {
@@ -322,4 +453,12 @@ func (k *Kubernetes) InitTokens() map[string]string {
 
 func (k *Kubernetes) SetInitFlags(flags FlagInitTokens) {
 	k.FlagInitTokens = flags
+}
+
+func (k *Kubernetes) Version() string {
+	return k.version
+}
+
+func (k *Kubernetes) SetVersion(version string) {
+	k.version = version
 }

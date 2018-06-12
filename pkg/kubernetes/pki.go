@@ -11,6 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	pkiType = "pki"
+)
+
 type PKI struct {
 	pkiName    string
 	kubernetes *Kubernetes
@@ -32,16 +36,7 @@ func NewPKI(k *Kubernetes, pkiName string, logger *logrus.Entry) *PKI {
 }
 
 func (p *PKI) TuneMount(mount *vault.MountOutput) error {
-	tuneMountRequired := false
-
-	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
-		tuneMountRequired = true
-	}
-
-	if tuneMountRequired {
+	if p.TuneMountRequired(mount) {
 		mountConfig := p.getMountConfigInput()
 		err := p.kubernetes.vaultClient.Sys().TuneMount(p.Path(), mountConfig)
 		if err != nil {
@@ -53,6 +48,22 @@ func (p *PKI) TuneMount(mount *vault.MountOutput) error {
 	p.Log.Debugf("No tune required: %s", p.pkiName)
 
 	return nil
+}
+
+func (p *PKI) unMount() error {
+	return p.kubernetes.vaultClient.Sys().Unmount(p.Path())
+}
+
+func (p *PKI) TuneMountRequired(mount *vault.MountOutput) bool {
+
+	if mount.Config.DefaultLeaseTTL != int(p.DefaultLeaseTTL.Seconds()) {
+		return true
+	}
+	if mount.Config.MaxLeaseTTL != int(p.MaxLeaseTTL.Seconds()) {
+		return true
+	}
+
+	return false
 }
 
 func (p *PKI) Ensure() error {
@@ -68,7 +79,7 @@ func (p *PKI) Ensure() error {
 			p.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA",
-				Type:        "pki",
+				Type:        pkiType,
 			},
 		)
 
@@ -82,7 +93,7 @@ func (p *PKI) Ensure() error {
 		p.Log.Infof("Mounted '%s'", p.pkiName)
 
 	} else {
-		if mount.Type != "pki" {
+		if mount.Type != pkiType {
 			return fmt.Errorf("Mount '%s' already existing with wrong type '%s'", p.Path(), mount.Type)
 		}
 		p.Log.Debugf("Mount '%s' already existing", p.Path())
@@ -96,6 +107,37 @@ func (p *PKI) Ensure() error {
 	}
 
 	return p.ensureCA()
+}
+
+func (p *PKI) Delete() error {
+	if err := p.unMount(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *PKI) EnsureDryRun() (bool, error) {
+	mount, err := GetMountByPath(p.kubernetes.vaultClient, p.Path())
+	if err != nil {
+		return false, err
+	}
+
+	// Mount doesn't Exist
+	if mount == nil || mount.Type != pkiType || p.TuneMountRequired(mount) {
+		return true, nil
+	}
+
+	exist, err := p.caPathExists()
+	if err != nil {
+		return false, err
+	}
+
+	if !exist {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (p *PKI) ensureCA() error {
@@ -112,7 +154,6 @@ func (p *PKI) ensureCA() error {
 }
 
 func (p *PKI) generateCA() error {
-	path := filepath.Join(p.Path(), "root", "generate", "internal")
 	description := "Kubernetes " + p.kubernetes.clusterID + "/" + p.pkiName + " CA"
 
 	data := map[string]interface{}{
@@ -121,7 +162,7 @@ func (p *PKI) generateCA() error {
 		"exclude_cn_from_sans": true,
 	}
 
-	_, err := p.kubernetes.vaultClient.Logical().Write(path, data)
+	_, err := p.kubernetes.vaultClient.Logical().Write(p.caGenPath(), data)
 	if err != nil {
 		return fmt.Errorf("error writing new CA: %v", err)
 	}
@@ -148,9 +189,7 @@ func (p *PKI) caPathExists() (bool, error) {
 }
 
 func (p *PKI) WriteRole(role *pkiRole) error {
-	path := filepath.Join(p.Path(), "roles", role.Name)
-
-	_, err := p.kubernetes.vaultClient.Logical().Write(path, role.Data)
+	_, err := p.kubernetes.vaultClient.Logical().Write(p.rolePath(role.Name), role.Data)
 	if err != nil {
 		return fmt.Errorf("error writting role '%s' to '%s': %v", role.Name, p.Path(), err)
 	}
@@ -158,8 +197,33 @@ func (p *PKI) WriteRole(role *pkiRole) error {
 	return nil
 }
 
+func (p *PKI) DeleteRole(role *pkiRole) error {
+	s, err := p.kubernetes.vaultClient.Logical().Read(p.rolePath(role.Name))
+	if err != nil || s == nil || s.Data == nil {
+		return nil
+	}
+
+	_, err = p.kubernetes.vaultClient.Logical().Delete(p.rolePath(role.Name))
+	if err != nil {
+		return fmt.Errorf("error deleting role '%s' to '%s': %v", role.Name, p.Path(), err)
+	}
+
+	return nil
+}
+
+func (p *PKI) ReadRole(role *pkiRole) (*vault.Secret, error) {
+	path := filepath.Join(p.Path(), "roles", role.Name)
+
+	secret, err := p.kubernetes.vaultClient.Logical().Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading role '%s' to '%s': %v", role.Name, p.Path(), err)
+	}
+
+	return secret, nil
+}
+
 func (p *PKI) Path() string {
-	return filepath.Join(p.kubernetes.Path(), "pki", p.pkiName)
+	return filepath.Join(p.kubernetes.Path(), pkiType, p.pkiName)
 }
 
 func (p *PKI) getMountConfigInput() vault.MountConfigInput {
@@ -191,4 +255,20 @@ func (p *PKI) getTokenPolicyExists(name string) (bool, error) {
 	p.Log.Debugf("Policy Found: %s", name)
 
 	return true, nil
+}
+
+func (p *PKI) caGenPath() string {
+	return filepath.Join(p.Path(), "root", "generate", "internal")
+}
+
+func (p *PKI) Type() string {
+	return pkiType
+}
+
+func (p *PKI) Name() string {
+	return p.pkiName
+}
+
+func (p *PKI) rolePath(role string) string {
+	return filepath.Join(p.Path(), "roles", role)
 }

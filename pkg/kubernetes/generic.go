@@ -11,8 +11,13 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/go-multierror"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	genericType = "generic"
 )
 
 type Generic struct {
@@ -23,15 +28,6 @@ type Generic struct {
 }
 
 func (g *Generic) Ensure() error {
-	err := g.GenerateSecretsMount()
-	return err
-}
-
-func (g *Generic) Path() string {
-	return filepath.Join(g.kubernetes.Path(), "secrets")
-}
-
-func (g *Generic) GenerateSecretsMount() error {
 	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
 	if err != nil {
 		return err
@@ -43,7 +39,7 @@ func (g *Generic) GenerateSecretsMount() error {
 			g.Path(),
 			&vault.MountInput{
 				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
-				Type:        "generic",
+				Type:        genericType,
 			},
 		)
 
@@ -54,7 +50,7 @@ func (g *Generic) GenerateSecretsMount() error {
 		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
-	rsaKeyPath := filepath.Join(g.Path(), "service-accounts")
+	rsaKeyPath := g.rsaPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
 	} else if secret == nil {
@@ -62,6 +58,51 @@ func (g *Generic) GenerateSecretsMount() error {
 		if err != nil {
 			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
 		}
+	}
+
+	return nil
+}
+
+func (g *Generic) EnsureDryRun() (bool, error) {
+	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
+	if err != nil {
+		return false, err
+	}
+
+	if mount == nil || mount.Type != genericType {
+		return true, nil
+	}
+
+	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.rsaPath()); err != nil {
+		return false, fmt.Errorf("error checking for secret %s: %v", g.rsaPath(), err)
+	} else if secret == nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (g *Generic) Delete() error {
+	var result *multierror.Error
+
+	if err := g.deleteSecret(g.rsaPath()); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	if err := g.unMount(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result.ErrorOrNil()
+}
+
+func (g *Generic) Path() string {
+	return filepath.Join(g.kubernetes.Path(), "secrets")
+}
+
+func (g *Generic) unMount() error {
+	if err := g.kubernetes.vaultClient.Sys().Unmount(g.Path()); err != nil {
+		return fmt.Errorf("failed to unmount secrects mount: %v", err)
 	}
 
 	return nil
@@ -99,6 +140,20 @@ func (g *Generic) writeNewRSAKey(secretPath string, bitSize int) error {
 	}
 
 	g.Log.Infof("Key written to secrets '%s'", secretPath)
+
+	return nil
+}
+
+func (g *Generic) deleteSecret(secretPath string) error {
+	s, err := g.kubernetes.vaultClient.Logical().Read(secretPath)
+	if err != nil || s == nil || s.Data == nil {
+		return nil
+	}
+
+	_, err = g.kubernetes.vaultClient.Logical().Delete(secretPath)
+	if err != nil {
+		return fmt.Errorf("error deleting key from secrets: %v", err)
+	}
 
 	return nil
 }
@@ -175,7 +230,7 @@ func (g *Generic) InitTokenStore(role string) (token string, err error) {
 func (g *Generic) revokeToken(token, path, role string) error {
 	err := g.kubernetes.vaultClient.Auth().Token().RevokeOrphan(token)
 	if err != nil {
-		return fmt.Errorf("failed to revoke init token at path: %s", path)
+		return fmt.Errorf("failed to revoke init token at path '%s': %v", path, err)
 	}
 
 	g.Log.Infof("Revoked Token '%s': '%s'", role, token)
@@ -191,10 +246,33 @@ func (g *Generic) SetInitTokenStore(role string, token string) error {
 	}
 	_, err := g.kubernetes.vaultClient.Logical().Write(path, data)
 	if err != nil {
-		return fmt.Errorf("error writting init token at path:  %v", path)
+		return fmt.Errorf("error writting init token at path '%s': %v", path, err)
 	}
 
 	g.Log.Infof("Init token written for '%s' at '%s'", role, path)
 
 	return nil
+}
+
+func (g *Generic) DeleteInitTokenStore(role string) error {
+	path := g.initTokenPath(role)
+
+	_, err := g.kubernetes.vaultClient.Logical().Delete(path)
+	if err != nil {
+		return fmt.Errorf("error deleting init token at path '%s': %v", path, err)
+	}
+
+	return nil
+}
+
+func (g *Generic) Type() string {
+	return genericType
+}
+
+func (g *Generic) Name() string {
+	return "secrets"
+}
+
+func (g *Generic) rsaPath() string {
+	return filepath.Join(g.Path(), "service-accounts")
 }

@@ -35,6 +35,8 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
 	defer fv.Finish()
 
+	fv.ExpectWrite()
+
 	i := &InitToken{
 		Role:          "etcd",
 		Policies:      []string{"etcd"},
@@ -86,6 +88,8 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	fv := NewFakeVault(t)
 	defer fv.Finish()
 
+	fv.ExpectWrite()
+
 	i := &InitToken{
 		Role:          "etcd",
 		Policies:      []string{"etcd"},
@@ -126,6 +130,8 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	fv := NewFakeVault(t)
 	defer fv.Finish()
 
+	fv.ExpectWrite()
+
 	i := &InitToken{
 		Role:          "etcd",
 		Policies:      []string{"etcd"},
@@ -165,6 +171,8 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 func TestInitToken_Ensure_ExpectedToken_NotExisting(t *testing.T) {
 	fv := NewFakeVault(t)
 	defer fv.Finish()
+
+	fv.ExpectWrite()
 
 	i := &InitToken{
 		Role:          "etcd",

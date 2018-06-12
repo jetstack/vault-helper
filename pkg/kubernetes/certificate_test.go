@@ -15,8 +15,6 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
-
-	"github.com/jetstack/vault-helper/pkg/testing/vault_dev"
 )
 
 type caCertificate struct {
@@ -31,50 +29,29 @@ type basicConstraints struct {
 }
 
 func TestOrganisations(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
-		return
-	}
-	defer vault.Stop()
-
-	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
-	k.SetClusterID("test-cluster")
-
-	if err := k.Ensure(); err != nil {
-		t.Errorf("error ensuring %v", err)
-		return
-	}
-
 	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy"} {
 		path := filepath.Join("test-cluster", "pki", "k8s", "sign", role)
-		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
+		if err := OrgMatch(role, path, []string{""}, vaultDev.Client()); err != nil {
 			t.Error("error matching organisation: ", err)
-			return
 		}
 	}
 
 	for _, role := range []string{"server", "client"} {
 		path := filepath.Join("test-cluster", "pki", "etcd-k8s", "sign", role)
-		if err := OrgMatch(role, path, []string{""}, vault.Client()); err != nil {
+		if err := OrgMatch(role, path, []string{""}, vaultDev.Client()); err != nil {
 			t.Errorf("error matching organisation: %v", err)
-			return
 		}
 	}
 
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "admin")
-	if err := OrgMatch("admin", path, []string{"system:masters"}, vault.Client()); err != nil {
+	if err := OrgMatch("admin", path, []string{"system:masters"}, vaultDev.Client()); err != nil {
 		t.Errorf("error matching organisation: %v", err)
-		return
 	}
 
 	path = filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
-	if err := OrgMatch("kubelet", path, []string{"system:nodes"}, vault.Client()); err != nil {
+	if err := OrgMatch("kubelet", path, []string{"system:nodes"}, vaultDev.Client()); err != nil {
 		t.Errorf("error matching organisation: %v", err)
-		return
 	}
-
-	return
 }
 
 func OrgMatch(role, path string, match []string, vaultClient *vault.Client) error {
@@ -143,47 +120,17 @@ func OrgMatch(role, path string, match []string, vaultClient *vault.Client) erro
 }
 
 func TestCertificates(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
-		return
-	}
-	defer vault.Stop()
-
-	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
-	k.SetClusterID("test-cluster")
-
-	if err := k.Ensure(); err != nil {
-		t.Errorf("failed to ensure %v", err)
-		return
-	}
-
 	for _, role := range []string{"server", "client"} {
-		verify_certificate(t, "etcd-k8s", role, vault.Client())
+		verify_certificate(t, "etcd-k8s", role, vaultDev.Client())
 	}
 
 	for _, role := range []string{"kube-scheduler", "kube-apiserver", "kube-controller-manager", "kube-proxy", "admin"} {
-		verify_certificate(t, "k8s", role, vault.Client())
+		verify_certificate(t, "k8s", role, vaultDev.Client())
 	}
 
 }
 
 func TestApiServerCanAdd(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
-		return
-	}
-	defer vault.Stop()
-
-	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
-	k.SetClusterID("test-cluster")
-
-	if err := k.Ensure(); err != nil {
-		t.Errorf("failed to ensure %v", err)
-		return
-	}
-
 	data := map[string]interface{}{
 		"common_name": "kube-apiserver",
 		"alt_names":   "THISisAny,HoSTName",
@@ -192,7 +139,7 @@ func TestApiServerCanAdd(t *testing.T) {
 
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kube-apiserver")
 
-	_, err := writeCertificate(path, data, vault.Client())
+	_, err := writeCertificate(path, data, vaultDev.Client())
 	if err != nil {
 		t.Errorf("error writting signiture: %v", err)
 		return
@@ -202,21 +149,6 @@ func TestApiServerCanAdd(t *testing.T) {
 }
 
 func TestKubeletPKIRoles(t *testing.T) {
-	vault := vault_dev.New()
-	if err := vault.Start(); err != nil {
-		t.Errorf("unable to initialise vault dev server for integration tests: %v", err)
-		return
-	}
-	defer vault.Stop()
-
-	k := New(vault.Client(), logrus.NewEntry(logrus.New()))
-	k.SetClusterID("test-cluster")
-
-	if err := k.Ensure(); err != nil {
-		t.Errorf("failed to ensure %v", err)
-		return
-	}
-
 	path := filepath.Join("test-cluster", "pki", "k8s", "sign", "kubelet")
 	pass := []string{
 		"0-99-37-81.eu-west-2.compute.internal",
@@ -248,14 +180,14 @@ func TestKubeletPKIRoles(t *testing.T) {
 
 	for _, c := range pass {
 		data["common_name"] = c
-		if _, err := writeCertificate(path, data, vault.Client()); err != nil {
+		if _, err := writeCertificate(path, data, vaultDev.Client()); err != nil {
 			t.Errorf("unexpected kublet PKI error: %v", err)
 		}
 	}
 
 	for _, c := range fail {
 		data["common_name"] = c
-		if _, err := writeCertificate(path, data, vault.Client()); err == nil {
+		if _, err := writeCertificate(path, data, vaultDev.Client()); err == nil {
 			t.Errorf("expected kublet pki error, got=none. common_name[%s]", c)
 		}
 	}
