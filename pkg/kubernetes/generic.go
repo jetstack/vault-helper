@@ -52,7 +52,6 @@ func (g *Generic) Ensure() error {
 		g.Log.Infof("Mounted secrets: '%s'", g.Path())
 	}
 
-	//TODO the same code is ran when generating the secrets mount
 	rsaKeyPath := g.ServiceAccountsPath()
 	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
 		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
@@ -120,51 +119,6 @@ func (g *Generic) Delete() error {
 
 func (g *Generic) Path() string {
 	return filepath.Join(g.kubernetes.Path(), "secrets")
-}
-
-func (g *Generic) GenerateSecretsMount() error {
-	mount, err := GetMountByPath(g.kubernetes.vaultClient, g.Path())
-	if err != nil {
-		return err
-	}
-
-	if mount == nil {
-		g.Log.Debugf("No secrects mount found for: %s", g.Path())
-		err = g.kubernetes.vaultClient.Sys().Mount(
-			g.Path(),
-			&vault.MountInput{
-				Description: "Kubernetes " + g.kubernetes.clusterID + " secrets",
-				Type:        genericType,
-			},
-		)
-
-		if err != nil {
-			return fmt.Errorf("error creating mount: %v", err)
-		}
-
-		g.Log.Infof("Mounted secrets: '%s'", g.Path())
-	}
-
-	rsaKeyPath := g.ServiceAccountsPath()
-	if secret, err := g.kubernetes.vaultClient.Logical().Read(rsaKeyPath); err != nil {
-		return fmt.Errorf("error checking for secret %s: %v", rsaKeyPath, err)
-	} else if secret == nil {
-		err = g.writeNewRSAKey(rsaKeyPath, 4096)
-		if err != nil {
-			return fmt.Errorf("error creating rsa key at %s: %v", rsaKeyPath, err)
-		}
-	}
-
-	if secret, err := g.kubernetes.vaultClient.Logical().Read(g.EncryptionConfigPath()); err != nil {
-		return fmt.Errorf("error checking for secret %s: %v", g.EncryptionConfigPath(), err)
-	} else if secret == nil {
-		err = g.writeNewEncryptionConfig(g.EncryptionConfigPath())
-		if err != nil {
-			return fmt.Errorf("error creating encryption config at %s: %v", g.EncryptionConfigPath(), err)
-		}
-	}
-
-	return nil
 }
 
 func (g *Generic) unMount() error {
