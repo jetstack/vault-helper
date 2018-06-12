@@ -76,8 +76,8 @@ func (i *InitToken) EnsureDryRun() (bool, error) {
 		return true, result.ErrorOrNil()
 	}
 
-	// get init token from generic
-	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
+	// get init token from secrets backend
+	token, err := i.secretsBackend().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
 	if err != nil {
 		result = multierror.Append(result, err)
 	} else if token == "" {
@@ -160,15 +160,14 @@ func (i *InitToken) readInitTokenPolicy() (string, error) {
 	return i.kubernetes.ReadPolicy(i.policy())
 }
 
-// Return init token if token exists
-// Retrieve from generic if !exists
+// InitToken fetches the token from the secrets backend if it is not already set
 func (i *InitToken) InitToken() (string, error) {
 	if i.token != nil {
 		return *i.token, nil
 	}
 
-	// get init token from generic
-	token, err := i.secretsGeneric().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
+	// get init token from the secrets backend
+	token, err := i.secretsBackend().InitToken(i.Name(), i.Role, []string{fmt.Sprintf("%s-creator", i.namePath())}, i.ExpectedToken)
 	if err != nil {
 		return "", err
 	}
@@ -177,8 +176,8 @@ func (i *InitToken) InitToken() (string, error) {
 	return token, nil
 }
 
-func (i *InitToken) secretsGeneric() *Generic {
-	return i.kubernetes.secretsGeneric
+func (i *InitToken) secretsBackend() *GenericVaultBackend {
+	return i.kubernetes.secretsBackend
 }
 
 func (i *InitToken) writeData() map[string]interface{} {

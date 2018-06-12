@@ -78,12 +78,12 @@ func TestKubernetes_Ensure(t *testing.T) {
 }
 
 func TestKubernetes_NewToken_Role(t *testing.T) {
-	if err := k.kubernetesPKI.WriteRole(k.k8sAdminRole()); err != nil {
+	if err := k.kubernetesBackend.WriteRole(k.k8sAdminRole()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	kubeSchedulerRole := k.k8sComponentRole("kube-scheduler")
-	if err := k.kubernetesPKI.WriteRole(kubeSchedulerRole); err != nil {
+	if err := k.kubernetesBackend.WriteRole(kubeSchedulerRole); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

@@ -94,11 +94,11 @@ func (k *Kubernetes) etcdPolicy() *Policy {
 		Role: role,
 		Policies: []*policyPath{
 			&policyPath{
-				path:         filepath.Join(k.etcdKubernetesPKI.Path(), "sign/server"),
+				path:         filepath.Join(k.etcdKubernetesBackend.Path(), "sign/server"),
 				capabilities: []string{"create", "read", "update"},
 			},
 			&policyPath{
-				path:         filepath.Join(k.etcdOverlayPKI.Path(), "sign/server"),
+				path:         filepath.Join(k.etcdOverlayBackend.Path(), "sign/server"),
 				capabilities: []string{"create", "read", "update"},
 			},
 		},
@@ -112,15 +112,15 @@ func (k *Kubernetes) masterPolicy() *Policy {
 		Role: role,
 		Policies: []*policyPath{
 			&policyPath{
-				path:         filepath.Join(k.etcdKubernetesPKI.Path(), "sign/client"),
+				path:         filepath.Join(k.etcdKubernetesBackend.Path(), "sign/client"),
 				capabilities: []string{"create", "read", "update"},
 			},
 			&policyPath{
-				path:         k.secretsGeneric.ServiceAccountsPath(),
+				path:         k.secretsBackend.ServiceAccountsPath(),
 				capabilities: []string{"read"},
 			},
 			&policyPath{
-				path:         k.secretsGeneric.EncryptionConfigPath(),
+				path:         k.secretsBackend.EncryptionConfigPath(),
 				capabilities: []string{"read"},
 			},
 		},
@@ -131,7 +131,7 @@ func (k *Kubernetes) masterPolicy() *Policy {
 		p.Policies = append(
 			p.Policies,
 			&policyPath{
-				path:         filepath.Join(k.kubernetesPKI.Path(), "sign", k8sRole),
+				path:         filepath.Join(k.kubernetesBackend.Path(), "sign", k8sRole),
 				capabilities: []string{"create", "read", "update"},
 			},
 		)
@@ -141,7 +141,7 @@ func (k *Kubernetes) masterPolicy() *Policy {
 	p.Policies = append(
 		p.Policies,
 		&policyPath{
-			path:         filepath.Join(k.kubernetesAPIProxy.Path(), "sign", "kube-apiserver"),
+			path:         filepath.Join(k.kubernetesAPIProxyBackend.Path(), "sign", "kube-apiserver"),
 			capabilities: []string{"create", "read", "update"},
 		},
 	)
@@ -155,15 +155,15 @@ func (k *Kubernetes) masterPolicy() *Policy {
 func (k *Kubernetes) workerPolicyPaths() []*policyPath {
 	return []*policyPath{
 		&policyPath{
-			path:         filepath.Join(k.kubernetesPKI.Path(), "sign/kubelet"),
+			path:         filepath.Join(k.kubernetesBackend.Path(), "sign/kubelet"),
 			capabilities: []string{"create", "read", "update"},
 		},
 		&policyPath{
-			path:         filepath.Join(k.kubernetesPKI.Path(), "sign/kube-proxy"),
+			path:         filepath.Join(k.kubernetesBackend.Path(), "sign/kube-proxy"),
 			capabilities: []string{"create", "read", "update"},
 		},
 		&policyPath{
-			path:         filepath.Join(k.etcdOverlayPKI.Path(), "sign/client"),
+			path:         filepath.Join(k.etcdOverlayBackend.Path(), "sign/client"),
 			capabilities: []string{"create", "read", "update"},
 		},
 	}

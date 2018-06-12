@@ -45,8 +45,8 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	}
 
 	// expects a read and vault says secret is not existing
-	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
+	initTokenPath := "test-cluster-inside/secrets/init_token_etcd"
+	fv.fakeLogical.EXPECT().Read(initTokenPath).Return(
 		nil,
 		nil,
 	)
@@ -59,7 +59,7 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 	}, nil)
 
 	// expect a write of the new token
-	fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "my-new-random-token"}).Return(
+	fv.fakeLogical.EXPECT().Write(initTokenPath, map[string]interface{}{"init_token": "my-new-random-token"}).Return(
 		nil,
 		nil,
 	)
@@ -98,8 +98,8 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 	}
 
 	// expect a read and vault says secret is existing
-	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
+	initTokenPath := "test-cluster-inside/secrets/init_token_etcd"
+	fv.fakeLogical.EXPECT().Read(initTokenPath).Return(
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "existing-token"},
 		},
@@ -140,8 +140,8 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 	}
 
 	// expect a read and vault says secret is existing
-	genericPath := "test-cluster-inside/secrets/init_token_etcd"
-	fv.fakeLogical.EXPECT().Read(genericPath).Return(
+	initTokenPath := "test-cluster-inside/secrets/init_token_etcd"
+	fv.fakeLogical.EXPECT().Read(initTokenPath).Return(
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "expected-token"},
 		},
@@ -189,19 +189,19 @@ func TestInitToken_Ensure_ExpectedToken_NotExisting(t *testing.T) {
 	}, nil)
 
 	// expect a read and vault says secret is not existing, then after it is written to return token
-	genericPath := "test-cluster-inside/secrets/init_token_etcd"
+	initTokenPath := "test-cluster-inside/secrets/init_token_etcd"
 	gomock.InOrder(
-		fv.fakeLogical.EXPECT().Read(genericPath).Return(
+		fv.fakeLogical.EXPECT().Read(initTokenPath).Return(
 			nil,
 			nil,
 		).MinTimes(1),
 		// expect a write of the new token from user flag
-		fv.fakeLogical.EXPECT().Write(genericPath, map[string]interface{}{"init_token": "expected-token"}).Return(
+		fv.fakeLogical.EXPECT().Write(initTokenPath, map[string]interface{}{"init_token": "expected-token"}).Return(
 			nil,
 			nil,
 		),
 		// allow read out of token from user
-		fv.fakeLogical.EXPECT().Read(genericPath).AnyTimes().Return(
+		fv.fakeLogical.EXPECT().Read(initTokenPath).AnyTimes().Return(
 			&vault.Secret{
 				Data: map[string]interface{}{"init_token": "expected-token"},
 			},

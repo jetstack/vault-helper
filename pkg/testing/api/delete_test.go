@@ -17,11 +17,11 @@ func TestDelete_Backend(t *testing.T) {
 	for _, isNil := range []bool{true, false} {
 
 		for _, b := range []kubernetes.Backend{
-			kubernetes.NewPKI(k, "etcd-k8s", k.Log),
-			kubernetes.NewPKI(k, "etcd-overlay", k.Log),
-			kubernetes.NewPKI(k, "k8s", k.Log),
-			kubernetes.NewPKI(k, "k8s-api-proxy", k.Log),
-			k.NewGeneric(k.Log),
+			kubernetes.NewPKIVaultBackend(k, "etcd-k8s", k.Log),
+			kubernetes.NewPKIVaultBackend(k, "etcd-overlay", k.Log),
+			kubernetes.NewPKIVaultBackend(k, "k8s", k.Log),
+			kubernetes.NewPKIVaultBackend(k, "k8s-api-proxy", k.Log),
+			k.NewGenericVaultBackend(k.Log),
 		} {
 
 			mounts, err := v.Client().Sys().ListMounts()
@@ -49,8 +49,8 @@ func TestDelete_EtcdRole(t *testing.T) {
 
 	for _, isNil := range []bool{true, false} {
 		for _, b := range []kubernetes.Backend{
-			kubernetes.NewPKI(k, "etcd-k8s", k.Log),
-			kubernetes.NewPKI(k, "etcd-overlay", k.Log),
+			kubernetes.NewPKIVaultBackend(k, "etcd-k8s", k.Log),
+			kubernetes.NewPKIVaultBackend(k, "etcd-overlay", k.Log),
 		} {
 
 			for _, role := range []string{"server", "client"} {
@@ -72,7 +72,7 @@ func TestDelete_KubernetesRole(t *testing.T) {
 	Must(k.Delete(), t)
 	checkDryRun(true, t)
 
-	b := kubernetes.NewPKI(k, "k8s", k.Log)
+	b := kubernetes.NewPKIVaultBackend(k, "k8s", k.Log)
 	for _, isNil := range []bool{true, false} {
 		for _, role := range []string{
 			"admin",
@@ -97,7 +97,7 @@ func TestDelte_KubernetesAPIRole(t *testing.T) {
 	Must(k.Delete(), t)
 	checkDryRun(true, t)
 
-	b := kubernetes.NewPKI(k, "k8s-api-proxy", k.Log)
+	b := kubernetes.NewPKIVaultBackend(k, "k8s-api-proxy", k.Log)
 	for _, isNil := range []bool{true, false} {
 
 		path := filepath.Join(b.Path(), "roles", "kube-apiserver")

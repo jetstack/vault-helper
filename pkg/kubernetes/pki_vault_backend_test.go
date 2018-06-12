@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestPKI_Ensure(t *testing.T) {
+func TestPKIVaultBackend_Ensure(t *testing.T) {
 	fv := NewFakeVault(t)
 	defer fv.Finish()
 	fv.ExpectWrite()
@@ -19,28 +19,28 @@ func TestPKI_Ensure(t *testing.T) {
 	fk := fv.Kubernetes()
 	fv.PKIEnsure()
 
-	if exp, act := fmt.Sprintf("%s-inside/pki/etcd-k8s", clusterName), fk.etcdKubernetesPKI.Path(); exp != act {
+	if exp, act := fmt.Sprintf("%s-inside/pki/etcd-k8s", clusterName), fk.etcdKubernetesBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
-	if exp, act := fmt.Sprintf("%s-inside/pki/etcd-overlay", clusterName), fk.etcdOverlayPKI.Path(); exp != act {
+	if exp, act := fmt.Sprintf("%s-inside/pki/etcd-overlay", clusterName), fk.etcdOverlayBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
-	if exp, act := fmt.Sprintf("%s-inside/pki/k8s", clusterName), fk.kubernetesPKI.Path(); exp != act {
+	if exp, act := fmt.Sprintf("%s-inside/pki/k8s", clusterName), fk.kubernetesBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
-	if exp, act := fmt.Sprintf("%s-inside/secrets", clusterName), fk.secretsGeneric.Path(); exp != act {
+	if exp, act := fmt.Sprintf("%s-inside/secrets", clusterName), fk.secretsBackend.Path(); exp != act {
 		t.Errorf("unexpected value, exp=%s got=%s", exp, act)
 	}
 
-	fk.etcdKubernetesPKI.DefaultLeaseTTL = time.Hour * 0
-	fk.etcdOverlayPKI.MaxLeaseTTL = time.Hour * 0
-	fk.kubernetesPKI.DefaultLeaseTTL = time.Hour * 0
+	fk.etcdKubernetesBackend.DefaultLeaseTTL = time.Hour * 0
+	fk.etcdOverlayBackend.MaxLeaseTTL = time.Hour * 0
+	fk.kubernetesBackend.DefaultLeaseTTL = time.Hour * 0
 	if err := fk.Ensure(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	policy_name := filepath.Join(fk.clusterID, "master")
-	exists, err := fk.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	exists, err := fk.etcdKubernetesBackend.getTokenPolicyExists(policy_name)
 	if err != nil {
 		t.Errorf("failed to find policy: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestPKI_Ensure(t *testing.T) {
 		t.Errorf("failed to write policy: %v", err)
 	}
 
-	exists, err = fk.etcdKubernetesPKI.getTokenPolicyExists(policy_name)
+	exists, err = fk.etcdKubernetesBackend.getTokenPolicyExists(policy_name)
 	if err != nil {
 		t.Errorf("faileds to find policy: %v", err)
 	}
@@ -60,14 +60,14 @@ func TestPKI_Ensure(t *testing.T) {
 		t.Error("policy not found")
 	}
 
-	pkiWrongType := NewPKI(fk, "wrong-type-pki", logrus.NewEntry(logrus.New()))
+	pkiWrongType := NewPKIVaultBackend(fk, "wrong-type-pki", logrus.NewEntry(logrus.New()))
 
 	if err := fk.vaultClient.Sys().Mount(
 		fk.Path()+"/pki/"+"wrong-type-pki",
 		&vault.MountInput{
 			Description: "Kubernetes " + fk.clusterID + "/" + "wrong-type-pki" + " CA",
 			Type:        "generic",
-			Config:      fk.etcdKubernetesPKI.getMountConfigInput(),
+			Config:      fk.etcdKubernetesBackend.getMountConfigInput(),
 		},
 	); err != nil {
 		t.Errorf("failed to mount: %v", err)

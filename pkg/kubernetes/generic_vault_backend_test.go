@@ -7,14 +7,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestGeneric_Ensure(t *testing.T) {
-	generic := k.NewGeneric(logrus.NewEntry(logrus.New()))
-	if err := generic.Ensure(); err != nil {
+func TestGenericVaultBackend_Ensure(t *testing.T) {
+	backend := k.NewGenericVaultBackend(logrus.NewEntry(logrus.New()))
+	if err := backend.Ensure(); err != nil {
 		t.Error("unexpected error: ", err)
 		return
 	}
 
-	if err := generic.Ensure(); err != nil {
+	if err := backend.Ensure(); err != nil {
 		t.Error("unexpected error: ", err)
 	}
 }
