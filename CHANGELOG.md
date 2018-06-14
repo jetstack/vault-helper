@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.12] - 2018-06-14
+
+### Changed
+- Ensure both secrets and configmaps are stored with encryption at rest [PR
+  26](https://github.com/jetstack/vault-helper/pull/26)
+
 ## [0.9.11] - 2018-06-12
 
 ### Fixed
