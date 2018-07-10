@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.13] - 2018-07-10
+
+### Fixed
+- Prevent panic during ensure dry runs PR #29, issue #28
+
 ## [0.9.12] - 2018-06-14
 
 ### Changed
