@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -180,4 +181,9 @@ func (v *fakeVault) PKIEnsure() {
 
 	first := v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(fmt.Errorf("wrong type")).After(first)
+}
+
+func (v *fakeVault) ReadPKIRoleErr() {
+	v.fakeVault.EXPECT().Logical().AnyTimes().Return(v.fakeLogical)
+	v.fakeLogical.EXPECT().Read(gomock.Any()).Return(nil, errors.New("an error")).AnyTimes()
 }
