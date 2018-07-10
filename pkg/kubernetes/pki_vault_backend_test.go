@@ -77,3 +77,34 @@ func TestPKIVaultBackend_Ensure(t *testing.T) {
 		t.Errorf("expected an error from wrong pki type")
 	}
 }
+
+func TestPKIVaultBackend_DryRunErr(t *testing.T) {
+	fv := NewFakeVault(t)
+	defer fv.Finish()
+
+	fv.ExpectWrite()
+	fv.ReadPKIRoleErr()
+
+	fk := fv.Kubernetes()
+	pki := NewPKIVaultBackend(fk, "wrong-type-pki", logrus.NewEntry(logrus.New()))
+
+	type pkiFuncs struct {
+		f func(*PKIVaultBackend) (bool, error)
+		s string
+	}
+
+	for _, p := range []pkiFuncs{
+		{fk.ensureDryRunPKIRolesEtcd, "Etcd"},
+		{fk.ensureDryRunPKIRolesK8S, "K8s"},
+		{fk.ensureDryRunPKIRolesK8SAPIProxy, "K8sApiProxy"},
+	} {
+		changeNeeded, err := p.f(pki)
+		if err == nil {
+			t.Errorf("expected error, got none (%s)", p.s)
+		}
+
+		if !changeNeeded {
+			t.Errorf("expected change needed, got none (%s)", p.s)
+		}
+	}
+}
