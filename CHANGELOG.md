@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Use vault 0.9.6
+- Upgrade golang to 1.11
 
 ## [0.9.13] - 2018-07-10
 
