@@ -3,7 +3,7 @@ FROM alpine:3.6
 
 RUN apk --update add openssl jq bash unzip curl
 
-ENV VAULT_VERSION 0.9.5
+ENV VAULT_VERSION 0.9.6
 ENV VAULT_HASH f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
 
 RUN curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip && \

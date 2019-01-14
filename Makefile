@@ -16,7 +16,7 @@ BUILD_TAG := build
 CI_COMMIT_TAG ?= $(shell git rev-parse HEAD)
 CI_COMMIT_SHA ?= unknown
 
-VAULT_VERSION := 0.9.5
+VAULT_VERSION := 0.9.6
 VAULT_HASH := f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
 
 help:

@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+### Changed
+- Use vault 0.9.6
+
 ## [0.9.13] - 2018-07-10
 
 ### Fixed
