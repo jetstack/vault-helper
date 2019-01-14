@@ -17,7 +17,7 @@ CI_COMMIT_TAG ?= $(shell git rev-parse HEAD)
 CI_COMMIT_SHA ?= unknown
 
 VAULT_VERSION := 0.9.6
-VAULT_HASH := f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
+VAULT_HASH := 3f1f346ff7aaf367fed6a3e83e5a07fdc032f22860585e36c3674f9ead08dbaf
 
 help:
 	# all       - runs verify, build targets

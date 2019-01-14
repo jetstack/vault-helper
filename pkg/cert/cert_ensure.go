@@ -38,7 +38,7 @@ func (c *Cert) EnsureKey() error {
 	}
 
 	if c.KeyType() != c.Data().Type {
-		c.Log.Warn("key doesn't match expected type at path '%s'. exp=%s got=%s", path, c.KeyType(), c.Data().Type)
+		c.Log.Warnf("key doesn't match expected type at path '%s'. exp=%s got=%s", path, c.KeyType(), c.Data().Type)
 		// Wrong key type
 		// Delete File, Generate new and write to file
 		if err := c.DeleteFile(path); err != nil {
