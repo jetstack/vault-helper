@@ -15,11 +15,11 @@ stages:
 build:golang:
   tags:
   - docker
-  image: golang:1.11.4-alpine
+  image: golang:1.11.4-stretch
   services:
   - docker:dind
   script:
-  - apk --update add curl unzip make git docker python bash
+  - apt-get -y update && apt-get -y install gcc unzip make git docker python bash
   - rm -rf /go/src/github.com/jetstack/vault-helper
   - mkdir -p /go/src/github.com/jetstack
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
@@ -33,12 +33,12 @@ build:golang:
     expire_in: 4 weeks
 
 deploy:release:
-  image: golang:1.11.4-alpine
+  image: golang:1.11.4-stretch
   stage: deploy
   tags:
   - docker
   script:
-  - apk --update add curl unzip make git docker python bash
+  - apt-get -y update && apt-get -y install gcc unzip make git docker python bash
   - umask 0077
   - mkdir -p /root/.gnupg
   - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
