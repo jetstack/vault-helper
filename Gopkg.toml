@@ -1,4 +1,8 @@
 # vendor in code gen tools
+required = [
+  "github.com/golang/mock/mockgen",
+]
+
 [[constraint]]
   name = "github.com/golang/mock"
   version = "^1.1.1"
@@ -13,7 +17,7 @@
 
 [[constraint]]
   name = "github.com/hashicorp/vault"
-  version = "0.9.5"
+  version = "0.9.6"
 
 [prune]
   non-go = true
