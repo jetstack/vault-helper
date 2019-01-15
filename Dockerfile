@@ -1,10 +1,10 @@
 # Copyright Jetstack Ltd. See LICENSE for details.
-FROM alpine:3.6
+FROM alpine:3.8
 
 RUN apk --update add openssl jq bash unzip curl
 
 ENV VAULT_VERSION 0.9.6
-ENV VAULT_HASH f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
+ENV VAULT_HASH 3f1f346ff7aaf367fed6a3e83e5a07fdc032f22860585e36c3674f9ead08dbaf
 
 RUN curl -sL  https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip > /tmp/vault.zip && \
     echo "${VAULT_HASH}  /tmp/vault.zip" | sha256sum  -c && \
