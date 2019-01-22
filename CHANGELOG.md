@@ -1,9 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.9.14] - 2019-01-22
+
 ### Changed
 - Use vault 0.9.6
-- Upgrade golang to 1.11
+- Upgrade golang to 1.11.4
 
 ## [0.9.13] - 2018-07-10
 
