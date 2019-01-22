@@ -3,8 +3,8 @@ variables:
   DOCKER_HOST: tcp://localhost:2375
   VAULT_VERSION: 0.9.6
   VAULT_HASH: f6dbc9fdac00598d2a319c9b744b85bf17d9530298f93d29ef2065bc751df099
-  GORELEASER_HASH: 634f5eedd1000a1eb675c2ca93bbbc889aa0388df76aea3501d7734616910584
-
+  GORELEASER_HASH: f7dbad6cc4f8424eceb7a2d74dc21472f4ebde6041abf12ff1b44d766c8ad836
+  GORELEASER_VERSION: 0.98.0
 
 
 stages:
@@ -42,7 +42,7 @@ deploy:release:
   - umask 0077
   - mkdir -p /root/.gnupg
   - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
-  - curl -sL https://github.com/simonswine/goreleaser/releases/download/v0.36.0-gpg/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
+  - curl --fail -sL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
   - rm -rf /go/src/github.com/jetstack/vault-helper
@@ -50,7 +50,7 @@ deploy:release:
   - mv ${CI_PROJECT_DIR} /go/src/github.com/jetstack
   - cd /go/src/github.com/jetstack/vault-helper
   - goreleaser
-  - mv "dist/vault-helper_${CI_COMMIT_TAG}_linux_amd64/vault-helper_${CI_COMMIT_TAG}_linux_amd64" vault-helper_linux_amd64
+  - mv "dist/linux_amd64/vault-helper" vault-helper_linux_amd64
   - mv /go/src/github.com/jetstack/vault-helper ${CI_PROJECT_DIR}
   only:
   - tags
