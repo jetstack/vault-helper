@@ -6,6 +6,9 @@ variables:
   GORELEASER_HASH: f7dbad6cc4f8424eceb7a2d74dc21472f4ebde6041abf12ff1b44d766c8ad836
   GORELEASER_VERSION: 0.98.0
 
+# Ensure secrets are not exposed unnecessarily
+before_script:
+- unset GPG_PRIVATE_KEY GITHUB_TOKEN DOCKER_AUTH_CONFIG
 
 stages:
 - build
@@ -37,11 +40,10 @@ deploy:release:
   stage: deploy
   tags:
   - docker
+  before_script:
+  - echo "${GPG_PRIVATE_KEY}" | gpg --import -
   script:
   - apt-get -y update && apt-get -y install gcc unzip make git docker python bash
-  - umask 0077
-  - mkdir -p /root/.gnupg
-  - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
   - curl --fail -sL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
