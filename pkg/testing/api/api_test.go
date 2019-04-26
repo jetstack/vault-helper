@@ -62,18 +62,20 @@ func checkDryRun(exp bool, t *testing.T) {
 	b, err := k.EnsureDryRun()
 	Must(err, t)
 	if b != exp {
-		t.Errorf("unexpected changes required, exp=%t got=%t", exp, b)
+		//t.Errorf("unexpected changes required, exp=%t got=%t", exp, b)
+		t.Fatalf("unexpected changes required, exp=%t got=%t", exp, b)
 	}
 }
 
 func createErrorData(dataMap map[string]interface{}) map[string]interface{} {
 	for key, data := range map[string]interface{}{
-		"max_ttl":         "0s",
-		"ttl":             "0s",
-		"organization":    "foo",
-		"allowed_domains": []string{"foo"},
-		"period":          "100s",
-		"orphan":          "false",
+		"max_ttl":          "0s",
+		"ttl":              "0s",
+		"organization":     "foo",
+		"allowed_domains":  []string{"foo"},
+		"period":           "100s",
+		"orphan":           "false",
+		"allowed_policies": []string{"foo"},
 	} {
 		dataMap[key] = data
 	}

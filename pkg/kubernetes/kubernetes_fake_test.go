@@ -2,8 +2,10 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -119,10 +121,10 @@ func (v *fakeVault) NewToken() {
 	}
 
 	writeData2 := map[string]interface{}{
-		"allow_localhost": false,
-		"server_flag":     false,
-		"max_ttl":         "2592000s",
-		"ttl":             "2592000s",
+		"allow_localhost":     false,
+		"server_flag":         false,
+		"max_ttl":             "2592000s",
+		"ttl":                 "2592000s",
 		"use_csr_common_name": false,
 		"allow_bare_domains":  true,
 		"allow_subdomains":    false,
@@ -162,12 +164,9 @@ func (v *fakeVault) PKIEnsure() {
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/etcd-overlay", mountInput2).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s", mountInput3).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/k8s-api-proxy", mountInput4).Times(1).Return(nil)
-
-	v.fakeLogical.EXPECT().Read(gomock.Any()).AnyTimes().Return(nil, nil)
+	v.fakeSys.EXPECT().Mount("test-cluster-inside/secrets", gomock.Any()).Times(1).Return(nil)
 
 	v.fakeLogical.EXPECT().Write(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
-
-	v.fakeSys.EXPECT().Mount("test-cluster-inside/secrets", gomock.Any()).Times(1).Return(nil)
 
 	v.fakeSys.EXPECT().PutPolicy(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 	v.fakeToken.EXPECT().CreateOrphan(gomock.Any()).AnyTimes().Return(&vault.Secret{
@@ -181,6 +180,25 @@ func (v *fakeVault) PKIEnsure() {
 
 	first := v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(nil)
 	v.fakeSys.EXPECT().Mount("test-cluster-inside/pki/wrong-type-pki", gomock.Any()).Times(1).Return(fmt.Errorf("wrong type")).After(first)
+
+	v.fakeToken.EXPECT().Lookup("my-new-token").AnyTimes().Return(nil, nil)
+	v.fakeToken.EXPECT().Renew("my-new-token", 0).AnyTimes().Return(nil, nil)
+
+	v.fakeSys.EXPECT().TuneMount("/auth/token", vault.MountConfigInput{
+		MaxLeaseTTL: fmt.Sprintf("%0.fs", k.MaxValidityInitTokens.Seconds()),
+	}).Return(nil)
+
+	v.fakeLogical.EXPECT().Read("/sys/auth").AnyTimes().Return(&vault.Secret{
+		Data: map[string]interface{}{
+			"token/": map[string]interface{}{
+				"config": map[string]interface{}{
+					"max_lease_ttl": json.Number(strconv.FormatFloat(9999999, 'e', -1, 64)),
+				},
+			},
+		},
+	}, nil)
+
+	v.fakeLogical.EXPECT().Read(gomock.Any()).AnyTimes().Return(nil, nil)
 }
 
 func (v *fakeVault) ReadPKIRoleErr() {

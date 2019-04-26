@@ -42,7 +42,7 @@ generate: go_generate
 go_verify: go_fmt go_vet verify_boilerplate go_test
 
 go_test:
-	go test $$(go list ./pkg/... ./cmd/...)
+	go test --count=1 $$(go list ./pkg/... ./cmd/...)
 
 go_fmt:
 	@set -e; \

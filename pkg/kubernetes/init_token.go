@@ -101,9 +101,9 @@ func (i *InitToken) Delete() error {
 func (i *InitToken) EnsureDryRun() (bool, error) {
 	var result *multierror.Error
 
-	inDate, err := i.ensureDryRunInDate()
-	if err != nil || !inDate {
-		return inDate, err
+	expDate, err := i.ensureDryRunExpDate()
+	if err != nil || expDate {
+		return expDate, err
 	}
 
 	secret, err := i.readTokenRole()
@@ -135,7 +135,7 @@ func (i *InitToken) EnsureDryRun() (bool, error) {
 	return false, result.ErrorOrNil()
 }
 
-func (i *InitToken) ensureDryRunInDate() (bool, error) {
+func (i *InitToken) ensureDryRunExpDate() (bool, error) {
 	token, err := i.InitToken()
 	if err != nil {
 		return true, err
@@ -263,6 +263,5 @@ func (i *InitToken) writeData() map[string]interface{} {
 		"orphan":           true,
 		"allowed_policies": i.Policies,
 		"path_suffix":      i.namePath(),
-		"ttl":              fmt.Sprintf("%d", int(i.kubernetes.MaxValidityInitTokens.Seconds())),
 	}
 }

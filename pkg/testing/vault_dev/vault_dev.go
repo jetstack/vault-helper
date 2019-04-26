@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
 	"time"
 
@@ -42,7 +43,7 @@ func (v *VaultDev) Start() error {
 
 	logrus.Infof("starting vault: %#+v", args)
 
-	v.server = exec.Command("vault", args...)
+	v.server = exec.Command(v.binPath(), args...)
 
 	err := v.server.Start()
 	if err != nil {
@@ -147,4 +148,9 @@ func InitVaultDev() (*VaultDev, error) {
 	}
 
 	return vaultDev, nil
+}
+
+func (v *VaultDev) binPath() string {
+	gp := os.Getenv("GOPATH")
+	return path.Join(gp, "src/github.com/jetstack/vault-helper/bin/vault")
 }
