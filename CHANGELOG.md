@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [0.9.15] - 2018-07-10
+## [0.9.15] - 2019-04-26
 
 ### Fixed
 - Ensure init tokens are given a large TTL (5 years), renewed, and recreated
