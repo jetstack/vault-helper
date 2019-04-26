@@ -4,6 +4,7 @@ package api
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	vault "github.com/hashicorp/vault/api"
@@ -51,6 +52,7 @@ func TestDryRun_BackendTypeDiffers(t *testing.T) {
 }
 
 func TestDryRun_EtcdRole(t *testing.T) {
+	checkDryRun(false, t)
 
 	for _, b := range []kubernetes.Backend{
 		kubernetes.NewPKIVaultBackend(k, "etcd-k8s", k.Log),
@@ -81,6 +83,7 @@ func TestDryRun_EtcdRole(t *testing.T) {
 }
 
 func TestDryRun_KubernetesRole(t *testing.T) {
+	checkDryRun(false, t)
 
 	b := kubernetes.NewPKIVaultBackend(k, "k8s", k.Log)
 
@@ -114,6 +117,7 @@ func TestDryRun_KubernetesRole(t *testing.T) {
 }
 
 func TestDryRun_KubernetesAPIRole(t *testing.T) {
+	checkDryRun(false, t)
 
 	b := kubernetes.NewPKIVaultBackend(k, "k8s-api-proxy", k.Log)
 
@@ -131,15 +135,17 @@ func TestDryRun_KubernetesAPIRole(t *testing.T) {
 	_, err = v.Client().Logical().Write(path, createErrorData(secret.Data))
 	Must(err, t)
 	checkDryRun(true, t)
+
+	Must(k.Ensure(), t)
+	checkDryRun(false, t)
 }
 
 func TestDryRun_Policies(t *testing.T) {
-	Must(k.Ensure(), t)
 	checkDryRun(false, t)
 
 	policy := `path "test-cluster/pki/etcd-overlay/sign/server" {
-  capabilities = []
-}`
+	  capabilities = []
+	}`
 
 	for _, role := range []string{"etcd", "master", "worker"} {
 		policyName := fmt.Sprintf("%s/%s", clusterName, role)
@@ -152,7 +158,6 @@ func TestDryRun_Policies(t *testing.T) {
 }
 
 func TestDryRun_InitToken(t *testing.T) {
-	Must(k.Ensure(), t)
 	checkDryRun(false, t)
 
 	policy := `path "test-cluster/pki/etcd-overlay/sign/server" {
@@ -175,4 +180,48 @@ func TestDryRun_InitToken(t *testing.T) {
 		Must(k.Ensure(), t)
 		checkDryRun(false, t)
 	}
+}
+
+func TestDryRun_InitToken_Revoke(t *testing.T) {
+	checkDryRun(false, t)
+
+	for _, token := range k.NewInitTokens() {
+		tokenS, err := token.InitToken()
+		Must(err, t)
+
+		_, err = v.Client().Auth().Token().Lookup(tokenS)
+		Must(err, t)
+
+		Must(v.Client().Auth().Token().RevokeOrphan(tokenS), t)
+		checkDryRun(true, t)
+
+		_, err = v.Client().Auth().Token().Lookup(tokenS)
+		if err == nil {
+			t.Fatal("expected error, got none")
+		}
+
+		if !strings.Contains(err.Error(), "Code: 403.") ||
+			!strings.Contains(err.Error(), "bad token") {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		Must(k.Ensure(), t)
+		checkDryRun(false, t)
+
+		_, err = v.Client().Auth().Token().Lookup(tokenS)
+		Must(err, t)
+	}
+}
+
+func TestDryRun_MountTTL(t *testing.T) {
+	checkDryRun(false, t)
+
+	Must(v.Client().Sys().TuneMount("/auth/token", vault.MountConfigInput{
+		MaxLeaseTTL: "5s",
+	}), t)
+
+	checkDryRun(true, t)
+
+	Must(k.Ensure(), t)
+	checkDryRun(false, t)
 }

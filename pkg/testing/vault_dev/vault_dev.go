@@ -26,7 +26,7 @@ func New() *VaultDev {
 	return &VaultDev{}
 }
 
-func (v *VaultDev) Start() error {
+func (v *VaultDev) Start(binPath string) error {
 
 	if v.port == nil {
 		p := getUnusedPort()
@@ -42,7 +42,7 @@ func (v *VaultDev) Start() error {
 
 	logrus.Infof("starting vault: %#+v", args)
 
-	v.server = exec.Command("vault", args...)
+	v.server = exec.Command(binPath, args...)
 
 	err := v.server.Start()
 	if err != nil {
@@ -127,10 +127,10 @@ func getUnusedPort() int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-func InitVaultDev() (*VaultDev, error) {
+func InitVaultDev(binPath string) (*VaultDev, error) {
 	vaultDev := New()
 
-	if err := vaultDev.Start(); err != nil {
+	if err := vaultDev.Start(binPath); err != nil {
 		return nil, fmt.Errorf("unable to initialise vault dev server for testing: %v", err)
 	}
 

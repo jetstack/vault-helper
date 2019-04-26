@@ -23,7 +23,13 @@ var vaultDev *vault_dev.VaultDev
 var tempDirs []string
 
 func TestMain(m *testing.M) {
-	vaultDev = initVaultDev()
+	var err error
+
+	vaultDev, err = initVaultDev()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	initKubernetes(vaultDev)
 
 	// this runs all tests
@@ -428,14 +434,19 @@ func initKubernetes(vaultDev *vault_dev.VaultDev) *kubernetes.Kubernetes {
 }
 
 // Start vault_dev for testing
-func initVaultDev() *vault_dev.VaultDev {
+func initVaultDev() (*vault_dev.VaultDev, error) {
 	vaultDev := vault_dev.New()
 
-	if err := vaultDev.Start(); err != nil {
-		logrus.Fatalf("unable to initialise vault dev server for integration tests: %v", err)
+	binPath, err := filepath.Abs("../../bin/vault")
+	if err != nil {
+		return nil, err
 	}
 
-	return vaultDev
+	if err := vaultDev.Start(binPath); err != nil {
+		return nil, fmt.Errorf("unable to initialise vault dev server for integration tests: %v", err)
+	}
+
+	return vaultDev, nil
 }
 
 // Init instance token for testing

@@ -3,6 +3,7 @@ package kubernetes
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,7 +22,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	v, err := vault_dev.InitVaultDev()
+	binPath, err := filepath.Abs("../../bin/vault")
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	v, err := vault_dev.InitVaultDev(binPath)
 	if err != nil {
 		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}

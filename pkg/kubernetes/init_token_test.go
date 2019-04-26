@@ -64,6 +64,16 @@ func TestInitToken_Ensure_NoExpectedToken_NotExisting(t *testing.T) {
 		nil,
 	)
 
+	fv.fakeToken.EXPECT().Lookup("my-new-random-token").Return(
+		nil,
+		nil,
+	)
+
+	fv.fakeToken.EXPECT().Renew("my-new-random-token", 0).Return(
+		nil,
+		nil,
+	)
+
 	InitTokenEnsure_EXPECTs(fv)
 
 	err := i.Ensure()
@@ -106,6 +116,16 @@ func TestInitToken_Ensure_NoExpectedToken_AlreadyExisting(t *testing.T) {
 		nil,
 	)
 
+	fv.fakeToken.EXPECT().Lookup("existing-token").Return(
+		nil,
+		nil,
+	)
+
+	fv.fakeToken.EXPECT().Renew("existing-token", 0).Return(
+		nil,
+		nil,
+	)
+
 	InitTokenEnsure_EXPECTs(fv)
 
 	err := i.Ensure()
@@ -145,6 +165,16 @@ func TestInitToken_Ensure_ExpectedToken_Existing_Match(t *testing.T) {
 		&vault.Secret{
 			Data: map[string]interface{}{"init_token": "expected-token"},
 		},
+		nil,
+	)
+
+	fv.fakeToken.EXPECT().Lookup("expected-token").Return(
+		nil,
+		nil,
+	)
+
+	fv.fakeToken.EXPECT().Renew("expected-token", 0).Return(
+		nil,
 		nil,
 	)
 
@@ -207,6 +237,16 @@ func TestInitToken_Ensure_ExpectedToken_NotExisting(t *testing.T) {
 			},
 			nil,
 		),
+	)
+
+	fv.fakeToken.EXPECT().Lookup("expected-token").Return(
+		nil,
+		nil,
+	)
+
+	fv.fakeToken.EXPECT().Renew("expected-token", 0).Return(
+		nil,
+		nil,
 	)
 
 	InitTokenEnsure_EXPECTs(fv)
