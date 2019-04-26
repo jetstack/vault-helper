@@ -21,7 +21,7 @@ const (
 var tmpDirs []string
 
 func TestMain(m *testing.M) {
-	vault, err := vault_dev.InitVaultDev()
+	vault, err := vault_dev.InitVaultDev("../../../bin/vault")
 	if err != nil {
 		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}

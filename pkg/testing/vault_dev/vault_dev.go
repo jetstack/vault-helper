@@ -27,7 +27,7 @@ func New() *VaultDev {
 	return &VaultDev{}
 }
 
-func (v *VaultDev) Start() error {
+func (v *VaultDev) Start(binPath string) error {
 
 	if v.port == nil {
 		p := getUnusedPort()
@@ -43,9 +43,16 @@ func (v *VaultDev) Start() error {
 
 	logrus.Infof("starting vault: %#+v", args)
 
-	v.server = exec.Command(v.binPath(), args...)
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 
-	err := v.server.Start()
+	binPath = path.Join(wd, binPath)
+
+	v.server = exec.Command(binPath, args...)
+
+	err = v.server.Start()
 	if err != nil {
 		return err
 	}
@@ -128,10 +135,10 @@ func getUnusedPort() int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-func InitVaultDev() (*VaultDev, error) {
+func InitVaultDev(binPath string) (*VaultDev, error) {
 	vaultDev := New()
 
-	if err := vaultDev.Start(); err != nil {
+	if err := vaultDev.Start(binPath); err != nil {
 		return nil, fmt.Errorf("unable to initialise vault dev server for testing: %v", err)
 	}
 
@@ -148,9 +155,4 @@ func InitVaultDev() (*VaultDev, error) {
 	}
 
 	return vaultDev, nil
-}
-
-func (v *VaultDev) binPath() string {
-	gp := os.Getenv("GOPATH")
-	return path.Join(gp, "src/github.com/jetstack/vault-helper/bin/vault")
 }

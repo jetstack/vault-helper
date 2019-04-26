@@ -3,7 +3,7 @@ PACKAGE_NAME ?= github.com/jetstack/vault-helper
 CONTAINER_DIR := /go/src/$(PACKAGE_NAME)
 GO_VERSION := 1.11.4
 
-BINDIR ?= $(PWD)/bin
+BINDIR ?= $(CURDIR)/bin
 PATH   := $(BINDIR):$(PATH)
 
 HACK_DIR     ?= hack
