@@ -48,7 +48,7 @@ var devServerCmd = &cobra.Command{
 
 		v := dev_server.New(log)
 		v.Vault.SetPort(port)
-		if err := v.Vault.Start("../bin/vault"); err != nil {
+		if err := v.Vault.Start("vault"); err != nil {
 			Must(fmt.Errorf("unable to initialise dev vault: %s", err))
 		}
 

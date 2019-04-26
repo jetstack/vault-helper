@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"path"
 	"syscall"
 	"time"
 
@@ -43,16 +42,9 @@ func (v *VaultDev) Start(binPath string) error {
 
 	logrus.Infof("starting vault: %#+v", args)
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	binPath = path.Join(wd, binPath)
-
 	v.server = exec.Command(binPath, args...)
 
-	err = v.server.Start()
+	err := v.server.Start()
 	if err != nil {
 		return err
 	}

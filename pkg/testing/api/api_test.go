@@ -4,6 +4,7 @@ package api
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	vault "github.com/hashicorp/vault/api"
@@ -23,11 +24,15 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	vaultDev, err := vault_dev.InitVaultDev("../../../bin/vault")
+	binPath, err := filepath.Abs("../../../bin/vault")
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	v, err = vault_dev.InitVaultDev(binPath)
 	if err != nil {
 		logrus.Fatalf("failed to initiate vault for testing: %v", err)
 	}
-	v = vaultDev
 	defer v.Stop()
 	logrus.RegisterExitHandler(v.Stop)
 
